@@ -23,12 +23,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # The Unity editor image does not reliably fit in the free space of a
-      # stock runner; drop preinstalled toolchains we don't use.
+      # Make room for the Unity editor image by dropping preinstalled
+      # toolchains we don't use (fast, unlike a full docker image prune).
       - name: Free disk space
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force
           df -h /
 
       - name: Cache Library
@@ -48,6 +47,9 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
+          # The default image is the il2cpp variant; editor tests only need
+          # the much smaller base image.
+          customImage: unityci/editor:ubuntu-6000.5.9f1-base-3
           testMode: all
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           checkName: Test Results (Full)
