@@ -55,5 +55,24 @@ namespace ThinkFast.Quiz.EditorTools
             iconProperty.objectReferenceValue = image;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
+
+        /// <summary>Enables the sequence bucket on the sample scene's QuizFlow.</summary>
+        [MenuItem("Tools/Quiz/Add Sequence Questions To Sample Scene")]
+        public static void AddSequenceQuestionsToSampleScene()
+        {
+            var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(
+                "Assets/Scenes/SampleScene.unity");
+            QuizFlow flow = Object.FindAnyObjectByType<QuizFlow>();
+            if (flow == null)
+            {
+                Debug.LogWarning("No QuizFlow in SampleScene; run Add Quiz Flow To Sample Scene first.");
+                return;
+            }
+            var serialized = new SerializedObject(flow);
+            serialized.FindProperty("sequenceWeight").floatValue = 2f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
+            UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
+        }
     }
 }
