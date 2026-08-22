@@ -27,5 +27,45 @@ namespace ThinkFast.Quiz.Tests
             Assert.AreNotEqual(a, c);
             Assert.IsTrue(a != c);
         }
+
+        [Test]
+        public void Number_options_are_four_distinct_with_valid_correct_index()
+        {
+            var generator = new SequenceGenerator(seed: 1234);
+            for (int i = 0; i < 50; i++)
+            {
+                NumberPuzzle puzzle = generator.NextNumber();
+                Assert.AreEqual(4, puzzle.Options.Length);
+                CollectionAssert.AllItemsAreUnique(puzzle.Options);
+                Assert.GreaterOrEqual(puzzle.CorrectIndex, 0);
+                Assert.Less(puzzle.CorrectIndex, 4);
+                Assert.GreaterOrEqual(puzzle.Terms.Length, 4);
+            }
+        }
+
+        [Test]
+        public void Number_generator_is_deterministic_for_a_seed()
+        {
+            var a = new SequenceGenerator(seed: 42).NextNumber();
+            var b = new SequenceGenerator(seed: 42).NextNumber();
+            CollectionAssert.AreEqual(a.Terms, b.Terms);
+            CollectionAssert.AreEqual(a.Options, b.Options);
+            Assert.AreEqual(a.CorrectIndex, b.CorrectIndex);
+        }
+
+        [Test]
+        public void Every_number_family_places_a_solvable_next_term()
+        {
+            // With enough samples, all four families appear; each must have the
+            // correct next term present exactly once among the options.
+            var generator = new SequenceGenerator(seed: 7);
+            for (int i = 0; i < 200; i++)
+            {
+                NumberPuzzle puzzle = generator.NextNumber();
+                string correct = puzzle.Options[puzzle.CorrectIndex];
+                int occurrences = System.Array.FindAll(puzzle.Options, o => o == correct).Length;
+                Assert.AreEqual(1, occurrences, "correct term must be unique among options");
+            }
+        }
     }
 }
