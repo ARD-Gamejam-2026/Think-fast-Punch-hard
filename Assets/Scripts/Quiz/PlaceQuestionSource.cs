@@ -68,9 +68,33 @@ namespace ThinkFast.Quiz
                     SummaryUrl + UnityWebRequest.EscapeURL(entry.wikipediaTitle)))
                 {
                     request.timeout = RequestTimeoutSeconds;
-                    yield return request.SendWebRequest();
+                    // UnityWebRequest.timeout is a no-op on WebGL (our build
+                    // target), so also race the request against a manual
+                    // clock and abort on expiry.
+                    var operation = request.SendWebRequest();
+                    float start = Time.realtimeSinceStartup;
+                    while (!operation.isDone
+                        && Time.realtimeSinceStartup - start < RequestTimeoutSeconds)
+                        yield return null;
+                    if (!request.isDone)
+                        request.Abort();
+
                     if (request.result == UnityWebRequest.Result.Success)
-                        summary = JsonUtility.FromJson<WikipediaSummary>(request.downloadHandler.text);
+                    {
+                        // JsonUtility.FromJson throws on malformed JSON; a
+                        // single bad response must not kill this coroutine.
+                        try
+                        {
+                            summary = JsonUtility.FromJson<WikipediaSummary>(
+                                request.downloadHandler.text);
+                        }
+                        catch (System.Exception e)
+                        {
+                            Debug.LogWarning(
+                                $"PlaceQuestionSource: summary parse failed for {entry.wikipediaTitle}: {e.Message}",
+                                this);
+                        }
+                    }
                 }
 
                 if (summary == null)
@@ -92,7 +116,16 @@ namespace ThinkFast.Quiz
                 using (var request = UnityWebRequestTexture.GetTexture(summary.thumbnail.source))
                 {
                     request.timeout = RequestTimeoutSeconds;
-                    yield return request.SendWebRequest();
+                    // Same manual timeout race as above — timeout is a no-op
+                    // on WebGL and a hung request would stall this coroutine.
+                    var operation = request.SendWebRequest();
+                    float start = Time.realtimeSinceStartup;
+                    while (!operation.isDone
+                        && Time.realtimeSinceStartup - start < RequestTimeoutSeconds)
+                        yield return null;
+                    if (!request.isDone)
+                        request.Abort();
+
                     if (request.result == UnityWebRequest.Result.Success)
                         texture = DownloadHandlerTexture.GetContent(request);
                 }
@@ -104,7 +137,27 @@ namespace ThinkFast.Quiz
                     continue;
                 }
 
-                ready.Enqueue(BuildQuestion(entry, texture));
+                // Sprite.Create/PlaceAnswerBuilder could throw; treat that
+                // like any other fetch failure instead of ending the loop.
+                QuizQuestion question = null;
+                try
+                {
+                    question = BuildQuestion(entry, texture);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning(
+                        $"PlaceQuestionSource: building question failed for {entry.wikipediaTitle}: {e.Message}",
+                        this);
+                }
+
+                if (question == null)
+                {
+                    yield return new WaitForSeconds(retryDelaySeconds);
+                    continue;
+                }
+
+                ready.Enqueue(question);
             }
         }
 
