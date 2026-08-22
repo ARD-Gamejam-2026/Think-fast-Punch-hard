@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ThinkFast.Anim;
 using ThinkFast.Combat;
 using UnityEngine;
 
@@ -75,11 +76,15 @@ namespace ThinkFast.Enemy
         [Tooltip("Optional. Yawed 180 degrees so the 3D mesh faces the way we are aiming.")]
         [SerializeField] private Transform visualRoot;
 
+        [Tooltip("Optional. Mesh Animator driver on a child object.")]
+        [SerializeField] private CharacterAnimation characterAnimation;
+
         /// <summary>Upward speed above which we are definitely not standing on ground.</summary>
         private const float RisingVelocityEpsilon = 0.1f;
 
         private Rigidbody2D body;
         private Collider2D bodyCollider;
+        private ICharacterAnimation animation;
         private ContactFilter2D groundFilter;
         private OneWayDropThrough dropThrough;
 
@@ -221,7 +226,10 @@ namespace ThinkFast.Enemy
             }
 
             Facing = Mathf.Sign(sign);
-            if (visualRoot != null)
+
+            // CharacterAnimation on the mesh owns yaw when present; visualRoot is
+            // only rotated for placeholder rigs without an Animator driver.
+            if (visualRoot != null && characterAnimation == null)
             {
                 visualRoot.localRotation = Quaternion.Euler(0f, Facing > 0f ? 0f : 180f, 0f);
             }
@@ -253,6 +261,13 @@ namespace ThinkFast.Enemy
         {
             body = GetComponent<Rigidbody2D>();
             bodyCollider = GetComponent<Collider2D>();
+
+            if (characterAnimation == null)
+            {
+                characterAnimation = GetComponentInChildren<CharacterAnimation>();
+            }
+
+            animation = characterAnimation;
 
             // Configure the body from code so a scene that was set up by hand
             // cannot silently drift away from what the movement maths assumes.
@@ -404,6 +419,7 @@ namespace ThinkFast.Enemy
             jumpBufferTimer = 0f;
             coyoteTimer = 0f;
             groundLockoutTimer = jumpGroundLockout;
+            animation?.NotifyJump();
         }
 
         /// <summary>

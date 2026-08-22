@@ -47,8 +47,8 @@ namespace ThinkFast.UIEditor
 
         private const string PanelContainerName = "Container";
 
-        private static readonly Color BackdropColour = new Color(0.04f, 0.04f, 0.10f, 1f);
-        private static readonly Color SeamColour = new Color(0.16f, 0.16f, 0.40f, 1f);
+        private static readonly Color BackdropColour = ThinkFast.UI.MenuTheme.Background;
+        private static readonly Color SeamColour = ThinkFast.UI.MenuTheme.Border;
 
         [MenuItem("Tools/Think Fast/Build Split Screen Fight")]
         public static void Build()
@@ -146,6 +146,12 @@ namespace ThinkFast.UIEditor
 
             so.FindProperty("authoredWeight").floatValue = 1f;
             so.FindProperty("mathWeight").floatValue = 1f;
+
+            // Set explicitly rather than left to the field's default. The fight's
+            // question mix is a design decision, and a weight that is only correct
+            // because nobody has changed a default elsewhere is not a decision.
+            so.FindProperty("sequenceWeight").floatValue = 1f;
+
             so.ApplyModifiedPropertiesWithoutUndo();
 
             AddWikipediaSources(root, flow);

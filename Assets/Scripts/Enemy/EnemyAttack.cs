@@ -1,4 +1,5 @@
 using System;
+using ThinkFast.Anim;
 using ThinkFast.Combat;
 using UnityEngine;
 
@@ -78,8 +79,13 @@ namespace ThinkFast.Enemy
         [Tooltip("Layers the hitbox can hit. Leave as Everything while no physics layers exist.")]
         [SerializeField] private LayerMask hittableLayers = ~0;
 
+        [Header("Presentation")]
+        [Tooltip("Optional. Mesh Animator driver on a child object.")]
+        [SerializeField] private CharacterAnimation characterAnimation;
+
         private EnemyMotor motor;
         private AttackRunner runner;
+        private ICharacterAnimation animation;
 
         /// <summary>Raised when a swing is committed to, at the start of startup. The telegraph.</summary>
         public event Action<AttackDefinition, Vector2> AttackStarted;
@@ -116,13 +122,23 @@ namespace ThinkFast.Enemy
 
             // Grounded state is sampled once, at the moment the swing starts.
             // Landing mid-swing does not switch to the other attack.
-            runner.Begin(motor.IsGrounded ? groundAttack : airAttack, motor.Facing);
+            bool airborne = !motor.IsGrounded;
+            runner.Begin(airborne ? airAttack : groundAttack, motor.Facing);
+            animation?.NotifyAttackStarted(airborne);
             return true;
         }
 
         private void Awake()
         {
             motor = GetComponent<EnemyMotor>();
+
+            if (characterAnimation == null)
+            {
+                characterAnimation = GetComponentInChildren<CharacterAnimation>();
+            }
+
+            animation = characterAnimation;
+
             runner = new AttackRunner(gameObject, hittableLayers);
             runner.Started += (attack, centre) => AttackStarted?.Invoke(attack, centre);
             runner.BecameActive += (attack, centre) => AttackBecameActive?.Invoke(attack, centre);

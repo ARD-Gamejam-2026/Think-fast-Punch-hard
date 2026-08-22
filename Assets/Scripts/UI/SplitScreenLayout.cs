@@ -29,6 +29,9 @@ namespace ThinkFast.UI
         [Tooltip("Left empty, the main camera is used. Its viewport rect is what actually confines the fight to one half.")]
         [SerializeField] private Camera fighterCamera;
 
+        [Tooltip("The HUD's root. Anchored to the fight's share of the window, so bars pinned to the top corners land inside the fight rather than running across the quiz.")]
+        [SerializeField] private RectTransform fighterHud;
+
         [Header("Quiz side")]
         [Tooltip("The quiz panel's container. It is re-anchored to the middle of the quiz half rather than the middle of the screen.")]
         [SerializeField] private RectTransform quizPanel;
@@ -62,6 +65,7 @@ namespace ThinkFast.UI
         public void Apply()
         {
             ApplyCameraRect();
+            ApplyFighterHud();
             ApplyBackdrop();
             ApplySeam();
             ApplyQuizPanel();
@@ -105,6 +109,19 @@ namespace ThinkFast.UI
             }
 
             fighterCamera.rect = new Rect(0f, 0f, fighterViewportWidth, 1f);
+        }
+
+        private void ApplyFighterHud()
+        {
+            if (fighterHud == null)
+            {
+                return;
+            }
+
+            fighterHud.anchorMin = Vector2.zero;
+            fighterHud.anchorMax = new Vector2(fighterViewportWidth, 1f);
+            fighterHud.offsetMin = Vector2.zero;
+            fighterHud.offsetMax = Vector2.zero;
         }
 
         private void ApplyBackdrop()

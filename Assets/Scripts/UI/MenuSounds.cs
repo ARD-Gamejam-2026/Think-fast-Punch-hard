@@ -7,16 +7,18 @@ namespace ThinkFast.UI
     /// The menu's voice: a soft tick when something is hovered, a lower bloop
     /// when it is pressed, and a shorter one for going back.
     ///
-    /// Synthesised at load rather than shipped as files, so the menu carries no
-    /// audio assets and the pitch of the whole interface is three numbers in the
-    /// Inspector. Output goes through the SFX mixer group, so the existing volume
+    /// Recorded clips play when they are assigned, and synthesised tones stand in
+    /// when they are not -- so a screen built without any audio assets still has a
+    /// voice, and dropping clips in is a one-field change per sound rather than a
+    /// rewrite. Output goes through the SFX mixer group, so the existing volume
     /// slider already controls it.
     ///
-    /// It does not use <see cref="ThinkFast.Common.PlaceholderFxKit"/>, which
-    /// deliberately has no attack: a sine that starts at full amplitude begins
-    /// with a step, and a step is a click. That reads as impact on a punch, which
-    /// is what the kit is for, and as a fault on a button. These have a short
-    /// attack ramp and a smooth release instead.
+    /// The fallback tones do not use
+    /// <see cref="ThinkFast.Common.PlaceholderFxKit"/>, which deliberately has no
+    /// attack: a sine that starts at full amplitude begins with a step, and a step
+    /// is a click. That reads as impact on a punch, which is what the kit is for,
+    /// and as a fault on a button. These have a short attack ramp and a smooth
+    /// release instead.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class MenuSounds : MonoBehaviour
@@ -26,6 +28,14 @@ namespace ThinkFast.UI
         [Header("Output")]
         [Tooltip("Mixer group the interface plays through. The SFX group, so the menu's own volume slider applies to it.")]
         [SerializeField] private AudioMixerGroup output;
+
+        [Header("Recorded clips")]
+        [Tooltip("Played instead of the synthesised tick when set. Left empty, the tone below is used, so a screen still has a voice with no audio assets at all.")]
+        [SerializeField] private AudioClip hoverSound;
+
+        [SerializeField] private AudioClip pressSound;
+
+        [SerializeField] private AudioClip backSound;
 
         [Header("Hover")]
         [Tooltip("A short, high, quiet tick. It fires on every hover, so anything longer or louder becomes noise while the pointer crosses the screen.")]
@@ -84,6 +94,24 @@ namespace ThinkFast.UI
 
             // The press inverted: rising and shorter, which reads as undoing.
             backClip = CreateBlip("UI Back", 0.11f, pressEndHz, pressStartHz, 0.006f);
+
+            // The synthesised clips are built either way. They cost a few
+            // milliseconds at load and mean an unwired screen is never silent,
+            // which is worth more than the saving.
+        }
+
+        /// <summary>
+        /// Returns the recorded clip when one is assigned, and the synthesised
+        /// tone when it is not.
+        /// </summary>
+        private static AudioClip Pick(AudioClip recorded, AudioClip synthesised)
+        {
+            if (recorded != null)
+            {
+                return recorded;
+            }
+
+            return synthesised;
         }
 
         private void OnDestroy()
@@ -101,19 +129,19 @@ namespace ThinkFast.UI
         /// <summary>Plays the hover tick.</summary>
         public void PlayHover()
         {
-            Play(hoverClip, hoverVolume);
+            Play(Pick(hoverSound, hoverClip), hoverVolume);
         }
 
         /// <summary>Plays the press bloop.</summary>
         public void PlayPress()
         {
-            Play(pressClip, pressVolume);
+            Play(Pick(pressSound, pressClip), pressVolume);
         }
 
         /// <summary>Plays the rising note used for closing or going back.</summary>
         public void PlayBack()
         {
-            Play(backClip, pressVolume);
+            Play(Pick(backSound, backClip), pressVolume);
         }
 
         private void Play(AudioClip clip, float volume)

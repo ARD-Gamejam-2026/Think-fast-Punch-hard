@@ -51,7 +51,7 @@ quiz → fighter by us subscribing to their events.
 | `DebugRiddleDriver` | `ThinkFast.Economy` | Throwaway stand-in for the quiz. Switched off once the real one is wired. |
 | `PlaceholderFlowStateVisual` | `ThinkFast.Economy` | Throwaway gold tint + orbiting motes. |
 | `FollowCamera` | `ThinkFast.CameraRig` | Dead zone + smoothing + look-ahead + bounds. Derives the bounds and the dead zone width from how wide its viewport actually is. |
-| `FighterHud` | `ThinkFast.UI` | Real uGUI HUD: health, AP pips, Flow bar. |
+| `FighterHud` | `ThinkFast.UI` | Real uGUI HUD: both fighters' health, AP pips, Flow meter. |
 | `SplitScreenLayout` | `ThinkFast.UI` | Owns the split: fighter viewport left, quiz scaled into what is left, backdrop over the side no camera clears. |
 | `SplitScreenTodoAttribute` | `ThinkFast.Common` | Marks settings that split screen will invalidate. Nothing carries it now — see **Split screen** below. |
 | `PlaceholderFxKit` / `PlaceholderFxShape` | `ThinkFast.Common` | Throwaway. Runtime-synthesised clips, unlit materials, self-animating primitives. Shared by both FX components. |
@@ -63,19 +63,28 @@ delete once the real thing exists.
 
 ## Scene setup
 
-Nothing is hand-placed. Four generators under **Tools > Think Fast**:
+Nothing is hand-placed. Everything is generated from **Tools > Think Fast**:
 
 | Menu item | Builds |
 |---|---|
 | `Build PlayerController Test Scene` | Stage, one-way platforms, player, opponent, round banner, camera — into `Assets/Scenes/PlayerControllerTest.unity` |
-| `Build Fighter HUD` | The uGUI canvas, wired to find the player at runtime |
+| `Build Fighter HUD` | Both fighters' health across the top of the fight view, Flow and AP in the corner |
 | `Build Split Screen Fight` | The quiz panel, its endless flow, the reward bridge, the backdrop and the split itself — into the same scene |
 | `Build Round Flow` | The end-of-round transition, plus the component that tells the end screen which ending it was — into the fight scene **and** `Scene_End` |
+| `Build Menu UI` | The start and end screens, and the sprites and font they need |
+| `Restyle Quiz Panel` | Repaints `QuizPanel.prefab` in the game's palette |
+| **`Build In-Game UI`** | Runs the quiz restyle, the split screen and the HUD **in dependency order**. The one to reach for after changing anything in-game. |
 
-All four are idempotent, and each owns its own root, so one can be rebuilt without
+All are idempotent, and each owns its own root, so one can be rebuilt without
 disturbing the others. The test-scene builder destroys and rebuilds everything under
 its root, so **re-running it resets any Inspector tuning** — but it leaves the HUD,
 the quiz and the round flow alone.
+
+The order inside `Build In-Game UI` is load-bearing: the split-screen builder
+instantiates the quiz panel prefab, so the prefab has to be restyled *before* it, and
+the HUD is built last because it goes into whichever scene the split-screen builder
+opened. Running the pieces by hand in a different order gets you a fight scene with a
+stale quiz panel.
 
 `Build Round Flow` is the only one that touches a scene it did not create. It adds
 nothing to `Scene_End`'s layout — it wires a component to the label already there, so
@@ -751,9 +760,9 @@ setting that needs the same treatment.
   logic now and would test well, but test assemblies cannot reference
   `Assembly-CSharp` — testing them requires moving this code into an asmdef first
   (which is exactly why the quiz has one).
-- **No text in the HUD.** Bars and pips only. TextMeshPro essentials *are* in the
-  project now (they arrived with the menu), so the blocker is gone — nobody has
-  added the numbers yet.
+- **No portraits, and no numbers, in the HUD.** The bars are labelled but carry no
+  figures, and there is nowhere showing *who* is fighting. Both want the character
+  art that does not exist yet (issue #10).
 
 ## The quiz half, wired (`QuizRewardBridge`)
 
@@ -802,6 +811,7 @@ the same weights and prompts the sample scene uses:
 |---|---|---|
 | Authored | 1 | every `QuizQuestion` in `Assets/Quiz/Questions` |
 | Generated maths | 1 | always available, 5 s limit |
+| Sequences | 1 | numbers and shapes, 8 s limit |
 | Wikipedia places | 2 | `Landmarks.asset`, "Which place is this?" |
 | Wikipedia animals | 2 | `Animals.asset`, "Which animal is this?" |
 

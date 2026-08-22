@@ -170,6 +170,17 @@ namespace ThinkFast.Economy
 
         private void SetTint(bool on)
         {
+            // OnDisable calls this to clear the tint, and OnDisable runs in the
+            // editor when the object is destroyed -- where Awake never ran, so
+            // none of this is set up yet. Passing a null property block to
+            // GetPropertyBlock throws rather than being ignored, so rebuilding the
+            // test rig filled the console with errors from a component that was
+            // only tidying up after itself.
+            if (propertyBlock == null || bodyRenderers == null || baseColours == null)
+            {
+                return;
+            }
+
             for (int i = 0; i < bodyRenderers.Length; i++)
             {
                 Renderer renderer = bodyRenderers[i];
