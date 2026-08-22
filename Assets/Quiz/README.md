@@ -171,6 +171,10 @@ want to reset it: regeneration **overwrites your styling**.
   `Landmarks.asset` (curated Wikipedia titles) if missing, wires a
   `PlaceQuestionSource` into the controller, and points the scene's
   `QuizFlow` at it with a place weight of 2. Safe to re-run.
+- **Tools > Quiz > Restyle Top Pane / Repair Question Label Overrides** —
+  one-time migration/repair commands from the panel's layout evolution;
+  both are no-ops on an already-correct prefab/scene and are kept for
+  reference.
 
 ## Credits
 

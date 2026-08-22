@@ -42,6 +42,7 @@ There is no lint step; C# compilation errors surface in the Unity log / `Logs/`.
 - `Assets/InputSystem_Actions.inputactions` — input action map (Player + UI action maps from the template). Use the Input System package for all input, not the legacy `Input` class.
 - `Assets/TutorialInfo/` — Unity template readme scaffolding; safe to delete when the project gets real content.
 - Quiz code lives in its own asmdefs (`Quiz`, `Quiz.Editor`, `Quiz.EditModeTests` — required by the Unity Test Framework); everything else compiles into `Assembly-CSharp`.
+- The quiz system (components, question authoring, events, editor tooling) is documented in `Assets/Quiz/README.md` — read it before changing quiz code.
 
 ## Code Style (enforced by Teamscale on PRs)
 
