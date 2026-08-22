@@ -32,23 +32,42 @@ namespace ThinkFast.Quiz.Tests
         }
 
         [Test]
-        public void Render_strip_lays_terms_in_two_rows_with_a_placeholder_row()
+        public void Render_strip_wraps_terms_and_centers_the_placeholder_row()
         {
             var renderer = new ShapeRenderer();
 
+            // Six terms wrap to two rows of three, plus a placeholder row: square (3x3).
             Sprite six = renderer.RenderStrip(CircleTerms(6));
-            int sixCell = six.texture.height / 3;
-            Assert.AreEqual(sixCell * 3, six.texture.width, "six terms use three columns");
-            Assert.AreEqual(sixCell * 3, six.texture.height, "two term rows plus a placeholder row");
+            Assert.AreEqual(six.texture.height, six.texture.width, "six terms wrap to a square 3x3 layout");
             Object.DestroyImmediate(six.texture);
             Object.DestroyImmediate(six);
 
+            // Four terms stay on one row, plus a placeholder row: wider than tall (4x2).
             Sprite four = renderer.RenderStrip(CircleTerms(4));
-            int fourCell = four.texture.height / 3;
-            Assert.AreEqual(fourCell * 2, four.texture.width, "four terms use two columns");
-            Assert.Greater(four.texture.height, four.texture.width, "placeholder row makes it taller than wide");
+            Assert.Greater(four.texture.width, four.texture.height, "four terms stay on one row");
             Object.DestroyImmediate(four.texture);
             Object.DestroyImmediate(four);
+        }
+
+        [Test]
+        public void Render_strip_spaces_count_sequences_but_not_single_shape_sequences()
+        {
+            var renderer = new ShapeRenderer();
+            var single = new List<ShapeSpec>();
+            var counted = new List<ShapeSpec>();
+            for (int i = 0; i < 4; i++)
+            {
+                single.Add(new ShapeSpec(ShapeKind.Circle, 0, 1, 0, true));
+                counted.Add(new ShapeSpec(ShapeKind.Circle, 0, i + 1, 0, true));
+            }
+            Sprite tight = renderer.RenderStrip(single);
+            Sprite spaced = renderer.RenderStrip(counted);
+            Assert.Greater(spaced.texture.width, tight.texture.width,
+                "count sequences add gaps between cells; single-shape sequences do not");
+            Object.DestroyImmediate(tight.texture);
+            Object.DestroyImmediate(tight);
+            Object.DestroyImmediate(spaced.texture);
+            Object.DestroyImmediate(spaced);
         }
 
         private static List<ShapeSpec> CircleTerms(int count)
@@ -68,7 +87,6 @@ namespace ThinkFast.Quiz.Tests
             var kinds = new[] { ShapeKind.Circle, ShapeKind.Square, ShapeKind.Triangle, ShapeKind.Star };
             var rotations = new[] { 0, 45, 90, 135 };
             var counts = new[] { 1, 4, 9 };
-            var fills = new[] { true, false };
 
             foreach (var kind in kinds)
             {
@@ -76,10 +94,8 @@ namespace ThinkFast.Quiz.Tests
                 {
                     foreach (var count in counts)
                     {
-                        foreach (var filled in fills)
-                        {
-                            RenderAndAssertSize(renderer, kind, rotation, count, filled);
-                        }
+                        RenderAndAssertSize(renderer, kind, rotation, count, true);
+                        RenderAndAssertSize(renderer, kind, rotation, count, false);
                     }
                 }
             }

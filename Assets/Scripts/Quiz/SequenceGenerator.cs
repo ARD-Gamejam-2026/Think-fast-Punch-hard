@@ -18,15 +18,14 @@ namespace ThinkFast.Quiz
         };
 
         /// <summary>
-        /// Kinds eligible for RotationPuzzle. Square is deliberately excluded:
-        /// it has 90-degree rotational symmetry, which collides with the 45/90
-        /// degree rotation steps used below and makes several of the four
-        /// "distinct" RotationDegrees options render as the same shape,
-        /// leaving the round visually unsolvable. Do not re-add it here.
+        /// Kinds eligible for RotationPuzzle. Only the triangle is used: its
+        /// orientation is easy to read at a glance. Square (90-degree symmetry)
+        /// and Star (72-degree, near-symmetric) are excluded because their
+        /// rotated steps are not visually distinguishable. Do not re-add them.
         /// </summary>
         private static readonly ShapeKind[] OrientedKinds =
         {
-            ShapeKind.Triangle, ShapeKind.Star,
+            ShapeKind.Triangle,
         };
 
         private readonly System.Random random;
@@ -47,16 +46,14 @@ namespace ThinkFast.Quiz
         /// <summary>Generates the next number puzzle from a random family.</summary>
         public NumberPuzzle NextNumber()
         {
-            switch (random.Next(4))
+            switch (random.Next(3))
             {
                 case 0:
                     return Arithmetic();
                 case 1:
                     return Geometric();
-                case 2:
-                    return Fibonacci();
                 default:
-                    return Alternating();
+                    return Fibonacci();
             }
         }
 
@@ -85,7 +82,8 @@ namespace ThinkFast.Quiz
             {
                 step = 45;
             }
-            if (random.Next(2) == 0)
+            bool negate = random.Next(2) == 0;
+            if (negate)
             {
                 step = -step;
             }
@@ -246,31 +244,28 @@ namespace ThinkFast.Quiz
             return BuildNumberPuzzle(terms, value);
         }
 
+        // Classic small starts so the "each term is the sum of the previous two"
+        // rule is recognizable and the numbers stay easy to add under the timer.
+        private static readonly int[][] FibonacciStarts =
+        {
+            new[] { 1, 1 },
+            new[] { 1, 2 },
+            new[] { 2, 3 },
+            new[] { 2, 4 },
+            new[] { 3, 5 },
+        };
+
         private NumberPuzzle Fibonacci()
         {
+            int[] start = FibonacciStarts[random.Next(FibonacciStarts.Length)];
             var terms = new int[5];
-            terms[0] = random.Next(1, 6);
-            terms[1] = terms[0] + random.Next(1, 6);
+            terms[0] = start[0];
+            terms[1] = start[1];
             for (int i = 2; i < 5; i++)
             {
                 terms[i] = terms[i - 1] + terms[i - 2];
             }
             return BuildNumberPuzzle(terms, terms[4] + terms[3]);
-        }
-
-        private NumberPuzzle Alternating()
-        {
-            int startA = random.Next(1, 10);
-            int stepA = random.Next(1, 6);
-            int startB = random.Next(10, 30);
-            int stepB = random.Next(5, 12);
-            var terms = new int[5];
-            terms[0] = startA;
-            terms[1] = startB;
-            terms[2] = startA + stepA;
-            terms[3] = startB + stepB;
-            terms[4] = startA + stepA * 2;
-            return BuildNumberPuzzle(terms, startB + stepB * 2);
         }
 
         private NumberPuzzle BuildNumberPuzzle(int[] terms, int correct)

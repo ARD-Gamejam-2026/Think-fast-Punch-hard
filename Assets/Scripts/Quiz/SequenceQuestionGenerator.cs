@@ -12,7 +12,7 @@ namespace ThinkFast.Quiz
         private readonly SequenceGenerator sequences;
         private readonly ShapeRenderer renderer;
 
-        /// <summary>Countdown length applied to generated sequence questions.</summary>
+        /// <summary>The time limit in seconds applied to each generated sequence question.</summary>
         public float TimeLimitSeconds { get; set; } = 8f;
 
         /// <summary>Probability (0-1) that a generated question is a shape sequence.</summary>
