@@ -113,6 +113,9 @@ InitTestScene*.unity*
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
+# Other files and folders to ignore
+.vscode
+
 # --- Project-local (Think fast Punch hard) ---
 # Working design notes, intentionally not shared.
 GAME_DESIGN.md
