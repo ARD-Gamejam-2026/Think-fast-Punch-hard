@@ -404,6 +404,7 @@ MonoBehaviour:
   background: {fileID: 1325999646759151917}
   letterLabel: {fileID: 776093695309247507}
   answerLabel: {fileID: 252846768829237294}
+  answerIcon: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   correctColor: {r: 0.7607843, g: 0.9254902, b: 0.81960785, a: 1}
   wrongColor: {r: 0.98039216, g: 0.79607844, b: 0.7764706, a: 1}
@@ -1710,6 +1711,7 @@ MonoBehaviour:
   background: {fileID: 7479310718977331798}
   letterLabel: {fileID: 4846955377049677676}
   answerLabel: {fileID: 1954693133770801961}
+  answerIcon: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   correctColor: {r: 0.7607843, g: 0.9254902, b: 0.81960785, a: 1}
   wrongColor: {r: 0.98039216, g: 0.79607844, b: 0.7764706, a: 1}
@@ -1902,6 +1904,7 @@ MonoBehaviour:
   background: {fileID: 7732722539252766742}
   letterLabel: {fileID: 2050684826269668067}
   answerLabel: {fileID: 1677123706203485661}
+  answerIcon: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   correctColor: {r: 0.7607843, g: 0.9254902, b: 0.81960785, a: 1}
   wrongColor: {r: 0.98039216, g: 0.79607844, b: 0.7764706, a: 1}
@@ -2191,6 +2194,7 @@ MonoBehaviour:
   background: {fileID: 2459374214281075262}
   letterLabel: {fileID: 1741615314909265064}
   answerLabel: {fileID: 6968086176509559093}
+  answerIcon: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   correctColor: {r: 0.7607843, g: 0.9254902, b: 0.81960785, a: 1}
   wrongColor: {r: 0.98039216, g: 0.79607844, b: 0.7764706, a: 1}

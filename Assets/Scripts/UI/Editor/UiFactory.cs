@@ -216,12 +216,16 @@ namespace ThinkFast.UIEditor
             const float HandleDiameter = 34f;
             float inset = HandleDiameter * 0.5f;
 
+            // Square ends, not the pill used elsewhere. At this height a fully
+            // rounded bar is all cap and no middle, so it reads as a lozenge
+            // rather than as a track with a level in it. The handle stays round,
+            // which is what keeps the grabbable part distinct from the groove.
             RectTransform track = NewRect("Track", barRect);
             track.anchorMin = new Vector2(0f, 0.5f);
             track.anchorMax = new Vector2(1f, 0.5f);
             track.offsetMin = new Vector2(0f, -TrackHeight * 0.5f);
             track.offsetMax = new Vector2(0f, TrackHeight * 0.5f);
-            AddImage(track, sprites.Pill, new Color32(0xDF, 0xE6, 0xEC, 0xFF), raycast: true);
+            AddImage(track, null, new Color32(0xDF, 0xE6, 0xEC, 0xFF), raycast: true);
 
             RectTransform fillArea = NewRect("Fill Area", barRect);
             fillArea.anchorMin = new Vector2(0f, 0.5f);
@@ -229,12 +233,15 @@ namespace ThinkFast.UIEditor
             fillArea.offsetMin = new Vector2(inset, -TrackHeight * 0.5f);
             fillArea.offsetMax = new Vector2(-inset, TrackHeight * 0.5f);
 
+            // Square too: a rounded fill inside a square track leaves a wedge of
+            // track showing in each corner at full volume, which reads as the
+            // slider never quite reaching the end.
             RectTransform fill = NewRect("Fill", fillArea);
             fill.anchorMin = Vector2.zero;
             fill.anchorMax = Vector2.one;
             fill.offsetMin = new Vector2(-inset, 0f);
             fill.offsetMax = new Vector2(inset, 0f);
-            AddImage(fill, sprites.Pill, MenuTheme.Accent);
+            AddImage(fill, null, MenuTheme.Accent);
 
             // The slide area is only as tall as the handle, and the handle's own
             // height is left at zero. That is not a shortcut -- Slider REWRITES
