@@ -15,11 +15,13 @@ namespace ThinkFast.Quiz
 
         public float TimeLimitSeconds { get; set; } = 5f;
 
+        /// <summary>Creates a generator; pass a seed for deterministic output.</summary>
         public MathQuestionGenerator(int? seed = null)
         {
             random = seed.HasValue ? new System.Random(seed.Value) : new System.Random();
         }
 
+        /// <summary>Builds a fresh runtime question with a random +, − or × problem.</summary>
         public QuizQuestion Next()
         {
             int a, b, result;
@@ -36,7 +38,9 @@ namespace ThinkFast.Quiz
                     a = random.Next(2, 100);
                     b = random.Next(2, 100);
                     if (b > a)
+                    {
                         (a, b) = (b, a);
+                    }
                     result = a - b;
                     symbol = '−';
                     break;
@@ -65,7 +69,9 @@ namespace ThinkFast.Quiz
                 int offset = random.Next(1, 11) * (random.Next(2) == 0 ? -1 : 1);
                 int candidate = result + offset;
                 if (candidate >= 0 && !values.Contains(candidate))
+                {
                     values.Add(candidate);
+                }
             }
 
             for (int i = values.Count - 1; i > 0; i--)

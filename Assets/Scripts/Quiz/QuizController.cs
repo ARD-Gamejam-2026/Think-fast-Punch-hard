@@ -50,9 +50,12 @@ namespace ThinkFast.Quiz
         private void Start()
         {
             if (startingQuestion != null)
+            {
                 ShowQuestion(startingQuestion);
+            }
         }
 
+        /// <summary>Starts a fresh round with the given question.</summary>
         public void ShowQuestion(QuizQuestion question)
         {
             if (question == null)
@@ -70,14 +73,18 @@ namespace ThinkFast.Quiz
         private void Update()
         {
             if (session == null || eventFired)
+            {
                 return;
+            }
 
             if (!session.IsResolved)
             {
                 session.Tick(Time.deltaTime);
                 view.SetTimerFill(session.NormalizedTimeRemaining, session.RemainingTime);
                 if (session.IsResolved)
+                {
                     ShowResolution();
+                }
             }
             else
             {
@@ -93,11 +100,15 @@ namespace ThinkFast.Quiz
         private void OnAnswerClicked(int index)
         {
             if (session == null || session.IsResolved)
+            {
                 return;
+            }
 
             session.SelectAnswer(index);
             if (session.IsResolved)
+            {
                 ShowResolution();
+            }
         }
 
         private void ShowResolution()

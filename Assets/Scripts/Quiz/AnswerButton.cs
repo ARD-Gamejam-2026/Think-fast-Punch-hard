@@ -8,6 +8,7 @@ namespace ThinkFast.Quiz
     /// <summary>One of the four A-D answer choices. Presentation only.</summary>
     public class AnswerButton : MonoBehaviour
     {
+        /// <summary>Feedback states an answer button can display.</summary>
         public enum VisualState
         {
             Normal,
@@ -29,6 +30,7 @@ namespace ThinkFast.Quiz
         private int index;
         private Action<int> onClicked;
 
+        /// <summary>Sets the letter label and the click callback for this choice.</summary>
         public void Initialize(int index, string letter, Action<int> onClicked)
         {
             this.index = index;
@@ -48,6 +50,7 @@ namespace ThinkFast.Quiz
             button.interactable = value;
         }
 
+        /// <summary>Applies the background color for the given feedback state.</summary>
         public void SetVisualState(VisualState state)
         {
             background.color = state switch

@@ -24,6 +24,7 @@ namespace ThinkFast.Quiz.EditorTools
         private const float TopPaneHeight = 396f;
         private const float ImageHeight = 320f;
 
+        /// <summary>Generates (or overwrites) the QuizPanel prefab.</summary>
         [MenuItem("Tools/Quiz/Create Quiz Panel")]
         public static void CreateQuizPanel()
         {
@@ -57,6 +58,7 @@ namespace ThinkFast.Quiz.EditorTools
         private const string SampleQuestionPath = QuestionsFolder + "/SampleQuestion.asset";
         private const string ScenePath = "Assets/Scenes/SampleScene.unity";
 
+        /// <summary>Puts the quiz panel, an EventSystem, and the sample question into SampleScene.</summary>
         [MenuItem("Tools/Quiz/Add Quiz Panel To Sample Scene")]
         public static void AddQuizPanelToSampleScene()
         {
@@ -86,10 +88,12 @@ namespace ThinkFast.Quiz.EditorTools
                 AssetDatabase.CreateAsset(question, SampleQuestionPath);
             }
 
-            var existingController = Object.FindFirstObjectByType<QuizController>();
-            var controller = existingController != null
-                ? existingController
-                : ((GameObject)PrefabUtility.InstantiatePrefab(prefab)).GetComponent<QuizController>();
+            var controller = Object.FindFirstObjectByType<QuizController>();
+            if (controller == null)
+            {
+                var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                controller = instance.GetComponent<QuizController>();
+            }
 
             var controllerSo = new SerializedObject(controller);
             controllerSo.FindProperty("startingQuestion").objectReferenceValue = question;
@@ -113,6 +117,7 @@ namespace ThinkFast.Quiz.EditorTools
 
         private const string PacManSpritePath = "Assets/Quiz/PacMan.png";
 
+        /// <summary>Wires the looping QuizFlow (sample question + math mixing) into SampleScene.</summary>
         [MenuItem("Tools/Quiz/Add Quiz Flow To Sample Scene")]
         public static void AddQuizFlowToSampleScene()
         {
@@ -138,7 +143,9 @@ namespace ThinkFast.Quiz.EditorTools
 
             var flow = controller.GetComponent<QuizFlow>();
             if (flow == null)
+            {
                 flow = controller.gameObject.AddComponent<QuizFlow>();
+            }
             flow.enabled = true;
 
             var flowSo = new SerializedObject(flow);
@@ -164,6 +171,7 @@ namespace ThinkFast.Quiz.EditorTools
             Debug.Log("QuizFlow added to SampleScene with the sample question and math mixing.");
         }
 
+        /// <summary>Gives the sample question the procedural Pac-Man sprite and a 5s timer.</summary>
         [MenuItem("Tools/Quiz/Update Sample Question (Pac-Man image, 5s)")]
         public static void UpdateSampleQuestion()
         {
@@ -229,9 +237,20 @@ namespace ThinkFast.Quiz.EditorTools
                     bool insideMouth = Mathf.Abs(Mathf.Atan2(dy, dx) * Mathf.Rad2Deg) < mouthHalfAngle;
                     bool insideEye = (new Vector2(x, y) - eyeCenter).sqrMagnitude <= eyeRadius * eyeRadius;
 
-                    pixels[y * size + x] = insideBody && !insideMouth
-                        ? (insideEye ? black : yellow)
-                        : clear;
+                    Color32 color;
+                    if (!insideBody || insideMouth)
+                    {
+                        color = clear;
+                    }
+                    else if (insideEye)
+                    {
+                        color = black;
+                    }
+                    else
+                    {
+                        color = yellow;
+                    }
+                    pixels[y * size + x] = color;
                 }
             }
 
@@ -273,7 +292,9 @@ namespace ThinkFast.Quiz.EditorTools
                 Stretch(label, margin: 0);
                 var labelLayout = label.GetComponent<LayoutElement>();
                 if (labelLayout != null)
+                {
                     Object.DestroyImmediate(labelLayout);
+                }
 
                 image.SetParent(topRect, worldPositionStays: false);
                 PlaceQuestionImage(image);
@@ -385,7 +406,9 @@ namespace ThinkFast.Quiz.EditorTools
 
             var answerButtons = new AnswerButton[QuizQuestion.AnswerCount];
             for (int i = 0; i < answerButtons.Length; i++)
+            {
                 answerButtons[i] = CreateAnswerButton(container, i);
+            }
 
             var view = root.AddComponent<QuizView>();
             var viewSo = new SerializedObject(view);
@@ -395,7 +418,9 @@ namespace ThinkFast.Quiz.EditorTools
             var buttonsProperty = viewSo.FindProperty("answerButtons");
             buttonsProperty.arraySize = answerButtons.Length;
             for (int i = 0; i < answerButtons.Length; i++)
+            {
                 buttonsProperty.GetArrayElementAtIndex(i).objectReferenceValue = answerButtons[i];
+            }
             viewSo.ApplyModifiedPropertiesWithoutUndo();
 
             var controller = root.AddComponent<QuizController>();
@@ -473,7 +498,9 @@ namespace ThinkFast.Quiz.EditorTools
             label.fontStyle = style;
             label.color = Color.white;
             if (label.font == null)
+            {
                 label.font = TMP_Settings.defaultFontAsset;
+            }
             return label;
         }
 
@@ -507,7 +534,9 @@ namespace ThinkFast.Quiz.EditorTools
         private static void EnsureTmpEssentials()
         {
             if (TmpEssentialsPresent())
+            {
                 return;
+            }
 
             AssetDatabase.ImportPackage(TmpEssentialsPackage, interactive: false);
             AssetDatabase.Refresh();
@@ -552,9 +581,12 @@ namespace ThinkFast.Quiz.EditorTools
 
         private const string LandmarksPath = "Assets/Quiz/Landmarks.asset";
 
-        // Verified against the live API (sweep in the implementation plan);
-        // every title's summary returns a thumbnail.
-        private static readonly (string title, string name)[] DefaultLandmarks =
+        /// <summary>
+        /// Default landmark pool for the sample scene. Every title was
+        /// verified against the live Wikipedia API (summary returns a
+        /// thumbnail); display names are unique.
+        /// </summary>
+        private static readonly (string Title, string Name)[] DefaultLandmarks =
         {
             ("Eiffel_Tower", "Eiffel Tower"),
             ("Statue_of_Liberty", "Statue of Liberty"),
@@ -602,6 +634,7 @@ namespace ThinkFast.Quiz.EditorTools
             ("Great_Pyramid_of_Giza", "Great Pyramid of Giza"),
         };
 
+        /// <summary>Creates the landmark list if missing and wires PlaceQuestionSource into the flow.</summary>
         [MenuItem("Tools/Quiz/Add Place Questions To Sample Scene")]
         public static void AddPlaceQuestionsToSampleScene()
         {
@@ -623,15 +656,17 @@ namespace ThinkFast.Quiz.EditorTools
                 list.entries = System.Array.ConvertAll(DefaultLandmarks, landmark =>
                     new LandmarkList.Entry
                     {
-                        wikipediaTitle = landmark.title,
-                        displayName = landmark.name,
+                        wikipediaTitle = landmark.Title,
+                        displayName = landmark.Name,
                     });
                 AssetDatabase.CreateAsset(list, LandmarksPath);
             }
 
             var source = controller.GetComponent<PlaceQuestionSource>();
             if (source == null)
+            {
                 source = controller.gameObject.AddComponent<PlaceQuestionSource>();
+            }
 
             var sourceSo = new SerializedObject(source);
             sourceSo.FindProperty("landmarks").objectReferenceValue = list;

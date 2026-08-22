@@ -6,6 +6,7 @@ namespace ThinkFast.Quiz
     [Serializable]
     public class WikipediaSummary
     {
+        /// <summary>The page's lead image, if any (field names match the JSON).</summary>
         [Serializable]
         public class Thumbnail
         {

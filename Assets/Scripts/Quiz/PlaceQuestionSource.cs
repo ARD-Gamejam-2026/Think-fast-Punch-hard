@@ -25,8 +25,14 @@ namespace ThinkFast.Quiz
         private LandmarkDeck deck;
         private System.Random random;
 
+        /// <summary>True when a prefetched question is ready to show.</summary>
         public bool HasQuestion => ready.Count > 0;
 
+        /// <summary>
+        /// Removes and returns the next prefetched question. Only call when
+        /// HasQuestion is true; the caller owns the runtime question and its
+        /// sprite/texture and must destroy them once no longer shown.
+        /// </summary>
         public QuizQuestion Dequeue()
         {
             return ready.Dequeue();
@@ -67,17 +73,7 @@ namespace ThinkFast.Quiz
                 using (var request = UnityWebRequest.Get(
                     SummaryUrl + UnityWebRequest.EscapeURL(entry.wikipediaTitle)))
                 {
-                    request.timeout = RequestTimeoutSeconds;
-                    // UnityWebRequest.timeout is a no-op on WebGL (our build
-                    // target), so also race the request against a manual
-                    // clock and abort on expiry.
-                    var operation = request.SendWebRequest();
-                    float start = Time.realtimeSinceStartup;
-                    while (!operation.isDone
-                        && Time.realtimeSinceStartup - start < RequestTimeoutSeconds)
-                        yield return null;
-                    if (!request.isDone)
-                        request.Abort();
+                    yield return SendWithTimeout(request);
 
                     if (request.result == UnityWebRequest.Result.Success)
                     {
@@ -115,19 +111,12 @@ namespace ThinkFast.Quiz
                 // resize URLs return 400.
                 using (var request = UnityWebRequestTexture.GetTexture(summary.thumbnail.source))
                 {
-                    request.timeout = RequestTimeoutSeconds;
-                    // Same manual timeout race as above — timeout is a no-op
-                    // on WebGL and a hung request would stall this coroutine.
-                    var operation = request.SendWebRequest();
-                    float start = Time.realtimeSinceStartup;
-                    while (!operation.isDone
-                        && Time.realtimeSinceStartup - start < RequestTimeoutSeconds)
-                        yield return null;
-                    if (!request.isDone)
-                        request.Abort();
+                    yield return SendWithTimeout(request);
 
                     if (request.result == UnityWebRequest.Result.Success)
+                    {
                         texture = DownloadHandlerTexture.GetContent(request);
+                    }
                 }
 
                 if (texture == null)
@@ -158,6 +147,29 @@ namespace ThinkFast.Quiz
                 }
 
                 ready.Enqueue(question);
+            }
+        }
+
+        /// <summary>
+        /// Sends the request and waits for completion. UnityWebRequest.timeout
+        /// is a no-op on WebGL (our build target), so the request is also
+        /// raced against a manual clock and aborted on expiry — an aborted
+        /// request reports a non-success result.
+        /// </summary>
+        private static IEnumerator SendWithTimeout(UnityWebRequest request)
+        {
+            request.timeout = RequestTimeoutSeconds;
+            var operation = request.SendWebRequest();
+            float start = Time.realtimeSinceStartup;
+            while (!operation.isDone
+                && Time.realtimeSinceStartup - start < RequestTimeoutSeconds)
+            {
+                yield return null;
+            }
+
+            if (!request.isDone)
+            {
+                request.Abort();
             }
         }
 

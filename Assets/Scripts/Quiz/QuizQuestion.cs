@@ -2,6 +2,10 @@ using UnityEngine;
 
 namespace ThinkFast.Quiz
 {
+    /// <summary>
+    /// Content of one quiz question: text, optional image, four answers, the
+    /// correct answer's index, and the countdown length.
+    /// </summary>
     [CreateAssetMenu(menuName = "Quiz/Question", fileName = "QuizQuestion")]
     public class QuizQuestion : ScriptableObject
     {
@@ -21,20 +25,27 @@ namespace ThinkFast.Quiz
         [Min(1f)]
         public float timeLimitSeconds = 10f;
 
+        /// <summary>Repairs out-of-range values and warns about empty answers.</summary>
         public void OnValidate()
         {
             if (answers == null || answers.Length != AnswerCount)
+            {
                 System.Array.Resize(ref answers, AnswerCount);
+            }
 
             correctIndex = Mathf.Clamp(correctIndex, 0, AnswerCount - 1);
 
             if (timeLimitSeconds <= 0f)
+            {
                 timeLimitSeconds = 1f;
+            }
 
             for (int i = 0; i < AnswerCount; i++)
             {
                 if (string.IsNullOrWhiteSpace(answers[i]))
+                {
                     Debug.LogWarning($"{name}: answer {i} is empty", this);
+                }
             }
         }
     }

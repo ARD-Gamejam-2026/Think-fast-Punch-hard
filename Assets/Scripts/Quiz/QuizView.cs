@@ -31,9 +31,12 @@ namespace ThinkFast.Quiz
         private void Awake()
         {
             for (int i = 0; i < answerButtons.Length; i++)
+            {
                 answerButtons[i].Initialize(i, Letters[i], index => AnswerClicked?.Invoke(index));
+            }
         }
 
+        /// <summary>Displays a question and resets all button/timer visuals.</summary>
         public void ShowQuestion(QuizQuestion question)
         {
             bool hasImage = question.image != null;
@@ -55,22 +58,38 @@ namespace ThinkFast.Quiz
             }
         }
 
+        /// <summary>
+        /// Updates the timer bar: fill amount plus the answer-speed zone color
+        /// (fast/mid/last-second).
+        /// </summary>
         public void SetTimerFill(float normalized, float remainingSeconds)
         {
             timerFill.fillAmount = Mathf.Clamp01(normalized);
 
             if (normalized > fastZoneNormalized)
+            {
                 timerFill.color = timerFastColor;
+            }
             else if (remainingSeconds <= lastSecondSeconds)
+            {
                 timerFill.color = timerLastSecondColor;
+            }
             else
+            {
                 timerFill.color = timerMidColor;
+            }
         }
 
+        /// <summary>
+        /// Shows the end-of-question feedback: green on a correct pick, red on
+        /// a wrong pick with the right answer in gold, gold-only on timeout.
+        /// </summary>
         public void ShowResult(QuizResult result, int selectedIndex, int correctIndex)
         {
             foreach (var answerButton in answerButtons)
+            {
                 answerButton.SetInteractable(false);
+            }
 
             switch (result)
             {
@@ -84,6 +103,8 @@ namespace ThinkFast.Quiz
                 case QuizResult.TimedOut:
                     answerButtons[correctIndex].SetVisualState(AnswerButton.VisualState.Highlighted);
                     SetTimerFill(0f, 0f);
+                    break;
+                default:
                     break;
             }
         }

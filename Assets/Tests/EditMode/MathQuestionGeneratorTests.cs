@@ -53,7 +53,9 @@ namespace ThinkFast.Quiz.Tests
                 var question = generator.Next();
 
                 foreach (string answer in question.answers)
+                {
                     Assert.That(int.Parse(answer), Is.GreaterThanOrEqualTo(0));
+                }
 
                 Object.DestroyImmediate(question);
             }

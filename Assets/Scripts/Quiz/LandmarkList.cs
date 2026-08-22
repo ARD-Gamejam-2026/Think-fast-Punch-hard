@@ -9,6 +9,7 @@ namespace ThinkFast.Quiz
     [CreateAssetMenu(menuName = "Quiz/Landmark List", fileName = "Landmarks")]
     public class LandmarkList : ScriptableObject
     {
+        /// <summary>One landmark: its Wikipedia page title and the label shown as an answer.</summary>
         [System.Serializable]
         public class Entry
         {

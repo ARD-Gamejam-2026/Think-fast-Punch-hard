@@ -12,18 +12,28 @@ namespace ThinkFast.Quiz
         private readonly Random random;
         private int position;
 
+        /// <summary>Creates a deck over the indices [0, count).</summary>
         public LandmarkDeck(int count, Random random)
         {
             if (count <= 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(count));
+            }
 
             this.random = random;
             order = new int[count];
             for (int i = 0; i < count; i++)
+            {
                 order[i] = i;
+            }
             Shuffle(avoidFirst: -1);
         }
 
+        /// <summary>
+        /// Deals the next index; reshuffles when a cycle completes. With more
+        /// than one entry, never deals the same index twice in a row (a
+        /// single-entry deck necessarily always deals 0).
+        /// </summary>
         public int Next()
         {
             if (position >= order.Length)

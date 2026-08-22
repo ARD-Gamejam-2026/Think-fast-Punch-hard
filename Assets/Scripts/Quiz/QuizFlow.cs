@@ -51,12 +51,18 @@ namespace ThinkFast.Quiz
             for (int i = 0; i < (questions?.Length ?? 0); i++)
             {
                 if (questions[i] != null)
+                {
                     questions[valid++] = questions[i];
+                }
                 else
+                {
                     Debug.LogWarning($"QuizFlow: skipping missing question at index {i}", this);
+                }
             }
             if (valid != (questions?.Length ?? 0))
+            {
                 System.Array.Resize(ref questions, valid);
+            }
 
             bool anyConfigured =
                 (valid > 0 && authoredWeight > 0f)
@@ -92,35 +98,42 @@ namespace ThinkFast.Quiz
                 return;
             }
 
+            // Cumulative weighted pick over the available buckets. Random.value
+            // is inclusive of 1, so a boundary roll (roll == total) must never
+            // fall past the end: the last weighted bucket stays selected when
+            // the loop runs out.
             float roll = Random.value * total;
+            float[] weights = { authored, math, place };
+            float cumulative = 0f;
+            int selected = 0;
+            for (int i = 0; i < weights.Length; i++)
+            {
+                if (weights[i] <= 0f)
+                {
+                    continue;
+                }
+                cumulative += weights[i];
+                selected = i;
+                if (roll < cumulative)
+                {
+                    break;
+                }
+            }
+
             QuizQuestion next;
-            bool generated;
-            if (authored > 0f && roll < authored)
+            bool generated = selected != 0;
+            switch (selected)
             {
-                next = questions[current];
-                current = (current + 1) % questions.Length;
-                generated = false;
-            }
-            else if (math > 0f && roll < authored + math)
-            {
-                next = generator.Next();
-                generated = true;
-            }
-            else if (place > 0f)
-            {
-                next = placeSource.Dequeue();
-                generated = true;
-            }
-            else if (math > 0f)
-            {
-                next = generator.Next();
-                generated = true;
-            }
-            else
-            {
-                next = questions[current];
-                current = (current + 1) % questions.Length;
-                generated = false;
+                case 0:
+                    next = questions[current];
+                    current = (current + 1) % questions.Length;
+                    break;
+                case 1:
+                    next = generator.Next();
+                    break;
+                default:
+                    next = placeSource.Dequeue();
+                    break;
             }
 
             var previousGenerated = displayedGenerated;
