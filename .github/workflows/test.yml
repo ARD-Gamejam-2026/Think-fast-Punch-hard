@@ -55,7 +55,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           # No include filters: every assembly under Assets/ is measured by
           # default; only test assemblies are excluded from the metric.
-          coverageOptions: generateAdditionalMetrics;generateAdditionalReports;assemblyFilters:-*Tests*,+Smoke
+          coverageOptions: generateAdditionalMetrics;generateAdditionalReports;assemblyFilters:-*Tests*
 
       - name: Upload test results
         if: always()
@@ -64,10 +64,25 @@ jobs:
           name: Test results
           path: ${{ steps.run_tests.outputs.artifactsPath }}
 
+      - name: Upload coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Coverage results
+          path: ${{ steps.run_tests.outputs.coveragePath }}
+
+  upload-coverage:
+    name: Upload coverage to Teamscale
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download coverage results
+        uses: actions/download-artifact@v4
+        with:
+          name: Coverage results
+          path: CodeCoverage
+
       - name: Upload coverage to Teamscale
-        if: steps.run_tests.outcome != 'skipped'
-        continue-on-error: true
-        timeout-minutes: 2
         uses: cqse/teamscale-upload-action@v2.10.0
         with:
           server: "https://teamscale.marcelbruckner.com/"
