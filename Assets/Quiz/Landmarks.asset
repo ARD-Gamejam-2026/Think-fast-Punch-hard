@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c1e4a0f3b6c2d8e5a1f7b4c9d2e5a0f, type: 3}
+  m_Name: Landmarks
+  m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.LandmarkList
+  entries:
+  - wikipediaTitle: Eiffel_Tower
+    displayName: Eiffel Tower
+  - wikipediaTitle: Statue_of_Liberty
+    displayName: Statue of Liberty
+  - wikipediaTitle: Colosseum
+    displayName: Colosseum
+  - wikipediaTitle: Big_Ben
+    displayName: Big Ben
+  - wikipediaTitle: Taj_Mahal
+    displayName: Taj Mahal
+  - wikipediaTitle: Machu_Picchu
+    displayName: Machu Picchu
+  - wikipediaTitle: Great_Wall_of_China
+    displayName: Great Wall of China
+  - wikipediaTitle: Sydney_Opera_House
+    displayName: Sydney Opera House
+  - wikipediaTitle: Golden_Gate_Bridge
+    displayName: Golden Gate Bridge
+  - wikipediaTitle: Neuschwanstein_Castle
+    displayName: Neuschwanstein Castle
+  - wikipediaTitle: Mount_Fuji
+    displayName: Mount Fuji
+  - wikipediaTitle: Stonehenge
+    displayName: Stonehenge
+  - wikipediaTitle: Christ_the_Redeemer_(statue)
+    displayName: Christ the Redeemer
+  - wikipediaTitle: Leaning_Tower_of_Pisa
+    displayName: Leaning Tower of Pisa
+  - wikipediaTitle: "Sagrada_Fam\xEDlia"
+    displayName: "Sagrada Fam\xEDlia"
+  - wikipediaTitle: Brandenburg_Gate
+    displayName: Brandenburg Gate
+  - wikipediaTitle: Acropolis_of_Athens
+    displayName: Acropolis of Athens
+  - wikipediaTitle: Petra
+    displayName: Petra
+  - wikipediaTitle: Angkor_Wat
+    displayName: Angkor Wat
+  - wikipediaTitle: Chichen_Itza
+    displayName: "Chich\xE9n Itz\xE1"
+  - wikipediaTitle: Burj_Khalifa
+    displayName: Burj Khalifa
+  - wikipediaTitle: Empire_State_Building
+    displayName: Empire State Building
+  - wikipediaTitle: Tower_Bridge
+    displayName: Tower Bridge
+  - wikipediaTitle: Louvre
+    displayName: Louvre
+  - wikipediaTitle: Notre-Dame_de_Paris
+    displayName: Notre-Dame de Paris
+  - wikipediaTitle: Buckingham_Palace
+    displayName: Buckingham Palace
+  - wikipediaTitle: St._Peter's_Basilica
+    displayName: St. Peter's Basilica
+  - wikipediaTitle: Red_Square
+    displayName: Red Square
+  - wikipediaTitle: Mount_Rushmore
+    displayName: Mount Rushmore
+  - wikipediaTitle: Niagara_Falls
+    displayName: Niagara Falls
+  - wikipediaTitle: Grand_Canyon
+    displayName: Grand Canyon
+  - wikipediaTitle: Uluru
+    displayName: Uluru
+  - wikipediaTitle: Matterhorn
+    displayName: Matterhorn
+  - wikipediaTitle: Cologne_Cathedral
+    displayName: Cologne Cathedral
+  - wikipediaTitle: Hagia_Sophia
+    displayName: Hagia Sophia
+  - wikipediaTitle: Alhambra
+    displayName: Alhambra
+  - wikipediaTitle: Forbidden_City
+    displayName: Forbidden City
+  - wikipediaTitle: Times_Square
+    displayName: Times Square
+  - wikipediaTitle: Hollywood_Sign
+    displayName: Hollywood Sign
+  - wikipediaTitle: Moai
+    displayName: Moai (Easter Island)
+  - wikipediaTitle: Tower_of_London
+    displayName: Tower of London
+  - wikipediaTitle: Arc_de_Triomphe
+    displayName: Arc de Triomphe
+  - wikipediaTitle: Mount_Everest
+    displayName: Mount Everest
+  - wikipediaTitle: Great_Pyramid_of_Giza
+    displayName: Great Pyramid of Giza

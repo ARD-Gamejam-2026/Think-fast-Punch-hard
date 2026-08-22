@@ -114,7 +114,11 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
 # Other files and folders to ignore
-.vscode
+.vscode/
+results.xml
+.superpowers/
+docs/superpowers/
+.claude
 
 # --- Project-local (Think fast Punch hard) ---
 # Working design notes, intentionally not shared.

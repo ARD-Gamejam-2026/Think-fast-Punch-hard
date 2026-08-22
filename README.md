@@ -4,6 +4,15 @@
 - https://itch.io/jam/-ard-game-jam-2026
 - https://rhinocerosgamesproduction.itch.io/think-fast-punch-hard
 
+## Quiz system
+
+The quiz gameplay (questions, timer, random math, live Wikipedia place
+questions) is documented in [`Assets/Quiz/README.md`](Assets/Quiz/README.md).
+
+**Attribution:** place-question images are loaded live from Wikipedia
+(Wikimedia Commons) — the itch.io page must carry an
+"Images: Wikipedia (Wikimedia Commons)" credit.
+
 ## How to release
 
 Push a `v*` tag — CI builds the WebGL player and publishes it to [itch.io](https://rhinocerosgamesproduction.itch.io/think-fast-punch-hard):
