@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c1e4a0f3b6c2d8e5a1f7b4c9d2e5a0f, type: 3}
   m_Name: Landmarks
-  m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.LandmarkList
+  m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.WikipediaTopicList
   entries:
   - wikipediaTitle: Eiffel_Tower
     displayName: Eiffel Tower

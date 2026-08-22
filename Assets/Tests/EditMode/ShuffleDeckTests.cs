@@ -3,12 +3,12 @@ using NUnit.Framework;
 
 namespace ThinkFast.Quiz.Tests
 {
-    public class LandmarkDeckTests
+    public class ShuffleDeckTests
     {
         [Test]
         public void Next_CoversEveryIndexOncePerCycle()
         {
-            var deck = new LandmarkDeck(10, new System.Random(1));
+            var deck = new ShuffleDeck(10, new System.Random(1));
 
             for (int cycle = 0; cycle < 5; cycle++)
             {
@@ -20,7 +20,7 @@ namespace ThinkFast.Quiz.Tests
         [Test]
         public void Next_NeverRepeatsAcrossCycleBoundary()
         {
-            var deck = new LandmarkDeck(5, new System.Random(2));
+            var deck = new ShuffleDeck(5, new System.Random(2));
 
             int previous = deck.Next();
             for (int i = 0; i < 500; i++)
@@ -34,7 +34,7 @@ namespace ThinkFast.Quiz.Tests
         [Test]
         public void Next_SingleEntryDeckAlwaysReturnsZero()
         {
-            var deck = new LandmarkDeck(1, new System.Random(3));
+            var deck = new ShuffleDeck(1, new System.Random(3));
 
             Assert.That(deck.Next(), Is.Zero);
             Assert.That(deck.Next(), Is.Zero);
@@ -44,7 +44,7 @@ namespace ThinkFast.Quiz.Tests
         public void Constructor_NonPositiveCount_Throws()
         {
             Assert.Throws<System.ArgumentOutOfRangeException>(
-                () => new LandmarkDeck(0, new System.Random(4)));
+                () => new ShuffleDeck(0, new System.Random(4)));
         }
     }
 }

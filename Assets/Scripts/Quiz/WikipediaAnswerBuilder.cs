@@ -4,8 +4,8 @@ using System.Linq;
 
 namespace ThinkFast.Quiz
 {
-    /// <summary>Builds the four shuffled answer labels for a place question.</summary>
-    public static class PlaceAnswerBuilder
+    /// <summary>Builds the four shuffled answer labels for a Wikipedia topic question.</summary>
+    public static class WikipediaAnswerBuilder
     {
         /// <summary>
         /// Builds the four shuffled answers: the correct entry's display name
@@ -13,12 +13,12 @@ namespace ThinkFast.Quiz
         /// correctIndex receives the position of the correct answer.
         /// </summary>
         public static string[] Build(
-            LandmarkList.Entry[] entries, int correctEntryIndex, Random random, out int correctIndex)
+            WikipediaTopicList.Entry[] entries, int correctEntryIndex, Random random, out int correctIndex)
         {
             if (entries == null || entries.Length < QuizQuestion.AnswerCount)
             {
                 throw new ArgumentException(
-                    $"Need at least {QuizQuestion.AnswerCount} landmark entries", nameof(entries));
+                    $"Need at least {QuizQuestion.AnswerCount} topic entries", nameof(entries));
             }
 
             var picked = new List<int> { correctEntryIndex };

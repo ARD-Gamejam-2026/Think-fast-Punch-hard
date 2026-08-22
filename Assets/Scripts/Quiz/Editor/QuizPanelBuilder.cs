@@ -263,7 +263,7 @@ namespace ThinkFast.Quiz.EditorTools
         /// One-time in-place migration of an existing QuizPanel prefab to the
         /// TopPane layout (no image frame, centered text) WITHOUT regenerating
         /// it — regeneration would change fileIDs and break the sample scene's
-        /// added components (QuizFlow, PlaceQuestionSource).
+        /// added components (QuizFlow, WikipediaQuestionSource).
         /// </summary>
         [MenuItem("Tools/Quiz/Restyle Top Pane (no frame, centered text)")]
         public static void RestyleTopPane()
@@ -580,6 +580,7 @@ namespace ThinkFast.Quiz.EditorTools
         }
 
         private const string LandmarksPath = "Assets/Quiz/Landmarks.asset";
+        private const string AnimalsPath = "Assets/Quiz/Animals.asset";
 
         /// <summary>
         /// Default landmark pool for the sample scene. Every title was
@@ -634,9 +635,76 @@ namespace ThinkFast.Quiz.EditorTools
             ("Great_Pyramid_of_Giza", "Great Pyramid of Giza"),
         };
 
-        /// <summary>Creates the landmark list if missing and wires PlaceQuestionSource into the flow.</summary>
+        /// <summary>
+        /// Default animal pool for the sample scene. Every title was verified
+        /// against the live Wikipedia API (summary returns a thumbnail);
+        /// display names are unique.
+        /// </summary>
+        private static readonly (string Title, string Name)[] DefaultAnimals =
+        {
+            ("Lion", "Lion"),
+            ("Tiger", "Tiger"),
+            ("African_bush_elephant", "Elephant"),
+            ("Giraffe", "Giraffe"),
+            ("Giant_panda", "Giant Panda"),
+            ("Red_panda", "Red Panda"),
+            ("Koala", "Koala"),
+            ("Kangaroo", "Kangaroo"),
+            ("Platypus", "Platypus"),
+            ("Axolotl", "Axolotl"),
+            ("Capybara", "Capybara"),
+            ("Meerkat", "Meerkat"),
+            ("Sloth", "Sloth"),
+            ("Chameleon", "Chameleon"),
+            ("King_penguin", "Penguin"),
+            ("Polar_bear", "Polar Bear"),
+            ("Gray_wolf", "Wolf"),
+            ("Red_fox", "Fox"),
+            ("Raccoon", "Raccoon"),
+            ("Hedgehog", "Hedgehog"),
+            ("Octopus", "Octopus"),
+            ("Common_seahorse", "Seahorse"),
+            ("Pufferfish", "Pufferfish"),
+            ("Jellyfish", "Jellyfish"),
+            ("Flamingo", "Flamingo"),
+            ("Toucan", "Toucan"),
+            ("Owl", "Owl"),
+            ("Peafowl", "Peacock"),
+            ("Chimpanzee", "Chimpanzee"),
+            ("Orangutan", "Orangutan"),
+            ("Zebra", "Zebra"),
+            ("Hippopotamus", "Hippopotamus"),
+            ("Rhinoceros", "Rhinoceros"),
+            ("Cheetah", "Cheetah"),
+            ("Leopard", "Leopard"),
+            ("Snow_leopard", "Snow Leopard"),
+            ("Dolphin", "Dolphin"),
+            ("Killer_whale", "Orca"),
+            ("Narwhal", "Narwhal"),
+            ("Walrus", "Walrus"),
+        };
+
+        /// <summary>Creates the landmark list if missing and wires a place WikipediaQuestionSource into the flow.</summary>
         [MenuItem("Tools/Quiz/Add Place Questions To Sample Scene")]
         public static void AddPlaceQuestionsToSampleScene()
+        {
+            WireWikipediaSource(LandmarksPath, DefaultLandmarks, "Which place is this?", "places");
+        }
+
+        /// <summary>Creates the animal list if missing and wires an animal WikipediaQuestionSource into the flow.</summary>
+        [MenuItem("Tools/Quiz/Add Animal Questions To Sample Scene")]
+        public static void AddAnimalQuestionsToSampleScene()
+        {
+            WireWikipediaSource(AnimalsPath, DefaultAnimals, "Which animal is this?", "animals");
+        }
+
+        /// <summary>
+        /// Ensures a topic list asset exists at listPath, wires a matching
+        /// WikipediaQuestionSource onto the controller, and registers it in
+        /// the QuizFlow's Wikipedia sources with weight 2.
+        /// </summary>
+        private static void WireWikipediaSource(
+            string listPath, (string Title, string Name)[] defaults, string prompt, string label)
         {
             var scene = EditorSceneManager.OpenScene(ScenePath);
 
@@ -648,41 +716,88 @@ namespace ThinkFast.Quiz.EditorTools
                 return;
             }
 
-            EnsureFolder("Assets/Quiz");
-            var list = AssetDatabase.LoadAssetAtPath<LandmarkList>(LandmarksPath);
-            if (list == null)
-            {
-                list = ScriptableObject.CreateInstance<LandmarkList>();
-                list.entries = System.Array.ConvertAll(DefaultLandmarks, landmark =>
-                    new LandmarkList.Entry
-                    {
-                        wikipediaTitle = landmark.Title,
-                        displayName = landmark.Name,
-                    });
-                AssetDatabase.CreateAsset(list, LandmarksPath);
-            }
-
-            var source = controller.GetComponent<PlaceQuestionSource>();
-            if (source == null)
-            {
-                source = controller.gameObject.AddComponent<PlaceQuestionSource>();
-            }
-
-            var sourceSo = new SerializedObject(source);
-            sourceSo.FindProperty("landmarks").objectReferenceValue = list;
-            sourceSo.ApplyModifiedProperties();
-            PrefabUtility.RecordPrefabInstancePropertyModifications(source);
-
-            var flowSo = new SerializedObject(flow);
-            flowSo.FindProperty("placeSource").objectReferenceValue = source;
-            flowSo.FindProperty("placeWeight").floatValue = 2f;
-            flowSo.ApplyModifiedProperties();
-            PrefabUtility.RecordPrefabInstancePropertyModifications(flow);
+            var list = LoadOrCreateTopicList(listPath, defaults);
+            var source = FindOrCreateSource(controller.gameObject, list, prompt);
+            RegisterFlowSource(flow, source, 2f);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
-            Debug.Log("Place questions wired into SampleScene (weights: authored 1, math 1, places 2).");
+            Debug.Log($"{label} questions wired into SampleScene (weight 2).");
+        }
+
+        private static WikipediaTopicList LoadOrCreateTopicList(
+            string listPath, (string Title, string Name)[] defaults)
+        {
+            EnsureFolder("Assets/Quiz");
+            var list = AssetDatabase.LoadAssetAtPath<WikipediaTopicList>(listPath);
+            if (list == null)
+            {
+                list = ScriptableObject.CreateInstance<WikipediaTopicList>();
+                list.entries = System.Array.ConvertAll(defaults, topic =>
+                    new WikipediaTopicList.Entry
+                    {
+                        wikipediaTitle = topic.Title,
+                        displayName = topic.Name,
+                    });
+                AssetDatabase.CreateAsset(list, listPath);
+            }
+            return list;
+        }
+
+        private static WikipediaQuestionSource FindOrCreateSource(
+            GameObject host, WikipediaTopicList list, string prompt)
+        {
+            // Multiple sources can share a GameObject (places + animals); reuse
+            // the one already pointing at this list instead of adding a duplicate.
+            foreach (var existing in host.GetComponents<WikipediaQuestionSource>())
+            {
+                var existingSo = new SerializedObject(existing);
+                if (existingSo.FindProperty("topics").objectReferenceValue == list)
+                {
+                    return existing;
+                }
+            }
+
+            var source = host.AddComponent<WikipediaQuestionSource>();
+            var sourceSo = new SerializedObject(source);
+            sourceSo.FindProperty("topics").objectReferenceValue = list;
+            sourceSo.FindProperty("questionPrompt").stringValue = prompt;
+            sourceSo.ApplyModifiedProperties();
+            PrefabUtility.RecordPrefabInstancePropertyModifications(source);
+            return source;
+        }
+
+        private static void RegisterFlowSource(QuizFlow flow, WikipediaQuestionSource source, float weight)
+        {
+            var flowSo = new SerializedObject(flow);
+            var sources = flowSo.FindProperty("wikipediaSources");
+
+            int index = FindSourceIndex(sources, source);
+            if (index < 0)
+            {
+                index = sources.arraySize;
+                sources.arraySize = index + 1;
+            }
+
+            var element = sources.GetArrayElementAtIndex(index);
+            element.FindPropertyRelative("source").objectReferenceValue = source;
+            element.FindPropertyRelative("weight").floatValue = weight;
+            flowSo.ApplyModifiedProperties();
+            PrefabUtility.RecordPrefabInstancePropertyModifications(flow);
+        }
+
+        private static int FindSourceIndex(SerializedProperty sources, WikipediaQuestionSource source)
+        {
+            for (int i = 0; i < sources.arraySize; i++)
+            {
+                var element = sources.GetArrayElementAtIndex(i);
+                if (element.FindPropertyRelative("source").objectReferenceValue == source)
+                {
+                    return i;
+                }
+            }
+            return -1;
         }
     }
 }

@@ -1109,6 +1109,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3578240022214496066, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1349187495}
+    - targetCorrespondingSourceObject: {fileID: 3578240022214496066, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1349187496}
   m_SourcePrefab: {fileID: 100100000, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
 --- !u!1 &1349187492 stripped
 GameObject:
@@ -1143,9 +1146,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1d690abe36b2844f7978546781c328cd, type: 2}
   authoredWeight: 1
   mathWeight: 1
-  placeWeight: 2
   mathTimeLimitSeconds: 5
-  placeSource: {fileID: 1349187495}
+  wikipediaSources:
+  - source: {fileID: 1349187495}
+    weight: 2
+  - source: {fileID: 1349187496}
+    weight: 2
 --- !u!114 &1349187495
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1157,8 +1163,26 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c5ee0021c79c4748b014266b14bf2b9e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.PlaceQuestionSource
-  landmarks: {fileID: 11400000, guid: 998a3ae7c48094285bb1f1d0192c13b8, type: 2}
+  m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.WikipediaQuestionSource
+  topics: {fileID: 11400000, guid: 998a3ae7c48094285bb1f1d0192c13b8, type: 2}
+  questionPrompt: Which place is this?
+  queueTargetSize: 2
+  timeLimitSeconds: 5
+  retryDelaySeconds: 5
+--- !u!114 &1349187496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1349187492}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5ee0021c79c4748b014266b14bf2b9e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.WikipediaQuestionSource
+  topics: {fileID: 11400000, guid: 113ee4be7e50146a6bf79cad25d6ae56, type: 2}
+  questionPrompt: Which animal is this?
   queueTargetSize: 2
   timeLimitSeconds: 5
   retryDelaySeconds: 5

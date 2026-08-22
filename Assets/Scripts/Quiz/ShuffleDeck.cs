@@ -6,14 +6,14 @@ namespace ThinkFast.Quiz
     /// Deals indices [0, count) in shuffled order, reshuffling after each
     /// full cycle without ever dealing the same index twice in a row.
     /// </summary>
-    public class LandmarkDeck
+    public class ShuffleDeck
     {
         private readonly int[] order;
         private readonly Random random;
         private int position;
 
         /// <summary>Creates a deck over the indices [0, count).</summary>
-        public LandmarkDeck(int count, Random random)
+        public ShuffleDeck(int count, Random random)
         {
             if (count <= 0)
             {
