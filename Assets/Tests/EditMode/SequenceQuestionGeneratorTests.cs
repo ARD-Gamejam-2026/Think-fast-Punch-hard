@@ -67,7 +67,7 @@ namespace ThinkFast.Quiz.Tests
             Assert.IsTrue(sawFourTermQuestion,
                 "Four-term number families (Arithmetic/Geometric) must be reachable");
             Assert.IsTrue(sawFiveTermQuestion,
-                "Five-term number families (Fibonacci/Alternating) must be reachable");
+                "The five-term number family (Fibonacci) must be reachable");
         }
 
         [Test]

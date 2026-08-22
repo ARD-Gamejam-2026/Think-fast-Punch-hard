@@ -111,7 +111,7 @@ namespace ThinkFast.Quiz.Tests
         }
 
         [Test]
-        public void Rotation_puzzles_never_use_square_and_options_stay_visually_distinct()
+        public void Rotation_puzzles_avoid_symmetric_kinds_and_options_stay_visually_distinct()
         {
             int rotationPuzzlesChecked = 0;
             for (int seed = 0; seed < 20; seed++)
@@ -136,6 +136,8 @@ namespace ThinkFast.Quiz.Tests
             ShapeKind kind = puzzle.Terms[0].Kind;
             Assert.AreNotEqual(ShapeKind.Square, kind,
                 "square has 90-degree rotational symmetry and collides with 45/90 degree rotation steps");
+            Assert.AreNotEqual(ShapeKind.Star, kind,
+                "star is near-symmetric and its rotated steps are not visually distinguishable");
 
             int period = RotationalSymmetryPeriod(kind);
             var reducedRotations = new HashSet<int>();
