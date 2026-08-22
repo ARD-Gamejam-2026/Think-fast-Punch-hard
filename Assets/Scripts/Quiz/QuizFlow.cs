@@ -119,13 +119,9 @@ namespace ThinkFast.Quiz
         private void ShowNext()
         {
             float[] weights = BuildAvailableWeights();
-            float total = 0f;
-            foreach (float weight in weights)
-            {
-                total += weight;
-            }
+            int selected = WeightedPicker.Pick(weights, Random.value);
 
-            if (total <= 0f)
+            if (selected < 0)
             {
                 // Nothing available right now (e.g. Wikipedia-only while the
                 // queues still fill). Retry shortly instead of stalling.
@@ -133,7 +129,6 @@ namespace ThinkFast.Quiz
                 return;
             }
 
-            int selected = RollWeighted(weights, total);
             QuizQuestion next = TakeQuestion(selected);
 
             var previousGenerated = displayedGenerated;
@@ -185,33 +180,6 @@ namespace ThinkFast.Quiz
                 }
             }
             return weights;
-        }
-
-        /// <summary>
-        /// Cumulative weighted pick over the available buckets. Random.value
-        /// is inclusive of 1, so a boundary roll (roll == total) must never
-        /// fall past the end: the last weighted bucket stays selected when
-        /// the loop runs out.
-        /// </summary>
-        private static int RollWeighted(float[] weights, float total)
-        {
-            float roll = Random.value * total;
-            float cumulative = 0f;
-            int selected = 0;
-            for (int i = 0; i < weights.Length; i++)
-            {
-                if (weights[i] <= 0f)
-                {
-                    continue;
-                }
-                cumulative += weights[i];
-                selected = i;
-                if (roll < cumulative)
-                {
-                    break;
-                }
-            }
-            return selected;
         }
 
         private QuizQuestion TakeQuestion(int selected)
