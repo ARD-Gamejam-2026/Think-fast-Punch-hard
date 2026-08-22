@@ -114,7 +114,10 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
 # Other files and folders to ignore
-.vscode/
-results.xml
-.superpowers/
-docs/superpowers/
+.vscode
+
+# --- Project-local (Think fast Punch hard) ---
+# Working design notes, intentionally not shared.
+GAME_DESIGN.md
+# Headless compile-check scratch output (see tools/compile-check.ps1).
+/.compilecheck/
