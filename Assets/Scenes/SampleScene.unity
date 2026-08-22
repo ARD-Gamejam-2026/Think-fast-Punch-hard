@@ -606,12 +606,47 @@ PrefabInstance:
     - target: {fileID: 5586909221496668179, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
       propertyPath: startingQuestion
       value: 
-      objectReference: {fileID: 11400000, guid: 1d690abe36b2844f7978546781c328cd, type: 2}
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3578240022214496066, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1349187494}
   m_SourcePrefab: {fileID: 100100000, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
+--- !u!1 &1349187492 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3578240022214496066, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
+  m_PrefabInstance: {fileID: 1349187491}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1349187493 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5586909221496668179, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
+  m_PrefabInstance: {fileID: 1349187491}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1349187492}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6404eca9e1fe6436babe89dddc1cd4fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.QuizController
+--- !u!114 &1349187494
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1349187492}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c2d664864ab94dfc95e9f07c687ab19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.QuizFlow
+  quiz: {fileID: 1349187493}
+  questions:
+  - {fileID: 11400000, guid: 1d690abe36b2844f7978546781c328cd, type: 2}
+  - {fileID: 11400000, guid: 0debc52b46f794db2810eabd79f662e2, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -13,6 +13,7 @@ The code lives in `Assets/Scripts/Quiz/`:
 | `QuizSession` | Rules of one question in progress (plain C#, unit-tested) |
 | `QuizView` / `AnswerButton` | Presentation on the `QuizPanel` prefab |
 | `QuizController` | Glue: runs a question, raises `QuestionAnswered` |
+| `QuizFlow` | Cycles through a question list, looping forever |
 | `Editor/QuizPanelBuilder` | One-time generators under **Tools > Quiz** |
 
 ## Adding a new question
@@ -34,20 +35,29 @@ accident.
 ## Showing questions at runtime
 
 The quickest way: drop the `QuizPanel` prefab into a scene and assign your
-question to the controller's **Starting Question** field — it plays on
-scene start (that's how `SampleScene` is set up).
+question to the controller's **Starting Question** field — it plays a
+single question on scene start.
 
-For a real quiz flow, drive it from your own script:
+For a sequence, use the built-in `QuizFlow` component (this is how
+`SampleScene` is set up): add it next to the `QuizController`, assign the
+controller and a list of questions, and it cycles through them endlessly —
+after the last question it wraps back to the first. Leave the controller's
+**Starting Question** empty when a flow is driving it, or the first
+question shows twice.
+
+For custom behavior (scoring, lives, a win screen), write your own driver
+against the same event:
 
 ```csharp
 using ThinkFast.Quiz;
 
-public class QuizFlow : MonoBehaviour
+public class ScoredQuizFlow : MonoBehaviour
 {
     [SerializeField] private QuizController quiz;
     [SerializeField] private QuizQuestion[] questions;
 
     private int current;
+    private int score;
 
     private void OnEnable() => quiz.QuestionAnswered += OnAnswered;
     private void OnDisable() => quiz.QuestionAnswered -= OnAnswered;
@@ -56,10 +66,13 @@ public class QuizFlow : MonoBehaviour
 
     private void OnAnswered(QuizResult result)
     {
-        // result is Correct, Wrong, or TimedOut — score it here.
+        if (result == QuizResult.Correct)
+            score++;
+
         current++;
         if (current < questions.Length)
             quiz.ShowQuestion(questions[current]);
+        // else: show your win/score screen here.
     }
 }
 ```
@@ -85,6 +98,9 @@ want to reset it: regeneration **overwrites your styling**.
 - **Tools > Quiz > Update Sample Question (Pac-Man image, 5s)** —
   regenerates the procedural Pac-Man sprite and points the sample question
   at it.
+- **Tools > Quiz > Add Quiz Flow To Sample Scene** — adds the looping
+  `QuizFlow` with both sample questions and clears the controller's
+  starting question. Safe to re-run.
 
 ## Tests
 

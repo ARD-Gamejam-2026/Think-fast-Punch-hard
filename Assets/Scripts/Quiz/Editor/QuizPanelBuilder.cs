@@ -111,6 +111,63 @@ namespace ThinkFast.Quiz.EditorTools
         }
 
         private const string PacManSpritePath = "Assets/Quiz/PacMan.png";
+        private const string SecondQuestionPath = QuestionsFolder + "/SampleQuestion2.asset";
+
+        [MenuItem("Tools/Quiz/Add Quiz Flow To Sample Scene")]
+        public static void AddQuizFlowToSampleScene()
+        {
+            var scene = EditorSceneManager.OpenScene(ScenePath);
+
+            var controller = Object.FindFirstObjectByType<QuizController>();
+            if (controller == null)
+            {
+                Debug.LogError("No QuizController in SampleScene — run Tools/Quiz/Add Quiz Panel To Sample Scene first.");
+                return;
+            }
+
+            var firstQuestion = AssetDatabase.LoadAssetAtPath<QuizQuestion>(SampleQuestionPath);
+            if (firstQuestion == null)
+            {
+                Debug.LogError($"No question at {SampleQuestionPath} — run Tools/Quiz/Add Quiz Panel To Sample Scene first.");
+                return;
+            }
+
+            var secondQuestion = AssetDatabase.LoadAssetAtPath<QuizQuestion>(SecondQuestionPath);
+            if (secondQuestion == null)
+            {
+                secondQuestion = ScriptableObject.CreateInstance<QuizQuestion>();
+                secondQuestion.questionText = "Think fast! 2 + 2 × 2 = ?";
+                secondQuestion.answers = new[] { "8", "6", "4", "22" };
+                secondQuestion.correctIndex = 1;
+                secondQuestion.timeLimitSeconds = 5f;
+                AssetDatabase.CreateAsset(secondQuestion, SecondQuestionPath);
+            }
+
+            var flow = controller.GetComponent<QuizFlow>();
+            if (flow == null)
+                flow = controller.gameObject.AddComponent<QuizFlow>();
+
+            var flowSo = new SerializedObject(flow);
+            flowSo.FindProperty("quiz").objectReferenceValue = controller;
+            var questionsProperty = flowSo.FindProperty("questions");
+            questionsProperty.arraySize = 2;
+            questionsProperty.GetArrayElementAtIndex(0).objectReferenceValue = firstQuestion;
+            questionsProperty.GetArrayElementAtIndex(1).objectReferenceValue = secondQuestion;
+            flowSo.ApplyModifiedProperties();
+            PrefabUtility.RecordPrefabInstancePropertyModifications(flow);
+
+            // The flow owns which question starts; a startingQuestion on the
+            // controller would show the same question a second time.
+            var controllerSo = new SerializedObject(controller);
+            controllerSo.FindProperty("startingQuestion").objectReferenceValue = null;
+            controllerSo.ApplyModifiedProperties();
+            PrefabUtility.RecordPrefabInstancePropertyModifications(controller);
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("QuizFlow added to SampleScene with 2 questions, looping forever.");
+        }
 
         [MenuItem("Tools/Quiz/Update Sample Question (Pac-Man image, 5s)")]
         public static void UpdateSampleQuestion()
