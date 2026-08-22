@@ -10,6 +10,8 @@ namespace ThinkFast.Quiz
     public sealed class ShapeRenderer
     {
         private const int CellSize = 128;
+        private const int MaxStripColumns = 4;
+        private const float CellGapFraction = 0.2f;
         private const float Margin = 0.14f;
         private const float OutlineBand = 0.10f;
 
@@ -36,28 +38,52 @@ namespace ThinkFast.Quiz
         }
 
         /// <summary>
-        /// Renders the terms across two rows with the "?" placeholder centered on
-        /// a third row below, keeping the prompt compact instead of one wide row.
+        /// Renders the terms wrapped into rows (at most MaxStripColumns wide) with
+        /// the "?" placeholder centered on its own row below, keeping the prompt
+        /// compact: four terms stay on one row, six wrap to 3x2.
         /// </summary>
         public Sprite RenderStrip(IReadOnlyList<ShapeSpec> terms)
         {
             int termCount = terms.Count;
-            int columns = Mathf.Max(1, Mathf.CeilToInt(termCount / 2f));
-            int width = columns * CellSize;
-            int height = 3 * CellSize;
+            int termRows = Mathf.Max(1, Mathf.CeilToInt(termCount / (float)MaxStripColumns));
+            int columns = Mathf.CeilToInt(termCount / (float)termRows);
+            int totalRows = termRows + 1;
+            // Only the counting sequence (terms holding several shapes) needs a
+            // gap between cells to keep the groups separable; single-shape
+            // sequences read fine with the cells adjacent.
+            int gap = 0;
+            if (HasMultiShapeTerm(terms))
+            {
+                gap = Mathf.RoundToInt(CellSize * CellGapFraction);
+            }
+            int pitch = CellSize + gap;
+            int width = columns * pitch - gap;
+            int height = totalRows * pitch - gap;
             var pixels = NewTransparentBuffer(width, height);
             for (int i = 0; i < termCount; i++)
             {
                 int rowFromTop = i / columns;
                 int column = i % columns;
                 int inThisRow = Mathf.Min(columns, termCount - rowFromTop * columns);
-                int rowLeft = (width - inThisRow * CellSize) / 2;
-                int cellX = rowLeft + column * CellSize;
-                int cellY = (2 - rowFromTop) * CellSize;
+                int rowWidth = inThisRow * pitch - gap;
+                int cellX = (width - rowWidth) / 2 + column * pitch;
+                int cellY = (totalRows - 1 - rowFromTop) * pitch;
                 DrawCell(pixels, width, height, cellX, cellY, terms[i]);
             }
             DrawPlaceholder(pixels, width, height, (width - CellSize) / 2, 0);
             return BuildSprite(pixels, width, height);
+        }
+
+        private static bool HasMultiShapeTerm(IReadOnlyList<ShapeSpec> terms)
+        {
+            foreach (var term in terms)
+            {
+                if (term.Count > 1)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private Color[] NewTransparentBuffer(int width, int height)
