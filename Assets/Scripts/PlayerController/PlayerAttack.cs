@@ -1,4 +1,5 @@
 using System;
+using ThinkFast.Anim;
 using ThinkFast.Combat;
 using ThinkFast.Economy;
 using UnityEngine;
@@ -61,9 +62,14 @@ namespace ThinkFast.Player
         [Tooltip("Layers the hitbox can hit. Leave as Everything while testing.")]
         [SerializeField] private LayerMask hittableLayers = ~0;
 
+        [Header("Presentation")]
+        [Tooltip("Optional. Mesh Animator driver on a child object.")]
+        [SerializeField] private CharacterAnimation characterAnimation;
+
         private PlayerController controller;
         private PlayerInputReader input;
         private AttackRunner runner;
+        private ICharacterAnimation animation;
 
         // Optional. Without it attacks are free, which keeps the fighter testable
         // in isolation from the economy.
@@ -105,6 +111,13 @@ namespace ThinkFast.Player
             controller = GetComponent<PlayerController>();
             input = GetComponent<PlayerInputReader>();
             resources = GetComponent<FighterResources>();
+
+            if (characterAnimation == null)
+            {
+                characterAnimation = GetComponentInChildren<CharacterAnimation>();
+            }
+
+            animation = characterAnimation;
 
             runner = new AttackRunner(gameObject, hittableLayers);
             runner.Started += (attack, centre) => AttackStarted?.Invoke(attack, centre);
@@ -180,7 +193,9 @@ namespace ThinkFast.Player
             // Grounded state is sampled once, at the moment the swing starts.
             // Landing mid-punch does not switch you to the other attack.
             attackBufferTimer = 0f;
-            runner.Begin(controller.IsGrounded ? groundAttack : airAttack, controller.Facing);
+            bool airborne = !controller.IsGrounded;
+            runner.Begin(airborne ? airAttack : groundAttack, controller.Facing);
+            animation?.NotifyAttackStarted(airborne);
         }
 
         private void OnDrawGizmos()

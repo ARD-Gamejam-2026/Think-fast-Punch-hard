@@ -1,6 +1,7 @@
+using ThinkFast.Combat;
 using UnityEngine;
 
-namespace ThinkFast.Player
+namespace ThinkFast.Anim
 {
     /// <summary>
     /// Drives the fighter Animator from gameplay events and movement state.
@@ -8,7 +9,7 @@ namespace ThinkFast.Player
     /// Lives on the same GameObject as the <see cref="Animator"/> (typically the
     /// visual child). One-shots -- attack, hit, knockout -- arrive through
     /// <see cref="ICharacterAnimation"/>; idle, walk, jump and fall are derived
-    /// each frame from <see cref="PlayerController"/>.
+    /// each frame from the parent body's <see cref="IFighterMotor"/>.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Animator))]
@@ -28,16 +29,13 @@ namespace ThinkFast.Player
         private const float WalkSpeedThreshold = 0.25f;
         private const float RisingVelocityThreshold = 0.1f;
 
-        [Tooltip("How long to hold a hit clip before locomotion may resume, even if hitstun ends first.")]
-        [SerializeField] private float hitClipHold = 0.25f;
-
         private Animator animator;
-        private PlayerController controller;
+        private IFighterMotor motor;
 
         private int currentStateHash;
         private bool isKnockedOut;
         private bool hitClipActive;
-        private float hitClipTimer;
+        private int hitStateHash;
         private bool attackClipActive;
         private bool attackClipAirborne;
         private int attackStateHash;
@@ -45,24 +43,26 @@ namespace ThinkFast.Player
         private void Awake()
         {
             animator = GetComponent<Animator>();
-            controller = GetComponentInParent<PlayerController>();
+            motor = GetComponentInParent<IFighterMotor>();
 
-            if (controller == null)
+            if (motor == null)
             {
-                Debug.LogError($"{nameof(CharacterAnimation)} on '{name}' needs a {nameof(PlayerController)} on a parent.", this);
+                Debug.LogError(
+                    $"{nameof(CharacterAnimation)} on '{name}' needs a component implementing {nameof(IFighterMotor)} on a parent.",
+                    this);
                 enabled = false;
             }
         }
 
         private void LateUpdate()
         {
-            if (animator == null || controller == null)
+            if (animator == null || motor == null)
             {
                 return;
             }
 
             ApplyFacing();
-            animator.SetBool("isGrounded", controller.IsGrounded);
+            animator.SetBool("isGrounded", motor.IsGrounded);
 
             if (isKnockedOut)
             {
@@ -72,20 +72,18 @@ namespace ThinkFast.Player
 
             if (hitClipActive)
             {
-                hitClipTimer -= Time.deltaTime;
-                if (hitClipTimer <= 0f && !controller.IsStunned)
+                if (motor.IsStunned)
                 {
-                    hitClipActive = false;
-                }
-                else
-                {
+                    MaintainHitState();
                     return;
                 }
+
+                hitClipActive = false;
             }
 
             if (attackClipActive)
             {
-                bool landedDuringAirAttack = attackClipAirborne && controller.IsGrounded;
+                bool landedDuringAirAttack = attackClipAirborne && motor.IsGrounded;
                 if (!landedDuringAirAttack && !IsAttackClipFinished())
                 {
                     return;
@@ -108,7 +106,7 @@ namespace ThinkFast.Player
 
             attackClipActive = false;
             attackClipAirborne = false;
-            PlayState(JumpState);
+            PlayState(JumpState, true);
         }
 
         /// <inheritdoc />
@@ -123,7 +121,7 @@ namespace ThinkFast.Player
             attackClipAirborne = airborne;
             string stateName = airborne ? AttackAirState : AttackState;
             attackStateHash = Animator.StringToHash(stateName);
-            PlayState(stateName);
+            PlayState(stateName, true);
         }
 
         /// <inheritdoc />
@@ -137,8 +135,9 @@ namespace ThinkFast.Player
             attackClipActive = false;
             attackClipAirborne = false;
             hitClipActive = true;
-            hitClipTimer = hitClipHold;
-            PlayState(airborne ? HitAirState : HitState);
+            string stateName = airborne ? HitAirState : HitState;
+            hitStateHash = Animator.StringToHash(stateName);
+            PlayState(stateName, true);
         }
 
         /// <inheritdoc />
@@ -148,7 +147,7 @@ namespace ThinkFast.Player
             attackClipActive = false;
             attackClipAirborne = false;
             hitClipActive = false;
-            PlayState(KnockoutState);
+            PlayState(KnockoutState, true);
         }
 
         /// <inheritdoc />
@@ -164,9 +163,9 @@ namespace ThinkFast.Player
 
         private void UpdateLocomotion()
         {
-            if (!controller.IsGrounded)
+            if (!motor.IsGrounded)
             {
-                if (controller.Velocity.y > RisingVelocityThreshold)
+                if (motor.Velocity.y > RisingVelocityThreshold)
                 {
                     PlayState(JumpState);
                 }
@@ -178,7 +177,7 @@ namespace ThinkFast.Player
                 return;
             }
 
-            if (Mathf.Abs(controller.Velocity.x) >= WalkSpeedThreshold)
+            if (Mathf.Abs(motor.Velocity.x) >= WalkSpeedThreshold)
             {
                 PlayState(WalkState);
             }
@@ -188,23 +187,46 @@ namespace ThinkFast.Player
             }
         }
 
-        private void PlayState(string stateName)
+        private void PlayState(string stateName, bool interrupt = false)
         {
             int hash = Animator.StringToHash(stateName);
-            if (currentStateHash == hash)
+
+            if (interrupt)
+            {
+                animator.Play(hash, 0, 0);
+            }
+            else if (currentStateHash != hash)
+            {
+                animator.CrossFade(stateName, CrossFadeDuration);
+            }
+            else
             {
                 return;
             }
 
-            animator.CrossFade(stateName, CrossFadeDuration);
             currentStateHash = hash;
         }
 
         /// <summary>
-        /// True once the active attack clip has played through, even if
-        /// <see cref="PlayerAttack.IsAttacking"/> already returned to false.
-        /// Air attacks are released early by landing instead; see
-        /// <see cref="LateUpdate"/>.
+        /// Keeps the hit clip active while stun lasts, even if the Animator
+        /// controller would otherwise transition out early.
+        /// </summary>
+        private void MaintainHitState()
+        {
+            AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+            if (state.shortNameHash == hitStateHash)
+            {
+                return;
+            }
+
+            animator.Play(hitStateHash, 0, 0f);
+            currentStateHash = hitStateHash;
+        }
+
+        /// <summary>
+        /// True once the active attack clip has played through, even if combat
+        /// recovery already returned to false. Air attacks are released early by
+        /// landing instead; see <see cref="LateUpdate"/>.
         /// </summary>
         private bool IsAttackClipFinished()
         {
@@ -223,11 +245,11 @@ namespace ThinkFast.Player
         }
 
         /// <summary>
-        /// Yaws the mesh so it faces the same way as <see cref="PlayerController.Facing"/>.
+        /// Yaws the mesh so it faces the same way as <see cref="IFighterMotor.Facing"/>.
         /// </summary>
         private void ApplyFacing()
         {
-            float yaw = controller.Facing > 0f ? 90f : -90f;
+            float yaw = motor.Facing > 0f ? 90f : -90f;
             transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
         }
     }
