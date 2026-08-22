@@ -111,7 +111,6 @@ namespace ThinkFast.Quiz.EditorTools
         }
 
         private const string PacManSpritePath = "Assets/Quiz/PacMan.png";
-        private const string SecondQuestionPath = QuestionsFolder + "/SampleQuestion2.asset";
 
         [MenuItem("Tools/Quiz/Add Quiz Flow To Sample Scene")]
         public static void AddQuizFlowToSampleScene()
@@ -132,27 +131,22 @@ namespace ThinkFast.Quiz.EditorTools
                 return;
             }
 
-            var secondQuestion = AssetDatabase.LoadAssetAtPath<QuizQuestion>(SecondQuestionPath);
-            if (secondQuestion == null)
-            {
-                secondQuestion = ScriptableObject.CreateInstance<QuizQuestion>();
-                secondQuestion.questionText = "Think fast! 2 + 2 × 2 = ?";
-                secondQuestion.answers = new[] { "8", "6", "4", "22" };
-                secondQuestion.correctIndex = 1;
-                secondQuestion.timeLimitSeconds = 5f;
-                AssetDatabase.CreateAsset(secondQuestion, SecondQuestionPath);
-            }
+            // A previous revision had a separate RandomMathQuizFlow component;
+            // if the scene still carries it as a missing script, clear it.
+            GameObjectUtility.RemoveMonoBehavioursWithMissingScript(controller.gameObject);
 
             var flow = controller.GetComponent<QuizFlow>();
             if (flow == null)
                 flow = controller.gameObject.AddComponent<QuizFlow>();
+            flow.enabled = true;
 
             var flowSo = new SerializedObject(flow);
             flowSo.FindProperty("quiz").objectReferenceValue = controller;
             var questionsProperty = flowSo.FindProperty("questions");
-            questionsProperty.arraySize = 2;
+            questionsProperty.arraySize = 1;
             questionsProperty.GetArrayElementAtIndex(0).objectReferenceValue = firstQuestion;
-            questionsProperty.GetArrayElementAtIndex(1).objectReferenceValue = secondQuestion;
+            flowSo.FindProperty("includeRandomMath").boolValue = true;
+            flowSo.FindProperty("mathChance").floatValue = 0.5f;
             flowSo.ApplyModifiedProperties();
             PrefabUtility.RecordPrefabInstancePropertyModifications(flow);
 
@@ -166,7 +160,7 @@ namespace ThinkFast.Quiz.EditorTools
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
-            Debug.Log("QuizFlow added to SampleScene with 2 questions, looping forever.");
+            Debug.Log("QuizFlow added to SampleScene with the sample question and math mixing.");
         }
 
         [MenuItem("Tools/Quiz/Update Sample Question (Pac-Man image, 5s)")]

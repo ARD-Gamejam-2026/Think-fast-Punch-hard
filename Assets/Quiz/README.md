@@ -13,7 +13,8 @@ The code lives in `Assets/Scripts/Quiz/`:
 | `QuizSession` | Rules of one question in progress (plain C#, unit-tested) |
 | `QuizView` / `AnswerButton` | Presentation on the `QuizPanel` prefab |
 | `QuizController` | Glue: runs a question, raises `QuestionAnswered` |
-| `QuizFlow` | Cycles through a question list, looping forever |
+| `QuizFlow` | Endless driver: authored questions, optionally mixed with random math |
+| `MathQuestionGenerator` | Builds the random math questions (unit-tested) |
 | `Editor/QuizPanelBuilder` | One-time generators under **Tools > Quiz** |
 
 ## Adding a new question
@@ -44,6 +45,13 @@ controller and a list of questions, and it cycles through them endlessly —
 after the last question it wraps back to the first. Leave the controller's
 **Starting Question** empty when a flow is driving it, or the first
 question shows twice.
+
+`QuizFlow` can also mix in randomly generated arithmetic: tick **Include
+Random Math** and each round rolls **Math Chance** (default 50%) to decide
+between a fresh `+ − ×` question from `MathQuestionGenerator` (small
+operands, near-miss wrong answers, nothing stored as assets) and the next
+authored question. With an empty question list and math enabled, every
+round is math.
 
 For custom behavior (scoring, lives, a win screen), write your own driver
 against the same event:
@@ -133,8 +141,8 @@ want to reset it: regeneration **overwrites your styling**.
   regenerates the procedural Pac-Man sprite and points the sample question
   at it.
 - **Tools > Quiz > Add Quiz Flow To Sample Scene** — adds the looping
-  `QuizFlow` with both sample questions and clears the controller's
-  starting question. Safe to re-run.
+  `QuizFlow` with the sample question, enables 50% random math mixing,
+  and clears the controller's starting question. Safe to re-run.
 
 ## Tests
 
