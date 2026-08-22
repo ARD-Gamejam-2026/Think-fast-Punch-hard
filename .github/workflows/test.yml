@@ -1,0 +1,79 @@
+name: Run Tests
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+  push:
+    branches:
+      - main
+
+# A newer commit on the same ref supersedes any in-flight test run.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  test:
+    name: Run EditMode and PlayMode tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The Unity editor image does not reliably fit in the free space of a
+      # stock runner; drop preinstalled toolchains we don't use.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h /
+
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-Test-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-Test-
+            Library-
+
+      - name: Run tests
+        id: run_tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          testMode: all
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          coverageOptions: generateAdditionalMetrics;generateAdditionalReports;assemblyFilters:+Quiz*,+Assembly-CSharp
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test results
+          path: ${{ steps.run_tests.outputs.artifactsPath }}
+
+      - name: Upload coverage to Teamscale
+        if: steps.run_tests.outcome != 'skipped'
+        continue-on-error: true
+        timeout-minutes: 2
+        uses: cqse/teamscale-upload-action@v2.10.0
+        with:
+          server: "https://teamscale.marcelbruckner.com/"
+          project: "think-fast-punch-hard"
+          user: "ard-gamejam-2026-teamscale"
+          accesskey: ${{ secrets.TEAMSCALE_ACCESS_KEY }}
+          partition: "Unity Tests"
+          format: "LCOV"
+          files: "CodeCoverage/**/lcov.info"
+          revision: ${{ github.event.pull_request.head.sha || github.sha }}
+          message: ${{ github.event.head_commit.message || github.event.pull_request.title }}
