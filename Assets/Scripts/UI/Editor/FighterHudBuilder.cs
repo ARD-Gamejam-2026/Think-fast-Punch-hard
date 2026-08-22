@@ -46,14 +46,11 @@ namespace ThinkFast.UIEditor
 
             GameObject root = CreateCanvas();
 
-            // Registered here, immediately after creation, and NOT at the end of
-            // the build. Registering late is what made a rebuild delete the HUD
-            // and put nothing back: the previous run left a "Build Fighter HUD"
-            // record on the undo stack pointing at an object this run had already
-            // destroyed, and registering a new creation under the same name merged
-            // into that stale group. Building into an empty scene worked, because
-            // there was no earlier record to merge with -- which is exactly the
-            // "only works the first time" shape of the bug.
+            // Registered immediately after creation rather than at the end of the
+            // build, which is what every other builder here does and what Unity
+            // documents. (The rebuild-deletes-the-HUD bug was not this -- see
+            // RemoveExisting -- but registering an object only after it has been
+            // fully populated is its own hazard.)
             Undo.RegisterCreatedObjectUndo(root, "Build Fighter HUD");
 
             // Everything hangs off this, and the split-screen layout anchors it to
@@ -81,13 +78,20 @@ namespace ThinkFast.UIEditor
         }
 
         /// <summary>
-        /// Clears the previous HUD. The removal goes through the undo system too,
-        /// so the stack does not end up holding a record of an object that was
-        /// destroyed behind its back.
+        /// Clears the previous HUD.
         ///
-        /// Only scene roots are searched: the HUD is one, and scanning every
-        /// GameObject would also match anything a designer happened to nest and
-        /// name the same.
+        /// **Only scene roots are searched, and that is the fix, not a tidy-up.**
+        /// This used to walk every GameObject in the scene and destroy the ones
+        /// matching by name. Destroying the HUD root also destroys its children --
+        /// which were still sitting in the array being iterated -- so the next
+        /// loop read `.name` off a destroyed object and threw. The exception
+        /// aborted the build before anything was created, which is why rebuilding
+        /// deleted the HUD and put nothing back, while building into a scene that
+        /// had none worked fine. Roots cannot contain each other, so the same
+        /// mistake is not available here.
+        ///
+        /// The removal also goes through the undo system, so the stack does not
+        /// end up holding a record of an object destroyed behind its back.
         /// </summary>
         private static void RemoveExisting()
         {
