@@ -87,7 +87,6 @@ namespace ThinkFast.Quiz.Tests
             var kinds = new[] { ShapeKind.Circle, ShapeKind.Square, ShapeKind.Triangle, ShapeKind.Star };
             var rotations = new[] { 0, 45, 90, 135 };
             var counts = new[] { 1, 4, 9 };
-            var fills = new[] { true, false };
 
             foreach (var kind in kinds)
             {
@@ -95,10 +94,8 @@ namespace ThinkFast.Quiz.Tests
                 {
                     foreach (var count in counts)
                     {
-                        foreach (var filled in fills)
-                        {
-                            RenderAndAssertSize(renderer, kind, rotation, count, filled);
-                        }
+                        RenderAndAssertSize(renderer, kind, rotation, count, true);
+                        RenderAndAssertSize(renderer, kind, rotation, count, false);
                     }
                 }
             }

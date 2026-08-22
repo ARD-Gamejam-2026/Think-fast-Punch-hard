@@ -82,7 +82,8 @@ namespace ThinkFast.Quiz
             {
                 step = 45;
             }
-            if (random.Next(2) == 0)
+            bool negate = random.Next(2) == 0;
+            if (negate)
             {
                 step = -step;
             }

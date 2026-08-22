@@ -23,7 +23,7 @@ namespace ThinkFast.Quiz
         /// <summary>Clockwise rotation in degrees, normalized to 0-359.</summary>
         public int RotationDegrees { get; }
 
-        /// <summary>How many copies of the shape to draw (at least one).</summary>
+        /// <summary>The count of shape copies to draw (at least one).</summary>
         public int Count { get; }
 
         /// <summary>Index into the renderer's color palette.</summary>

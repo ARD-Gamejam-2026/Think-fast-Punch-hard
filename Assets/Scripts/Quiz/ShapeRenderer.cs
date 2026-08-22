@@ -178,8 +178,6 @@ namespace ThinkFast.Quiz
             return solid && edgeDistance <= radius * OutlineBand;
         }
 
-        // --- geometry helpers ---
-
         private Vector2[] BuildPolygon(ShapeKind kind, Vector2 center, float radius, int rotationDegrees)
         {
             switch (kind)
@@ -214,7 +212,7 @@ namespace ThinkFast.Quiz
             for (int i = 0; i < 10; i++)
             {
                 float r = radius;
-                if (i % 2 == 1)
+                if (i % 2 != 0)
                 {
                     r = radius * 0.45f;
                 }
