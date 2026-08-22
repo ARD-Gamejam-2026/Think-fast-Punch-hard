@@ -15,6 +15,7 @@ The code lives in `Assets/Scripts/Quiz/`:
 | `QuizController` | Glue: runs a question, raises `QuestionAnswered` |
 | `QuizFlow` | Endless driver: rolls among authored/math/Wikipedia questions by weight |
 | `MathQuestionGenerator` | Builds the random math questions (unit-tested) |
+| `SequenceQuestionGenerator` | Builds number and shape sequence-completion questions (unit-tested) |
 | `WikipediaQuestionSource` | Prefetches live Wikipedia photo questions for one topic list (places, animals, ...) |
 | `WikipediaTopicList` | Curated Wikipedia titles + display names for one topic (`Landmarks.asset`, `Animals.asset`) |
 | `Editor/QuizPanelBuilder` | One-time generators under **Tools > Quiz** |
@@ -64,6 +65,29 @@ you like — the sample scene wires two, places (weight 2) and animals
 math; if the only available weight momentarily has none ready (e.g.
 Wikipedia-only while the queues refill), `QuizFlow` retries shortly
 instead of stalling.
+
+### Sequence questions
+
+`SequenceQuestionGenerator` builds "what comes next" puzzles, split between
+two families. **Number sequences** reuse the plain text question/answer
+presentation and cover three patterns kept easy enough to solve under the
+timer: arithmetic (constant step), geometric (x2/x3), and Fibonacci with
+classic small starts (1,1 / 1,2 / 2,3 / 2,4 / 3,5). **Shape sequences**
+render the prompt and all four answers as procedurally-drawn images via
+`ShapeRenderer`, across four transforms: rotation (triangle only — square
+and star read as rotationally symmetric), count (an increasing number of
+shapes), shape-type cycle, and color/fill cycle.
+
+The shape prompt lays its terms out in rows (at most four per row, so a
+four-term sequence stays on one line and a six-term one wraps to 3x2) with
+the "?" placeholder centered on its own row below; count sequences add a gap
+between cells so the groups stay countable.
+
+Both families mix into the same `QuizFlow` bucket, tuned by three inspector
+fields: **Sequence Weight** (relative roll weight, default 1, alongside
+authored/math), **Sequence Time Limit Seconds** (default 8), and
+**Sequence Shape Share** (fraction of sequence rounds that are shapes
+rather than numbers, default 0.5).
 
 For custom behavior (scoring, lives, a win screen), write your own driver
 against the same event:
@@ -220,6 +244,12 @@ want to reset it: regeneration **overwrites your styling**.
   one-time migration/repair commands from the panel's layout evolution;
   both are no-ops on an already-correct prefab/scene and are kept for
   reference.
+- **Tools > Quiz > Add Answer Icons To Panel** — adds a disabled
+  `AnswerIcon` image to each answer button in `QuizPanel.prefab`, needed to
+  display shape-sequence answer images. Safe to re-run.
+- **Tools > Quiz > Add Sequence Questions To Sample Scene** — sets the
+  sample scene's `QuizFlow` **Sequence Weight** to 2 so number and shape
+  sequence questions mix into the endless rotation. Safe to re-run.
 
 ## Credits
 

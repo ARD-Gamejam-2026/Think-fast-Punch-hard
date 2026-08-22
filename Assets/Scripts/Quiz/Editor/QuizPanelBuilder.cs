@@ -477,6 +477,7 @@ namespace ThinkFast.Quiz.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
 
             answerButton.SetVisualState(AnswerButton.VisualState.Normal);
+            QuizPanelSequenceSetup.EnsureAnswerIcon(answerButton);
             return answerButton;
         }
 

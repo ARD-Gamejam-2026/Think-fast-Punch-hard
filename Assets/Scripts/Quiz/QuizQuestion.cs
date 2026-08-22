@@ -19,6 +19,10 @@ namespace ThinkFast.Quiz
 
         public string[] answers = new string[AnswerCount];
 
+        [Tooltip("Optional per-answer images. When null, answers are text; when set, "
+            + "each non-null entry replaces its answer button's text with the sprite.")]
+        public Sprite[] answerImages;
+
         [Range(0, AnswerCount - 1)]
         public int correctIndex;
 
@@ -31,6 +35,11 @@ namespace ThinkFast.Quiz
             if (answers == null || answers.Length != AnswerCount)
             {
                 System.Array.Resize(ref answers, AnswerCount);
+            }
+
+            if (answerImages != null && answerImages.Length != AnswerCount)
+            {
+                System.Array.Resize(ref answerImages, AnswerCount);
             }
 
             correctIndex = Mathf.Clamp(correctIndex, 0, AnswerCount - 1);

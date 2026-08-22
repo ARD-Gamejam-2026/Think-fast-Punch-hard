@@ -21,6 +21,7 @@ namespace ThinkFast.Quiz
         [SerializeField] private Image background;
         [SerializeField] private TMP_Text letterLabel;
         [SerializeField] private TMP_Text answerLabel;
+        [SerializeField] private Image answerIcon;
 
         [SerializeField] private Color normalColor = new Color(0.10f, 0.10f, 0.28f);
         [SerializeField] private Color correctColor = new Color(0.15f, 0.55f, 0.20f);
@@ -40,9 +41,23 @@ namespace ThinkFast.Quiz
             button.onClick.AddListener(() => this.onClicked?.Invoke(this.index));
         }
 
+        /// <summary>Shows the given answer as text and hides the shape icon.</summary>
         public void SetAnswerText(string text)
         {
             answerLabel.text = text;
+            answerLabel.enabled = true;
+            if (answerIcon != null)
+            {
+                answerIcon.enabled = false;
+            }
+        }
+
+        /// <summary>Shows the given sprite as the answer and hides the text label.</summary>
+        public void SetAnswerImage(Sprite sprite)
+        {
+            answerIcon.sprite = sprite;
+            answerIcon.enabled = true;
+            answerLabel.enabled = false;
         }
 
         public void SetInteractable(bool value)
