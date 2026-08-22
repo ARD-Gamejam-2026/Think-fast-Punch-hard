@@ -80,6 +80,40 @@ public class ScoredQuizFlow : MonoBehaviour
 `QuestionAnswered` fires after the feedback colors have been on screen for
 the controller's **Feedback Delay Seconds** (default 1.5 s).
 
+## Reacting to results
+
+`QuizController.QuestionAnswered` is a plain C# multicast event, so scoring
+or game-state systems subscribe alongside `QuizFlow` without interfering
+with it — each question fires the event exactly once:
+
+```csharp
+using ThinkFast.Quiz;
+using UnityEngine;
+
+public class QuizScorekeeper : MonoBehaviour
+{
+    [SerializeField] private QuizController quiz;
+
+    private void OnEnable()  => quiz.QuestionAnswered += OnQuizResult;
+    private void OnDisable() => quiz.QuestionAnswered -= OnQuizResult;
+
+    private void OnQuizResult(QuizResult result)
+    {
+        switch (result)
+        {
+            case QuizResult.Correct:  /* add score, play jingle */ break;
+            case QuizResult.Wrong:    /* lose a life */ break;
+            case QuizResult.TimedOut: /* they didn't think fast */ break;
+        }
+    }
+}
+```
+
+Subscribers run in subscription order, in the same frame the event fires.
+`QuizFlow` shows the next question immediately when its handler runs, so do
+any result handling inside the event — by the time the frame renders, the
+panel already displays the next question.
+
 ## Restyling the panel
 
 `QuizPanel.prefab` is a normal prefab — edit colors, fonts, spacing, and
