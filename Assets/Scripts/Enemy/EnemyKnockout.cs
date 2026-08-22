@@ -1,4 +1,5 @@
 using System;
+using ThinkFast.Anim;
 using ThinkFast.Combat;
 using ThinkFast.Rounds;
 using UnityEngine;
@@ -25,11 +26,16 @@ namespace ThinkFast.Enemy
         [Tooltip("Seconds between the killing blow and the round being reported over. Long enough for the final knockback to play out -- ending the round on the exact frame of the hit throws away the best-looking moment in the fight.")]
         [SerializeField] private float roundEndDelay = 1.2f;
 
+        [Header("Presentation")]
+        [Tooltip("Optional. Mesh Animator driver on a child object.")]
+        [SerializeField] private CharacterAnimation characterAnimation;
+
         private Health health;
         private EnemyMotor motor;
         private EnemyBrain brain;
         private EnemyAttack attack;
         private Rigidbody2D body;
+        private ICharacterAnimation animation;
 
         private Vector2 spawnPosition;
         private float roundEndTimer;
@@ -49,6 +55,13 @@ namespace ThinkFast.Enemy
             brain = GetComponent<EnemyBrain>();
             attack = GetComponent<EnemyAttack>();
             body = GetComponent<Rigidbody2D>();
+
+            if (characterAnimation == null)
+            {
+                characterAnimation = GetComponentInChildren<CharacterAnimation>();
+            }
+
+            animation = characterAnimation;
             spawnPosition = transform.position;
         }
 
@@ -71,6 +84,7 @@ namespace ThinkFast.Enemy
 
             IsKnockedOut = true;
             SetFightingComponents(false);
+            animation?.NotifyKnockout();
             KnockedOut?.Invoke();
 
             roundEndTimer = roundEndDelay;
@@ -104,7 +118,7 @@ namespace ThinkFast.Enemy
             health.ResetHealth();
             motor.Teleport(spawnPosition);
             SetFightingComponents(true);
-
+            animation?.NotifyRespawn();
             Revived?.Invoke();
         }
 
