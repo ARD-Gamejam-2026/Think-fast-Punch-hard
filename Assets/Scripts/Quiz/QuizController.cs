@@ -17,7 +17,21 @@ namespace ThinkFast.Quiz
         [Tooltip("Optional. Shown automatically on Start for quick play-mode testing.")]
         [SerializeField] private QuizQuestion startingQuestion;
 
-        public event Action<QuizResult> QuestionAnswered;
+        /// <summary>
+        /// Fires the instant a question resolves (click or timeout), before
+        /// the feedback delay. The float is the session's
+        /// NormalizedTimeRemaining at resolution: 1 = answered instantly,
+        /// 0 = timed out. Hook instant rewards (Flow meter, action points)
+        /// here so they are not held back by the on-screen feedback.
+        /// </summary>
+        public event Action<QuizResult, float> QuestionResolved;
+
+        /// <summary>
+        /// Fires after the feedback colors have been shown for
+        /// feedbackDelaySeconds. Same payload as QuestionResolved. Drives
+        /// question sequencing (QuizFlow).
+        /// </summary>
+        public event Action<QuizResult, float> QuestionAnswered;
 
         private QuizSession session;
         private float feedbackTimer;
@@ -63,7 +77,7 @@ namespace ThinkFast.Quiz
                 session.Tick(Time.deltaTime);
                 view.SetTimerFill(session.NormalizedTimeRemaining);
                 if (session.IsResolved)
-                    view.ShowResult(session.Result, session.SelectedIndex, session.CorrectIndex);
+                    ShowResolution();
             }
             else
             {
@@ -71,7 +85,7 @@ namespace ThinkFast.Quiz
                 if (feedbackTimer >= feedbackDelaySeconds)
                 {
                     eventFired = true;
-                    QuestionAnswered?.Invoke(session.Result);
+                    QuestionAnswered?.Invoke(session.Result, session.NormalizedTimeRemaining);
                 }
             }
         }
@@ -83,7 +97,13 @@ namespace ThinkFast.Quiz
 
             session.SelectAnswer(index);
             if (session.IsResolved)
-                view.ShowResult(session.Result, session.SelectedIndex, session.CorrectIndex);
+                ShowResolution();
+        }
+
+        private void ShowResolution()
+        {
+            view.ShowResult(session.Result, session.SelectedIndex, session.CorrectIndex);
+            QuestionResolved?.Invoke(session.Result, session.NormalizedTimeRemaining);
         }
     }
 }

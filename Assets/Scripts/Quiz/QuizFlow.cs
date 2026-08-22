@@ -72,7 +72,7 @@ namespace ThinkFast.Quiz
             ShowNext();
         }
 
-        private void OnAnswered(QuizResult result)
+        private void OnAnswered(QuizResult result, float normalizedTimeRemaining)
         {
             ShowNext();
         }

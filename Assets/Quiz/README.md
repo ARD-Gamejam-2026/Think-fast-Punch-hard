@@ -80,7 +80,7 @@ public class ScoredQuizFlow : MonoBehaviour
 
     private void Start() => quiz.ShowQuestion(questions[current]);
 
-    private void OnAnswered(QuizResult result)
+    private void OnAnswered(QuizResult result, float speed)
     {
         if (result == QuizResult.Correct)
             score++;
@@ -93,31 +93,40 @@ public class ScoredQuizFlow : MonoBehaviour
 }
 ```
 
-`QuestionAnswered` fires after the feedback colors have been on screen for
-the controller's **Feedback Delay Seconds** (default 1.5 s).
-
 ## Reacting to results
 
-`QuizController.QuestionAnswered` is a plain C# multicast event, so scoring
-or game-state systems subscribe alongside `QuizFlow` without interfering
-with it — each question fires the event exactly once:
+`QuizController` raises two plain C# multicast events, each exactly once
+per question, and both carry the result plus the answer speed (the timer's
+normalized remaining time at resolution: **1 = answered instantly, 0 =
+timed out**):
+
+- **`QuestionResolved(QuizResult, float)`** — fires the *instant* the
+  player clicks or the timer runs out, before any feedback delay. Hook
+  instant gameplay rewards here (Flow meter, action points, damage
+  windows) so they land the moment the player earns them.
+- **`QuestionAnswered(QuizResult, float)`** — fires after the feedback
+  colors have been on screen for the controller's **Feedback Delay
+  Seconds** (default 1.5 s). `QuizFlow` uses this one to advance, so the
+  result stays visible between questions.
+
+Other systems subscribe alongside `QuizFlow` without interfering with it:
 
 ```csharp
 using ThinkFast.Quiz;
 using UnityEngine;
 
-public class QuizScorekeeper : MonoBehaviour
+public class FlowMeter : MonoBehaviour
 {
     [SerializeField] private QuizController quiz;
 
-    private void OnEnable()  => quiz.QuestionAnswered += OnQuizResult;
-    private void OnDisable() => quiz.QuestionAnswered -= OnQuizResult;
+    private void OnEnable()  => quiz.QuestionResolved += OnQuizResolved;
+    private void OnDisable() => quiz.QuestionResolved -= OnQuizResolved;
 
-    private void OnQuizResult(QuizResult result)
+    private void OnQuizResolved(QuizResult result, float speed)
     {
         switch (result)
         {
-            case QuizResult.Correct:  /* add score, play jingle */ break;
+            case QuizResult.Correct:  /* add Flow scaled by speed */ break;
             case QuizResult.Wrong:    /* lose a life */ break;
             case QuizResult.TimedOut: /* they didn't think fast */ break;
         }
@@ -126,9 +135,10 @@ public class QuizScorekeeper : MonoBehaviour
 ```
 
 Subscribers run in subscription order, in the same frame the event fires.
-`QuizFlow` shows the next question immediately when its handler runs, so do
-any result handling inside the event — by the time the frame renders, the
-panel already displays the next question.
+`QuizFlow` shows the next question immediately when its `QuestionAnswered`
+handler runs, so handle results inside the events — by the time the frame
+renders after `QuestionAnswered`, the panel already displays the next
+question.
 
 ## Restyling the panel
 
