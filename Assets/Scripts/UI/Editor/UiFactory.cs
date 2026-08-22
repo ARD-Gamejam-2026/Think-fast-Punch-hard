@@ -231,22 +231,36 @@ namespace ThinkFast.UIEditor
 
             RectTransform fill = NewRect("Fill", fillArea);
             fill.anchorMin = Vector2.zero;
-            fill.anchorMax = new Vector2(0f, 1f);
+            fill.anchorMax = Vector2.one;
             fill.offsetMin = new Vector2(-inset, 0f);
             fill.offsetMax = new Vector2(inset, 0f);
             AddImage(fill, sprites.Pill, MenuTheme.Accent);
 
+            // The slide area is only as tall as the handle, and the handle's own
+            // height is left at zero. That is not a shortcut -- Slider REWRITES
+            // both anchors of the handle every update (anchorMin (0,0), anchorMax
+            // (1,1), then the value into the horizontal component only), so the
+            // vertical anchors always end up stretched. A sizeDelta.y of 34 then
+            // means "34 taller than the slide area", not "34 tall": a 56-high area
+            // gave a 34x90 handle, which is the stretched oval. Sizing the area
+            // and zeroing the handle is the only arrangement Slider cannot undo.
             RectTransform handleArea = NewRect("Handle Slide Area", barRect);
-            handleArea.anchorMin = new Vector2(0f, 0f);
-            handleArea.anchorMax = new Vector2(1f, 1f);
-            handleArea.offsetMin = new Vector2(inset, 0f);
-            handleArea.offsetMax = new Vector2(-inset, 0f);
+            handleArea.anchorMin = new Vector2(0f, 0.5f);
+            handleArea.anchorMax = new Vector2(1f, 0.5f);
+            handleArea.offsetMin = new Vector2(inset, -HandleDiameter * 0.5f);
+            handleArea.offsetMax = new Vector2(-inset, HandleDiameter * 0.5f);
 
             RectTransform handle = NewRect("Handle", handleArea);
-            handle.anchorMin = new Vector2(0f, 0.5f);
-            handle.anchorMax = new Vector2(0f, 0.5f);
             handle.pivot = new Vector2(0.5f, 0.5f);
-            handle.sizeDelta = new Vector2(HandleDiameter, HandleDiameter);
+
+            // Authored to match a value of 1, which is what Slider will set on its
+            // first update. Without this the saved scene shows the handle parked
+            // at the wrong end until Play is pressed.
+            handle.anchorMin = new Vector2(1f, 0f);
+            handle.anchorMax = new Vector2(1f, 1f);
+            handle.anchoredPosition = Vector2.zero;
+            handle.sizeDelta = new Vector2(HandleDiameter, 0f);
+
             Image handleImage = AddImage(handle, sprites.Circle, MenuTheme.Surface, raycast: true);
             handleImage.type = Image.Type.Simple;
 

@@ -39,6 +39,15 @@ namespace ThinkFast.UIEditor
         private static readonly Vector2 ReferenceResolution = new Vector2(1920f, 1080f);
         private static readonly Vector2 TileSize = new Vector2(430f, 320f);
 
+        /// <summary>One volume slider: caption column plus bar.</summary>
+        private static readonly Vector2 SliderSize = new Vector2(520f, 56f);
+
+        /// <summary>Width of the caption column inside a slider.</summary>
+        private const float SliderCaptionWidth = 120f;
+
+        /// <summary>Gap between the two sliders in the settings bar.</summary>
+        private const float SliderGap = 90f;
+
         [MenuItem("Tools/Think Fast/Build Menu UI")]
         public static void Build()
         {
@@ -236,8 +245,12 @@ namespace ThinkFast.UIEditor
             AudioMixer mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(MixerPath);
             var manager = AssetDatabase.LoadAssetAtPath<AudioManager>(AudioManagerPath);
 
-            AddVolumeSlider(bar, "Slider_Music", "Music", -700f, VolumeSlider.Channel.Music, sprites, font, mixer, manager);
-            AddVolumeSlider(bar, "Slider_Sfx", "Sound", -60f, VolumeSlider.Channel.Sfx, sprites, font, mixer, manager);
+            // Positions are derived rather than typed in, so the pair stays
+            // centred as a group whatever the widths become. Each x is the centre
+            // of one slider, half a step either side of the middle.
+            float step = SliderSize.x + SliderGap;
+            AddVolumeSlider(bar, "Slider_Music", "Music", -step * 0.5f, VolumeSlider.Channel.Music, sprites, font, mixer, manager);
+            AddVolumeSlider(bar, "Slider_Sfx", "Sound", step * 0.5f, VolumeSlider.Channel.Sfx, sprites, font, mixer, manager);
 
             if (mixer == null || manager == null)
             {
@@ -256,13 +269,12 @@ namespace ThinkFast.UIEditor
             AudioMixer mixer,
             AudioManager manager)
         {
-            Slider slider = UiFactory.MakeSlider(bar, name, caption, new Vector2(560f, 56f), 120f, sprites, font);
-            UiFactory.Place(
-                slider.transform.parent as RectTransform,
-                new Vector2(0.5f, 0.5f),
-                new Vector2(0.5f, 0.5f),
-                new Vector2(x, 0f),
-                new Vector2(560f, 56f));
+            Slider slider = UiFactory.MakeSlider(bar, name, caption, SliderSize, SliderCaptionWidth, sprites, font);
+
+            // The Slider component sits on the bar rect, one level inside the
+            // slider's own root -- it is the root that gets positioned.
+            var root = slider.transform.parent as RectTransform;
+            UiFactory.Place(root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x, 0f), SliderSize);
 
             var volume = slider.gameObject.AddComponent<VolumeSlider>();
             var so = new SerializedObject(volume);
