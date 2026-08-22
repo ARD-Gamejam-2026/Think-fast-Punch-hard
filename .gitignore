@@ -114,4 +114,6 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
 # Other files and folders to ignore
-.vscode
+.vscode/
+results.xml
+.superpowers/
