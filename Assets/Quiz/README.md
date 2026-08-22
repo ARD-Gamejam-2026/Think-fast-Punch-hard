@@ -118,6 +118,33 @@ still counts as fast (top 40 % of the time limit — the Flow-building
 zone), yellow after that, and red in the last second. Zone colors and
 thresholds are inspector fields on `QuizView`.
 
+## Feeding the fighter
+
+The fighter half is wired to these events by one component,
+`QuizRewardBridge` (in `Assets/Scripts/Economy/`, on the generated quiz
+root in the fight scene). It listens to `QuestionResolved` and pays out:
+
+| Answer | Action Points | Flow |
+|---|---|---|
+| Correct, timer bar still **green** | +1 | +25 |
+| Correct, bar already yellow or red | +1 | — |
+| Wrong / TimedOut | — | — |
+
+Two things worth knowing before changing anything here:
+
+- **The green zone is load-bearing now.** The bridge reads its threshold
+  from `QuizView.FastZoneNormalized` rather than keeping its own copy, so
+  moving `fastZoneNormalized` moves what the fighter pays for. That is
+  deliberate — a bar the player watched stay green that then paid nothing
+  would be a lie — but it means the colour is no longer only cosmetic.
+- **`QuestionResolved` is what pays out**, not `QuestionAnswered`. Anything
+  that delays or suppresses the resolve event delays the reward. The
+  feedback delay deliberately sits *after* it.
+
+The quiz still has no reference to the fighter, and none of this is
+required to run the quiz on its own: rewards go through a static seam that
+drops the call when no fighter is listening.
+
 Other systems subscribe alongside `QuizFlow` without interfering with it:
 
 ```csharp

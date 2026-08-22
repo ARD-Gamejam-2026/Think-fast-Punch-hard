@@ -1,4 +1,3 @@
-using ThinkFast.Common;
 using UnityEngine;
 
 namespace ThinkFast.CameraRig
@@ -27,14 +26,18 @@ namespace ThinkFast.CameraRig
         [Header("Target")]
         [SerializeField] private Transform target;
 
-        [SplitScreenTodo("If the riddle UI overlaps or crowds the fighter view, bias X here so the fighter sits in the clear part of the viewport rather than dead centre.")]
-        [Tooltip("Framing offset from the target. A little upward bias means the fighter sits slightly low, leaving room to see what is above.")]
+        [Tooltip("Framing offset from the target. A little upward bias means the fighter sits slightly low, leaving room to see what is above. The quiz has its own viewport rather than sitting on top of this one, so nothing needs biasing out from under it.")]
         [SerializeField] private Vector2 offset = new Vector2(0f, 1f);
 
         [Header("Dead zone")]
-        [SplitScreenTodo("Sized against a full-screen 16:9 view. A half-width viewport is much narrower, so this box will cover a far larger share of the screen and will feel sluggish unless X is reduced.")]
-        [Tooltip("Size of the central box the target can move inside without the camera following. Wider means calmer; too wide and the camera feels like it is lagging behind you.")]
+        [Tooltip("Size of the central box the target can move inside without the camera following. Wider means calmer; too wide and the camera feels like it is lagging behind you. Authored against a full-screen view -- see the adaptation setting below.")]
         [SerializeField] private Vector2 deadZone = new Vector2(3f, 2.4f);
+
+        [Tooltip("Scales the dead zone's width with how much world the camera can actually see. A split-screen viewport is half as wide, so an unscaled box would cover twice the share of the screen and the camera would feel like it were lagging behind you.")]
+        [SerializeField] private bool adaptDeadZoneToViewport = true;
+
+        [Tooltip("Visible half-width the dead zone width was authored against: a 60 degree camera 9 units from the fighters on a full-screen 16:9 view. Only used to scale the dead zone, never the framing.")]
+        [SerializeField, Min(0.01f)] private float deadZoneReferenceHalfWidth = 9.24f;
 
         [Header("Smoothing")]
         [Tooltip("Roughly how long the camera takes to catch up horizontally.")]
@@ -44,8 +47,7 @@ namespace ThinkFast.CameraRig
         [SerializeField] private float verticalSmoothTime = 0.45f;
 
         [Header("Look ahead")]
-        [SplitScreenTodo("Look-ahead matters more the narrower the view, since less of the stage is visible ahead of you. Expect to raise this once the fighter is in a half-width viewport.")]
-        [Tooltip("How far the camera leads at full running speed.")]
+        [Tooltip("How far the camera leads at full running speed. Left at its full-screen value on purpose: a half-width viewport shows half as much world, so the same 2 units already lead across twice the share of the screen.")]
         [SerializeField] private float lookAheadDistance = 2f;
 
         [SerializeField] private float lookAheadSmoothTime = 0.35f;
@@ -57,7 +59,16 @@ namespace ThinkFast.CameraRig
         [Tooltip("Stops the camera showing past the edges of the stage.")]
         [SerializeField] private bool useBounds = true;
 
-        [SplitScreenTodo("These MUST be recalculated for split screen. They are derived from how wide the camera sees, which depends on viewport aspect: halfWidth = tan(fov/2) * distance * aspect, and the limit is stageHalfWidth - halfWidth. A half-width viewport roughly halves the aspect, so the camera gains a lot of room and these values become far too tight. Camera distance (currently z = -9) and FOV want a pass at the same time.")]
+        [Tooltip("Works out the horizontal limits from how wide the camera actually sees, instead of taking them from the values below. This is what makes the bounds survive split screen: a half-width viewport shows roughly half as much world, so the camera can travel much further before the stage edge comes into view, and a fixed pair of numbers would pin it far too tightly.")]
+        [SerializeField] private bool deriveHorizontalBounds = true;
+
+        [Tooltip("Distance from the centre of the stage to its edge. The camera is kept this far in, minus however much world it can see.")]
+        [SerializeField] private float stageHalfWidth = 15f;
+
+        [Tooltip("Z the fighters stand on. How far the camera is from this plane is what decides how much world it sees.")]
+        [SerializeField] private float gameplayPlaneZ;
+
+        [Tooltip("Horizontal limits used only when the derivation above is switched off. Vertical limits are always taken from here -- split screen changes the width of the viewport, never its height.")]
         [SerializeField] private Vector2 boundsMin = new Vector2(-5.8f, 3f);
 
         [SerializeField] private Vector2 boundsMax = new Vector2(5.8f, 5.5f);
@@ -67,6 +78,24 @@ namespace ThinkFast.CameraRig
         private float lookAheadVelocity;
         private Vector3 previousTargetPosition;
         private bool hasPreviousPosition;
+        private Camera view;
+
+        /// <summary>
+        /// The camera being driven. Resolved lazily rather than in Awake so the
+        /// gizmos draw the real dead zone and bounds in edit mode too.
+        /// </summary>
+        private Camera View
+        {
+            get
+            {
+                if (view == null)
+                {
+                    view = GetComponent<Camera>();
+                }
+
+                return view;
+            }
+        }
 
         public void SetTarget(Transform newTarget)
         {
@@ -118,19 +147,83 @@ namespace ThinkFast.CameraRig
                 targetPosition.y + offset.y);
 
             Vector3 position = transform.position;
+            float visibleHalfWidth = VisibleHalfWidth();
 
-            float desiredX = ResolveAxis(position.x, focus.x, deadZone.x);
+            float desiredX = ResolveAxis(position.x, focus.x, ResolveDeadZoneWidth(visibleHalfWidth));
             float desiredY = ResolveAxis(position.y, focus.y, deadZone.y);
 
             if (useBounds)
             {
-                desiredX = Mathf.Clamp(desiredX, boundsMin.x, boundsMax.x);
+                ResolveHorizontalLimits(visibleHalfWidth, out float limitMin, out float limitMax);
+                desiredX = Mathf.Clamp(desiredX, limitMin, limitMax);
                 desiredY = Mathf.Clamp(desiredY, boundsMin.y, boundsMax.y);
             }
 
             position.x = Mathf.SmoothDamp(position.x, desiredX, ref smoothVelocity.x, horizontalSmoothTime);
             position.y = Mathf.SmoothDamp(position.y, desiredY, ref smoothVelocity.y, verticalSmoothTime);
             transform.position = position;
+        }
+
+        /// <summary>
+        /// How much world the camera can see to either side of itself, at the
+        /// distance the fighters actually stand. This is the number every
+        /// viewport-dependent setting is derived from, and it already accounts
+        /// for a viewport rect: a camera confined to half the screen reports
+        /// half the aspect, so it sees half as wide.
+        /// </summary>
+        private float VisibleHalfWidth()
+        {
+            Camera camera = View;
+            if (camera == null)
+            {
+                return 0f;
+            }
+
+            if (camera.orthographic)
+            {
+                return camera.orthographicSize * camera.aspect;
+            }
+
+            float distance = Mathf.Abs(transform.position.z - gameplayPlaneZ);
+            float halfHeight = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad) * distance;
+            return halfHeight * camera.aspect;
+        }
+
+        /// <summary>
+        /// Returns the dead zone width to use, scaled so the box stays the same
+        /// share of what the player can see however wide the viewport is.
+        /// </summary>
+        private float ResolveDeadZoneWidth(float visibleHalfWidth)
+        {
+            if (!adaptDeadZoneToViewport || visibleHalfWidth <= 0f)
+            {
+                return deadZone.x;
+            }
+
+            return deadZone.x * (visibleHalfWidth / deadZoneReferenceHalfWidth);
+        }
+
+        /// <summary>
+        /// Returns how far the camera may travel horizontally. Derived, the limit
+        /// is the stage edge minus however much world is on screen, so the view
+        /// stops exactly as the edge would come into frame -- which is why it
+        /// holds at any viewport width instead of needing a second set of
+        /// hand-tuned numbers per layout.
+        /// </summary>
+        private void ResolveHorizontalLimits(float visibleHalfWidth, out float limitMin, out float limitMax)
+        {
+            if (!deriveHorizontalBounds)
+            {
+                limitMin = boundsMin.x;
+                limitMax = boundsMax.x;
+                return;
+            }
+
+            // Clamped at zero: a camera that sees wider than the whole stage has
+            // nowhere legal to go, and should sit in the middle rather than
+            // invert its own limits.
+            limitMax = Mathf.Max(0f, stageHalfWidth - visibleHalfWidth);
+            limitMin = -limitMax;
         }
 
         /// <summary>
@@ -156,17 +249,26 @@ namespace ThinkFast.CameraRig
 
         private void OnDrawGizmosSelected()
         {
+            // Drawn from the same helpers the camera actually uses, so the boxes
+            // shown in the editor are the ones in force under the current
+            // viewport rather than the authored values.
+            float visibleHalfWidth = VisibleHalfWidth();
+
             Gizmos.color = new Color(1f, 1f, 0.2f, 0.8f);
-            Gizmos.DrawWireCube(transform.position, new Vector3(deadZone.x, deadZone.y, 0.1f));
+            Gizmos.DrawWireCube(
+                transform.position,
+                new Vector3(ResolveDeadZoneWidth(visibleHalfWidth), deadZone.y, 0.1f));
 
             if (!useBounds)
             {
                 return;
             }
 
+            ResolveHorizontalLimits(visibleHalfWidth, out float limitMin, out float limitMax);
+
             Gizmos.color = new Color(0.3f, 1f, 0.5f, 0.6f);
-            var centre = new Vector3((boundsMin.x + boundsMax.x) * 0.5f, (boundsMin.y + boundsMax.y) * 0.5f, transform.position.z);
-            var size = new Vector3(Mathf.Abs(boundsMax.x - boundsMin.x), Mathf.Abs(boundsMax.y - boundsMin.y), 0.1f);
+            var centre = new Vector3((limitMin + limitMax) * 0.5f, (boundsMin.y + boundsMax.y) * 0.5f, transform.position.z);
+            var size = new Vector3(Mathf.Abs(limitMax - limitMin), Mathf.Abs(boundsMax.y - boundsMin.y), 0.1f);
             Gizmos.DrawWireCube(centre, size);
         }
     }

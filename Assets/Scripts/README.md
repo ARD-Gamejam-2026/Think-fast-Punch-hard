@@ -1,9 +1,10 @@
 # Fighter System
 
-The left half of "Think fast, Punch hard": a 2D sidescroller fighter with 3D art
-and 2D physics. One character, one attack button, keyboard only — the mouse
-belongs to the quiz half and is never needed here. Facing it is an autonomous
-opponent that chases, jumps and punches back.
+The left half of "Think fast, Punch hard" — now literally the left half: a 2D
+sidescroller fighter with 3D art and 2D physics, in its own viewport with the quiz
+beside it. One character, one attack button, keyboard only — the mouse belongs to
+the quiz half and is never needed here. Facing it is an autonomous opponent that
+chases, jumps and punches back.
 
 Everything below is in `Assembly-CSharp` (no asmdef). That means this code **can**
 reference the `Quiz` assembly, but the quiz **cannot** reference this — Unity only
@@ -43,11 +44,13 @@ quiz → fighter by us subscribing to their events.
 | `DebugRoundBanner` | `ThinkFast.Rounds` | Throwaway "K.O. — YOU WIN" banner + `Enter` to restart. |
 | `FighterResources` | `ThinkFast.Economy` | Action Points + Flow + Flow state. **Player only** — it is also what identifies the player. |
 | `RiddleRewards` / `IRiddleRewardSink` | `ThinkFast.Economy` | The seam to the quiz half. |
-| `DebugRiddleDriver` | `ThinkFast.Economy` | Throwaway stand-in for the quiz. |
+| `QuizRewardBridge` | `ThinkFast.Economy` | The quiz half plugged into that seam. The only object that knows both halves exist. |
+| `DebugRiddleDriver` | `ThinkFast.Economy` | Throwaway stand-in for the quiz. Switched off once the real one is wired. |
 | `PlaceholderFlowStateVisual` | `ThinkFast.Economy` | Throwaway gold tint + orbiting motes. |
-| `FollowCamera` | `ThinkFast.CameraRig` | Dead zone + smoothing + look-ahead + bounds. |
+| `FollowCamera` | `ThinkFast.CameraRig` | Dead zone + smoothing + look-ahead + bounds. Derives the bounds and the dead zone width from how wide its viewport actually is. |
 | `FighterHud` | `ThinkFast.UI` | Real uGUI HUD: health, AP pips, Flow bar. |
-| `SplitScreenTodoAttribute` | `ThinkFast.Common` | Marks settings that split screen will invalidate. |
+| `SplitScreenLayout` | `ThinkFast.UI` | Owns the split: fighter viewport left, quiz right, backdrop over the half no camera clears. |
+| `SplitScreenTodoAttribute` | `ThinkFast.Common` | Marks settings that split screen will invalidate. Nothing carries it now — see **Split screen** below. |
 | `PlaceholderFxKit` / `PlaceholderFxShape` | `ThinkFast.Common` | Throwaway. Runtime-synthesised clips, unlit materials, self-animating primitives. Shared by both FX components. |
 
 Anything named `Debug*` or `Placeholder*` is **deliberately throwaway** and safe to
@@ -57,16 +60,22 @@ delete once the real thing exists.
 
 ## Scene setup
 
-Nothing is hand-placed. Two generators under **Tools > Think Fast**:
+Nothing is hand-placed. Three generators under **Tools > Think Fast**:
 
 | Menu item | Builds |
 |---|---|
 | `Build PlayerController Test Scene` | Stage, one-way platforms, player, opponent, round banner, camera — into `Assets/Scenes/PlayerControllerTest.unity` |
 | `Build Fighter HUD` | The uGUI canvas, wired to find the player at runtime |
+| `Build Split Screen Fight` | The quiz panel, its endless flow, the reward bridge, the backdrop and the split itself — into the same scene |
 
-Both are idempotent. The test-scene builder destroys and rebuilds everything under
-a single root, so **re-running resets any Inspector tuning**. The HUD is a separate
-root and survives a test-scene rebuild.
+All three are idempotent, and each owns its own root, so one can be rebuilt without
+disturbing the others. The test-scene builder destroys and rebuilds everything under
+its root, so **re-running it resets any Inspector tuning** — but it leaves the HUD
+and the quiz alone.
+
+`Build Split Screen Fight` also switches off `DebugRiddleDriver` on the player, since
+the real quiz is now paying into the same economy. Re-tick it to get the `1`/`2`/`3`
+solve keys back.
 
 Re-run the scene builder whenever a component is added to the player in code.
 
@@ -100,7 +109,9 @@ Input System ──► PlayerInputReader ──► PlayerController ──► Ri
    FighterResources    pays 1 AP per swing, multiplies damage + knockback (player only)
         ▲
         │ GrantSolve(flowReward)
-   RiddleRewards  ◄──── quiz half (or DebugRiddleDriver)
+   RiddleRewards  ◄──── QuizRewardBridge ◄──── QuizController.QuestionResolved
+                          +1 AP per correct answer,        (the quiz half)
+                          Flow only if it was fast
 ```
 
 **Key rule:** presentation never sits in gameplay code. `PlayerAttack` raises
@@ -326,6 +337,7 @@ Bindings live in `Assets/Settings/Input/FighterControls.inputactions`, map `Figh
 | `1` / `2` | simulate a slow / fast quiz solve (+1 AP, +8 / +25 Flow) |
 | `3` | toggle auto-solve |
 | `0` | reset AP and Flow |
+| | the four above need `DebugRiddleDriver` re-ticked — the real quiz replaced it |
 | `H` | take a canned hit (knocked backwards relative to facing) |
 | `R` | put the opponent back on its feet at its spawn point, at full health |
 | `Enter` | after either K.O., reload the scene and fight again |
@@ -694,6 +706,10 @@ Renders as an info box above the field in the Inspector.
 grep -rn "SplitScreenTodo(" Assets/Scripts
 ```
 
+That search is **empty today** — every setting it flagged has been dealt with, and the
+outcomes are in **Split screen** below. The attribute is still there for the next
+setting that needs the same treatment.
+
 ---
 
 ## Known gaps
@@ -713,36 +729,124 @@ grep -rn "SplitScreenTodo(" Assets/Scripts
 - **A platform with no route up is a level-design problem.** `Stranded` is the honest
   failure mode, not a fix: the opponent shadows you from below until you come down.
   Check any new stage has a ladder of surfaces no more than ~3.3 units apart.
-- **Quiz not wired.** `RiddleRewards` exists and is driven only by `DebugRiddleDriver`.
-  See below.
+- **The quiz cannot lose you the fight.** A wrong answer or a timeout costs nothing
+  beyond the Flow that drained meanwhile — see the table under **The quiz half,
+  wired**. Whether the puzzle half should be able to actively hurt you is a
+  game-design call nobody has made yet.
+- **The split ratio is fixed at build time.** `SplitScreenLayout` re-applies on
+  resize, but 50/50 is a serialized field, not something the player can drag.
 - **No tests.** `FighterResources`, `AttackRunner` and `RoundEvents` are all pure
   logic now and would test well, but test assemblies cannot reference
   `Assembly-CSharp` — testing them requires moving this code into an asmdef first
   (which is exactly why the quiz has one).
-- **No text in the HUD.** TextMeshPro essentials are not in the project yet; they
-  arrive with the menu branch. Importing a second copy would collide with it.
+- **No text in the HUD.** Bars and pips only. TextMeshPro essentials *are* in the
+  project now (they arrived with the menu), so the blocker is gone — nobody has
+  added the numbers yet.
 
-## Wiring the quiz half (ready to do)
+## The quiz half, wired (`QuizRewardBridge`)
 
-`QuizController` (on branch `marceltov/quizzes`) raises two events, both carrying
-result plus answer speed as normalized time remaining (1 = instant, 0 = timed out):
+One component, on the generated quiz root, is the entire integration. It subscribes
+to `QuestionResolved` — the event that fires the *instant* an answer lands, rather
+than `QuestionAnswered` which waits out the feedback delay — and hands the result to
+`RiddleRewards`. Neither half holds a reference to the other; deleting the bridge
+leaves both runnable alone.
 
-- **`QuestionResolved`** — fires instantly on click/timeout. **Use this one for rewards.**
-- `QuestionAnswered` — fires after the feedback delay; `QuizFlow` uses it to advance.
+**The rule it encodes: a correct answer always pays one Action Point, but only a
+*fast* one pays Flow.**
 
-The whole adapter:
+| Answer | AP | Flow |
+|---|---|---|
+| Correct, inside the green zone | +1 | +25 |
+| Correct, after the bar turned yellow | +1 | — |
+| Wrong | — | — |
+| Timed out | — | — |
 
-```csharp
-using ThinkFast.Economy;
-using ThinkFast.Quiz;
+That asymmetry is the whole point of the pairing. Solving buys you *swings*; solving
+**quickly** is the only thing that buys the burst. A player who answers everything
+correctly but slowly stays armed and never reaches Flow state.
 
-void OnQuestionResolved(QuizResult result, float speed)
-{
-    if (result != QuizResult.Correct) return;
-    RiddleRewards.GrantSolve(Mathf.Lerp(minFlowPerSolve, maxFlowPerSolve, speed));
-}
-```
+Wrong answers and timeouts carry no extra penalty, and deliberately so: Flow drains
+at 6/s throughout, so a miss has already cost about one solve's worth of progress by
+the time the next question appears. Stacking a subtraction on top of that makes a bad
+streak unrecoverable rather than merely expensive.
 
-Question sequencing is already handled by their `QuizFlow` — an endless stream that
+**The threshold is read off `QuizView`, not copied.** `QuizView.FastZoneNormalized`
+(0.6) is what decides the timer bar is still green, and the bar's own tooltip already
+promised that zone "builds Flow". The bridge asks the view for that number rather
+than keeping a second copy, because the failure mode of two copies is a bar the
+player watched stay green that then paid nothing — the exact thing the colour exists
+to communicate. A `fallbackFastZone` field covers the case where no view is assigned.
+
+Roughly **eight fast solves in a row** reach the 100 Flow needed for Flow state: at
+25 a solve against ~12 drained over a 5-second math question's cycle, the net is
+about +13. It is meant to be rare and to be earned while also being punched.
+
+Question sequencing is handled by the quiz's own `QuizFlow` — an endless stream that
 auto-advances on every resolution including timeouts, which is the auto-reset timer
-the design calls for. See `Assets/Quiz/README.md` on that branch.
+the design calls for. The generator wires it to every question in
+`Assets/Quiz/Questions` plus generated maths. Wikipedia sources are opt-in: they need
+the network and a moment to prefetch, so add a `WikipediaQuestionSource` and register
+it in the flow by hand. See `Assets/Quiz/README.md`.
+
+---
+
+## Split screen
+
+The fight takes the left half of the window, the quiz the right. `SplitScreenLayout`
+owns the whole arrangement so the ratio exists exactly once, and re-applies on Start
+and on any window resize.
+
+| Piece | How it is confined |
+|---|---|
+| Fighter camera | `camera.rect` — a viewport rect, so *everything* the camera draws is inside it |
+| Quiz panel | Re-anchored to the middle of the right half, shrinking below its authored 640 width only if the half gets narrower than that |
+| Quiz backdrop | Full-height image over the right half |
+| Seam | 4 px divider on the boundary |
+
+**The backdrop is not decoration.** A camera whose viewport covers half the screen
+never clears the other half, so without something opaque drawn there the quiz side
+shows undefined pixels. It lives on its own canvas at `sortingOrder -100`, with **no
+GraphicRaycaster** — a full-height image over the quiz half would otherwise swallow
+every answer click.
+
+### What the narrower viewport changed
+
+The `[SplitScreenTodo]` notes flagged six settings. Working through them:
+
+| Setting | Outcome |
+|---|---|
+| `FollowCamera` bounds | **Derived now.** Was the one marked "MUST be recalculated" |
+| `FollowCamera` dead zone width | **Derived now**, scaled by how much world is visible |
+| `FollowCamera` look-ahead | Left alone — see below |
+| `FollowCamera` offset | Dropped: the quiz has its own viewport and never crowds the fight |
+| `FighterHud` anchoring | Already correct — 420 wide at the bottom left of a 960-wide half |
+| `PlayerDebugHud` / `EnemyDebugHud` | Already correct — see below |
+| `DebugRoundBanner` | **Fixed**: now drawn inside the fighter viewport instead of across the seam |
+
+The bounds were the important one. They are the stage edge minus however much world
+is on screen — `stageHalfWidth - tan(fov/2) * distance * aspect` — and a viewport rect
+halves the aspect, so a camera pinned to ±5.8 for a full-screen view can actually
+travel to ±10.4 in a half-width one. Deriving them means the view stops exactly as the
+stage edge would come into frame **at any viewport width**, instead of needing a
+hand-tuned pair of numbers per layout. Set `deriveHorizontalBounds` false to go back
+to the literal `boundsMin.x`/`boundsMax.x`.
+
+The dead zone is the same problem in reverse: 3 units is 16% of a full-screen view but
+32% of a half-width one, and a dead zone that large reads as the camera lagging behind
+you. It is now scaled by visible width against `deadZoneReferenceHalfWidth`, so the box
+stays the same *share of what the player can see*. The vertical half is untouched —
+split screen changes the width of the viewport, never its height.
+
+Look-ahead was flagged as wanting a raise and got none: it is specified in world units,
+and a half-width viewport already makes the same 2 units lead across twice the share of
+the screen. Raising it too would over-lead.
+
+Both debug HUDs turned out to be correct as written, which the notes had guessed wrong.
+`EnemyDebugHud` places its label with `WorldToScreenPoint`, which already accounts for
+the camera's viewport rect; `PlayerDebugHud` draws at the top left of the window, which
+*is* inside the fighter's half. Both would only need work if the fight moved to the
+right-hand side.
+
+Nothing carries `[SplitScreenTodo]` any more. The attribute and its drawer are kept
+rather than deleted, because the layout is not finished settling — art, level design
+and the real results screen are all still to come, and the split ratio is a tunable.
