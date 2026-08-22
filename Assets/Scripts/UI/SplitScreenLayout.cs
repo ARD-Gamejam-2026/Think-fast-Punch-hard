@@ -22,8 +22,8 @@ namespace ThinkFast.UI
     public sealed class SplitScreenLayout : MonoBehaviour
     {
         [Header("Split")]
-        [Tooltip("Share of the screen width given to the fight. The quiz gets the rest. 0.5 is an even split.")]
-        [SerializeField, Range(0.25f, 0.75f)] private float fighterViewportWidth = 0.5f;
+        [Tooltip("Share of the screen width given to the fight. The quiz gets the rest. The quiz panel scales itself to whatever it is left, so this is safe to drag.")]
+        [SerializeField, Range(0.25f, 0.85f)] private float fighterViewportWidth = 0.75f;
 
         [Header("Fight side")]
         [Tooltip("Left empty, the main camera is used. Its viewport rect is what actually confines the fight to one half.")]
@@ -33,8 +33,8 @@ namespace ThinkFast.UI
         [Tooltip("The quiz panel's container. It is re-anchored to the middle of the quiz half rather than the middle of the screen.")]
         [SerializeField] private RectTransform quizPanel;
 
-        [Tooltip("Width the quiz panel keeps when the half is wide enough for it. It shrinks below this on narrow windows rather than spilling over the seam.")]
-        [SerializeField, Min(0f)] private float quizPanelMaxWidth = 640f;
+        [Tooltip("The width the quiz panel was laid out at. It is never re-flowed to a different width -- only scaled down to fit -- so this must match the panel's authored size or the scale will be wrong.")]
+        [SerializeField, Min(1f)] private float quizPanelWidth = 640f;
 
         [Tooltip("Gap kept between the quiz panel and the edges of its half.")]
         [SerializeField, Min(0f)] private float quizPanelMargin = 24f;
@@ -151,25 +151,37 @@ namespace ThinkFast.UI
             quizPanel.anchoredPosition = Vector2.zero;
 
             // Height is driven by the panel's own ContentSizeFitter, so only the
-            // width is set here.
+            // width is set here -- and always to the authored width.
             Vector2 size = quizPanel.sizeDelta;
-            size.x = ResolveQuizPanelWidth();
+            size.x = quizPanelWidth;
             quizPanel.sizeDelta = size;
+
+            float scale = ResolveQuizPanelScale();
+            quizPanel.localScale = new Vector3(scale, scale, 1f);
         }
 
         /// <summary>
-        /// Returns the width the quiz panel should take: its authored width,
-        /// unless the half it now lives in is too narrow to hold it.
+        /// Returns how much the quiz panel has to shrink to fit the half it was
+        /// given, as a uniform scale.
+        ///
+        /// Scaled rather than narrowed on purpose. Re-flowing the panel to a
+        /// smaller width keeps the type at full size and takes it out of the
+        /// answer rows instead: answers start wrapping to two lines inside
+        /// buttons whose height is fixed, so the second line is clipped. Real
+        /// place and animal names are long enough to hit that well before the
+        /// panel looks too small. Scaling shrinks type and layout together, so
+        /// the panel stays exactly the design that was authored -- just smaller
+        /// -- and nothing can wrap that did not wrap before.
         /// </summary>
-        private float ResolveQuizPanelWidth()
+        private float ResolveQuizPanelScale()
         {
             float available = QuizHalfWidth() - (quizPanelMargin * 2f);
-            if (available > 0f && available < quizPanelMaxWidth)
+            if (available <= 0f || available >= quizPanelWidth)
             {
-                return available;
+                return 1f;
             }
 
-            return quizPanelMaxWidth;
+            return available / quizPanelWidth;
         }
 
         /// <summary>

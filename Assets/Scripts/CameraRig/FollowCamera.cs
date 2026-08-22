@@ -33,7 +33,7 @@ namespace ThinkFast.CameraRig
         [Tooltip("Size of the central box the target can move inside without the camera following. Wider means calmer; too wide and the camera feels like it is lagging behind you. Authored against a full-screen view -- see the adaptation setting below.")]
         [SerializeField] private Vector2 deadZone = new Vector2(3f, 2.4f);
 
-        [Tooltip("Scales the dead zone's width with how much world the camera can actually see. A split-screen viewport is half as wide, so an unscaled box would cover twice the share of the screen and the camera would feel like it were lagging behind you.")]
+        [Tooltip("Scales the dead zone's width with how much world the camera can actually see. A split-screen viewport is narrower, so an unscaled box covers a larger share of the screen and the camera starts to feel like it is lagging behind you.")]
         [SerializeField] private bool adaptDeadZoneToViewport = true;
 
         [Tooltip("Visible half-width the dead zone width was authored against: a 60 degree camera 9 units from the fighters on a full-screen 16:9 view. Only used to scale the dead zone, never the framing.")]
@@ -47,7 +47,7 @@ namespace ThinkFast.CameraRig
         [SerializeField] private float verticalSmoothTime = 0.45f;
 
         [Header("Look ahead")]
-        [Tooltip("How far the camera leads at full running speed. Left at its full-screen value on purpose: a half-width viewport shows half as much world, so the same 2 units already lead across twice the share of the screen.")]
+        [Tooltip("How far the camera leads at full running speed. Left at its full-screen value on purpose: a narrower viewport shows less world, so the same 2 units already lead across a larger share of the screen.")]
         [SerializeField] private float lookAheadDistance = 2f;
 
         [SerializeField] private float lookAheadSmoothTime = 0.35f;
@@ -59,7 +59,7 @@ namespace ThinkFast.CameraRig
         [Tooltip("Stops the camera showing past the edges of the stage.")]
         [SerializeField] private bool useBounds = true;
 
-        [Tooltip("Works out the horizontal limits from how wide the camera actually sees, instead of taking them from the values below. This is what makes the bounds survive split screen: a half-width viewport shows roughly half as much world, so the camera can travel much further before the stage edge comes into view, and a fixed pair of numbers would pin it far too tightly.")]
+        [Tooltip("Works out the horizontal limits from how wide the camera actually sees, instead of taking them from the values below. This is what makes the bounds survive split screen: a narrower viewport shows less world, so the camera can travel further before the stage edge comes into view, and a fixed pair of numbers would pin it far too tightly.")]
         [SerializeField] private bool deriveHorizontalBounds = true;
 
         [Tooltip("Distance from the centre of the stage to its edge. The camera is kept this far in, minus however much world it can see.")]

@@ -1,10 +1,10 @@
 # Fighter System
 
-The left half of "Think fast, Punch hard" — now literally the left half: a 2D
-sidescroller fighter with 3D art and 2D physics, in its own viewport with the quiz
-beside it. One character, one attack button, keyboard only — the mouse belongs to
-the quiz half and is never needed here. Facing it is an autonomous opponent that
-chases, jumps and punches back.
+The left-hand side of "Think fast, Punch hard" — now literally so: a 2D sidescroller
+fighter with 3D art and 2D physics, in its own viewport with the quiz beside it. One
+character, one attack button, keyboard only — the mouse belongs to the quiz half and
+is never needed here. Facing it is an autonomous opponent that chases, jumps and
+punches back.
 
 Everything below is in `Assembly-CSharp` (no asmdef). That means this code **can**
 reference the `Quiz` assembly, but the quiz **cannot** reference this — Unity only
@@ -49,7 +49,7 @@ quiz → fighter by us subscribing to their events.
 | `PlaceholderFlowStateVisual` | `ThinkFast.Economy` | Throwaway gold tint + orbiting motes. |
 | `FollowCamera` | `ThinkFast.CameraRig` | Dead zone + smoothing + look-ahead + bounds. Derives the bounds and the dead zone width from how wide its viewport actually is. |
 | `FighterHud` | `ThinkFast.UI` | Real uGUI HUD: health, AP pips, Flow bar. |
-| `SplitScreenLayout` | `ThinkFast.UI` | Owns the split: fighter viewport left, quiz right, backdrop over the half no camera clears. |
+| `SplitScreenLayout` | `ThinkFast.UI` | Owns the split: fighter viewport left, quiz scaled into what is left, backdrop over the side no camera clears. |
 | `SplitScreenTodoAttribute` | `ThinkFast.Common` | Marks settings that split screen will invalidate. Nothing carries it now — see **Split screen** below. |
 | `PlaceholderFxKit` / `PlaceholderFxShape` | `ThinkFast.Common` | Throwaway. Runtime-synthesised clips, unlit materials, self-animating primitives. Shared by both FX components. |
 
@@ -783,25 +783,49 @@ about +13. It is meant to be rare and to be earned while also being punched.
 
 Question sequencing is handled by the quiz's own `QuizFlow` — an endless stream that
 auto-advances on every resolution including timeouts, which is the auto-reset timer
-the design calls for. The generator wires it to every question in
-`Assets/Quiz/Questions` plus generated maths. Wikipedia sources are opt-in: they need
-the network and a moment to prefetch, so add a `WikipediaQuestionSource` and register
-it in the flow by hand. See `Assets/Quiz/README.md`.
+the design calls for. The generator puts **all four question types** in the mix, at
+the same weights and prompts the sample scene uses:
+
+| Type | Weight | Notes |
+|---|---|---|
+| Authored | 1 | every `QuizQuestion` in `Assets/Quiz/Questions` |
+| Generated maths | 1 | always available, 5 s limit |
+| Wikipedia places | 2 | `Landmarks.asset`, "Which place is this?" |
+| Wikipedia animals | 2 | `Animals.asset`, "Which animal is this?" |
+
+The two Wikipedia sources are the only type that can be *unavailable*: each keeps a
+small queue filled in the background, counts as available only once one is ready, and
+stays empty offline. `QuizFlow` rolls among whatever is available, so a cold queue or
+no network costs variety, never a question. See `Assets/Quiz/README.md`.
 
 ---
 
 ## Split screen
 
-The fight takes the left half of the window, the quiz the right. `SplitScreenLayout`
-owns the whole arrangement so the ratio exists exactly once, and re-applies on Start
-and on any window resize.
+The fight takes the **left 75%** of the window, the quiz the remaining 25%.
+`SplitScreenLayout` owns the whole arrangement so the ratio exists exactly once, and
+re-applies on Start and on any window resize.
 
 | Piece | How it is confined |
 |---|---|
 | Fighter camera | `camera.rect` — a viewport rect, so *everything* the camera draws is inside it |
-| Quiz panel | Re-anchored to the middle of the right half, shrinking below its authored 640 width only if the half gets narrower than that |
-| Quiz backdrop | Full-height image over the right half |
+| Quiz panel | Re-anchored to the middle of the quiz side, and **scaled** to fit it |
+| Quiz backdrop | Full-height image over the quiz side |
 | Seam | 4 px divider on the boundary |
+
+**The panel is scaled, not re-flowed**, and that is what makes a narrow quiz side
+safe. Its layout is authored at 640 wide; narrowing the `RectTransform` instead keeps
+the type at full size and takes the difference out of the answer rows, where an answer
+that no longer fits wraps to a second line inside a button whose height is fixed — so
+the second line is clipped. Real place and animal names reach that point long before
+the panel looks too small. Scaling shrinks type and layout together, so the panel stays
+the design that was authored and nothing can wrap that did not wrap before.
+
+At 75/25 the quiz side is 480 units wide of a 1920 reference, less 24 either side, so
+the panel renders at **0.675×** — a question label at an effective 27 pt and answers at
+20 pt. Give the quiz 36% or more and it renders at full size, since 640 + 48 = 688
+units is where the scaling stops. Drag `fighterViewportWidth` and everything else
+follows; nothing else needs touching.
 
 **The backdrop is not decoration.** A camera whose viewport covers half the screen
 never clears the other half, so without something opaque drawn there the quiz side
@@ -823,22 +847,30 @@ The `[SplitScreenTodo]` notes flagged six settings. Working through them:
 | `PlayerDebugHud` / `EnemyDebugHud` | Already correct — see below |
 | `DebugRoundBanner` | **Fixed**: now drawn inside the fighter viewport instead of across the seam |
 
-The bounds were the important one. They are the stage edge minus however much world
-is on screen — `stageHalfWidth - tan(fov/2) * distance * aspect` — and a viewport rect
-halves the aspect, so a camera pinned to ±5.8 for a full-screen view can actually
-travel to ±10.4 in a half-width one. Deriving them means the view stops exactly as the
-stage edge would come into frame **at any viewport width**, instead of needing a
-hand-tuned pair of numbers per layout. Set `deriveHorizontalBounds` false to go back
-to the literal `boundsMin.x`/`boundsMax.x`.
+The bounds were the important one. They are the stage edge minus however much world is
+on screen — `stageHalfWidth - tan(fov/2) * distance * aspect` — and narrowing the
+viewport narrows the aspect, so the hand-tuned ±5.8 pins the camera to well under the
+room it actually has:
+
+| Fighter viewport | Aspect | Sees (half-width) | Bounds |
+|---|---|---|---|
+| full screen | 1.78 | 9.24 | ±5.76 |
+| **75%** | 1.33 | 6.93 | **±8.07** |
+| 50% | 0.89 | 4.62 | ±10.38 |
+
+Deriving them means the view stops exactly as the stage edge would come into frame **at
+any viewport width**, instead of needing a hand-tuned pair per layout. Set
+`deriveHorizontalBounds` false to go back to the literal `boundsMin.x`/`boundsMax.x`.
 
 The dead zone is the same problem in reverse: 3 units is 16% of a full-screen view but
-32% of a half-width one, and a dead zone that large reads as the camera lagging behind
-you. It is now scaled by visible width against `deadZoneReferenceHalfWidth`, so the box
-stays the same *share of what the player can see*. The vertical half is untouched —
-split screen changes the width of the viewport, never its height.
+22% of a 75% one and 32% of a half-width one, and a dead zone that large reads as the
+camera lagging behind you. It is now scaled by visible width against
+`deadZoneReferenceHalfWidth` — 2.25 units at 75% — so the box stays the same *share of
+what the player can see*. The vertical half is untouched: split screen changes the
+width of the viewport, never its height.
 
 Look-ahead was flagged as wanting a raise and got none: it is specified in world units,
-and a half-width viewport already makes the same 2 units lead across twice the share of
+and a narrower viewport already makes the same 2 units lead across a larger share of
 the screen. Raising it too would over-lead.
 
 Both debug HUDs turned out to be correct as written, which the notes had guessed wrong.

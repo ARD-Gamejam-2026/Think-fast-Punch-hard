@@ -30,6 +30,18 @@ namespace ThinkFast.UIEditor
         private const string QuizPrefabPath = "Assets/Quiz/QuizPanel.prefab";
         private const string QuestionsFolder = "Assets/Quiz/Questions";
 
+        /// <summary>
+        /// The Wikipedia topic lists mixed in alongside authored and generated
+        /// questions, with the prompt each one asks and its weight in the roll.
+        /// Same lists, prompts and weights the sample scene uses, so a question
+        /// looks the same wherever it turns up.
+        /// </summary>
+        private static readonly (string Path, string Prompt, float Weight)[] WikipediaTopics =
+        {
+            ("Assets/Quiz/Landmarks.asset", "Which place is this?", 2f),
+            ("Assets/Quiz/Animals.asset", "Which animal is this?", 2f),
+        };
+
         private const string QuizRootName = "--- Quiz (generated) ---";
         private const string SplitRootName = "--- Split Screen (generated) ---";
 
@@ -69,7 +81,7 @@ namespace ThinkFast.UIEditor
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
 
-            Debug.Log("Built the split screen fight: fight on the left, quiz on the right, solves paying into AP and Flow. Press Play and answer a question inside the green zone to build Flow.");
+            Debug.Log($"Built the split screen fight: fight in the left {layout.FighterViewportWidth:P0} of the screen, quiz in the rest, solves paying into AP and Flow. Authored, maths and Wikipedia questions are all in the mix. Press Play and answer inside the green zone to build Flow.");
         }
 
         private static void RemoveExisting(Scene scene)
@@ -132,11 +144,62 @@ namespace ThinkFast.UIEditor
                 list.GetArrayElementAtIndex(i).objectReferenceValue = questions[i];
             }
 
-            // Authored and generated maths only. Wikipedia sources need the
-            // network and a moment to prefetch, so they are opt-in: add a
-            // WikipediaQuestionSource and register it in this flow by hand.
             so.FindProperty("authoredWeight").floatValue = 1f;
             so.FindProperty("mathWeight").floatValue = 1f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            AddWikipediaSources(root, flow);
+        }
+
+        /// <summary>
+        /// Adds a prefetching source per Wikipedia topic list and registers each
+        /// in the flow. They go on the generated root next to the flow rather
+        /// than on the panel, so nothing is added to the prefab instance.
+        ///
+        /// These are the one question type that can be unavailable: each holds a
+        /// small queue filled in the background, so a source counts as available
+        /// only once it has one ready, and never while offline. The flow rolls
+        /// among whatever is available, so a missing queue costs variety, not the
+        /// question.
+        /// </summary>
+        private static void AddWikipediaSources(GameObject root, QuizFlow flow)
+        {
+            var registered = new List<(WikipediaQuestionSource Source, float Weight)>();
+
+            foreach ((string path, string prompt, float weight) in WikipediaTopics)
+            {
+                var topics = AssetDatabase.LoadAssetAtPath<WikipediaTopicList>(path);
+                if (topics == null)
+                {
+                    Debug.LogWarning($"No Wikipedia topic list at {path}, so those questions are missing from the mix. Run the matching Tools > Quiz command to create it.");
+                    continue;
+                }
+
+                var source = root.AddComponent<WikipediaQuestionSource>();
+                var sourceSo = new SerializedObject(source);
+                sourceSo.FindProperty("topics").objectReferenceValue = topics;
+                sourceSo.FindProperty("questionPrompt").stringValue = prompt;
+                sourceSo.ApplyModifiedPropertiesWithoutUndo();
+
+                registered.Add((source, weight));
+            }
+
+            RegisterFlowSources(flow, registered);
+        }
+
+        private static void RegisterFlowSources(QuizFlow flow, List<(WikipediaQuestionSource Source, float Weight)> sources)
+        {
+            var so = new SerializedObject(flow);
+            SerializedProperty list = so.FindProperty("wikipediaSources");
+            list.arraySize = sources.Count;
+
+            for (int i = 0; i < sources.Count; i++)
+            {
+                SerializedProperty element = list.GetArrayElementAtIndex(i);
+                element.FindPropertyRelative("source").objectReferenceValue = sources[i].Source;
+                element.FindPropertyRelative("weight").floatValue = sources[i].Weight;
+            }
+
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

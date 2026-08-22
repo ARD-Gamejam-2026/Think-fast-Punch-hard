@@ -179,7 +179,17 @@ question.
 ## Restyling the panel
 
 `QuizPanel.prefab` is a normal prefab — edit colors, fonts, spacing, and
-layout directly in the editor. The per-state button colors (normal /
+layout directly in the editor.
+
+One thing to know first: in the fight scene the panel shares the screen
+with the fighter and gets 25 % of the width, so `SplitScreenLayout`
+**scales it down uniformly** (to about 0.675) rather than re-flowing it to
+a narrower `RectTransform`. That means the design keeps working at any
+split ratio and nothing wraps that did not wrap at the authored width —
+but it also means the panel is laid out at **640 wide, always**. Style it
+against that width. If you change it, update the layout's
+`quizPanelWidth` to match, or the scale will be computed against the wrong
+number. The per-state button colors (normal /
 correct / wrong / highlight) are inspector fields on each `AnswerButton`.
 
 Only regenerate the prefab (**Tools > Quiz > Create Quiz Panel**) if you
