@@ -3,15 +3,15 @@ using NUnit.Framework;
 
 namespace ThinkFast.Quiz.Tests
 {
-    public class PlaceAnswerBuilderTests
+    public class WikipediaAnswerBuilderTests
     {
-        private static LandmarkList.Entry[] MakeEntries(int count)
+        private static WikipediaTopicList.Entry[] MakeEntries(int count)
         {
             return Enumerable.Range(0, count)
-                .Select(i => new LandmarkList.Entry
+                .Select(i => new WikipediaTopicList.Entry
                 {
-                    wikipediaTitle = $"Place_{i}",
-                    displayName = $"Place {i}",
+                    wikipediaTitle = $"Topic_{i}",
+                    displayName = $"Topic {i}",
                 })
                 .ToArray();
         }
@@ -25,7 +25,7 @@ namespace ThinkFast.Quiz.Tests
             for (int i = 0; i < 100; i++)
             {
                 int correctEntry = i % entries.Length;
-                var answers = PlaceAnswerBuilder.Build(entries, correctEntry, random, out int correctIndex);
+                var answers = WikipediaAnswerBuilder.Build(entries, correctEntry, random, out int correctIndex);
 
                 Assert.That(answers.Length, Is.EqualTo(QuizQuestion.AnswerCount));
                 Assert.That(answers, Is.Unique);
@@ -37,7 +37,7 @@ namespace ThinkFast.Quiz.Tests
         public void Build_DistractorsComeFromOtherEntries()
         {
             var entries = MakeEntries(4);
-            var answers = PlaceAnswerBuilder.Build(entries, 0, new System.Random(2), out _);
+            var answers = WikipediaAnswerBuilder.Build(entries, 0, new System.Random(2), out _);
 
             Assert.That(answers.OrderBy(a => a),
                 Is.EqualTo(entries.Select(e => e.displayName).OrderBy(a => a)));
@@ -47,7 +47,7 @@ namespace ThinkFast.Quiz.Tests
         public void Build_FewerThanFourEntries_Throws()
         {
             Assert.Throws<System.ArgumentException>(
-                () => PlaceAnswerBuilder.Build(MakeEntries(3), 0, new System.Random(3), out _));
+                () => WikipediaAnswerBuilder.Build(MakeEntries(3), 0, new System.Random(3), out _));
         }
     }
 }

@@ -13,10 +13,10 @@ The code lives in `Assets/Scripts/Quiz/`:
 | `QuizSession` | Rules of one question in progress (plain C#, unit-tested) |
 | `QuizView` / `AnswerButton` | Presentation on the `QuizPanel` prefab |
 | `QuizController` | Glue: runs a question, raises `QuestionAnswered` |
-| `QuizFlow` | Endless driver: rolls among authored/math/place questions by weight |
+| `QuizFlow` | Endless driver: rolls among authored/math/Wikipedia questions by weight |
 | `MathQuestionGenerator` | Builds the random math questions (unit-tested) |
-| `PlaceQuestionSource` | Prefetches live Wikipedia landmark questions |
-| `LandmarkList` | Curated landmark names for place questions |
+| `WikipediaQuestionSource` | Prefetches live Wikipedia photo questions for one topic list (places, animals, ...) |
+| `WikipediaTopicList` | Curated Wikipedia titles + display names for one topic (`Landmarks.asset`, `Animals.asset`) |
 | `Editor/QuizPanelBuilder` | One-time generators under **Tools > Quiz** |
 
 ## Adding a new question
@@ -51,16 +51,19 @@ question shows twice.
 
 `QuizFlow` mixes in generated and prefetched question types alongside the
 authored list using relative weights: **Authored Weight**, **Math
-Weight**, and **Place Weight** (defaults 1 / 1 / 0). Each round rolls
-proportionally among whichever types are currently available — authored
-questions are available whenever the list is non-empty, math is always
-available when its weight is non-zero, and place questions only count as
-available once `PlaceQuestionSource` has a prefetched question ready (its
-background fetch queue takes a moment to fill, and it stays empty while
-offline). With an empty question list and math enabled, every round is
+Weight**, and a **Wikipedia Sources** list where each entry pairs a
+`WikipediaQuestionSource` with its own weight (defaults: authored 1, math
+1, no Wikipedia sources). Each round rolls proportionally among whichever
+types are currently available — authored questions are available whenever
+the list is non-empty, math is always available when its weight is
+non-zero, and a Wikipedia source only counts as available once it has a
+prefetched question ready (its background fetch queue takes a moment to
+fill, and it stays empty while offline). Add as many Wikipedia sources as
+you like — the sample scene wires two, places (weight 2) and animals
+(weight 2). With an empty question list and math enabled, every round is
 math; if the only available weight momentarily has none ready (e.g.
-places-only while the queue refills), `QuizFlow` retries shortly instead
-of stalling.
+Wikipedia-only while the queues refill), `QuizFlow` retries shortly
+instead of stalling.
 
 For custom behavior (scoring, lives, a win screen), write your own driver
 against the same event:
@@ -169,8 +172,13 @@ want to reset it: regeneration **overwrites your styling**.
   and clears the controller's starting question. Safe to re-run.
 - **Tools > Quiz > Add Place Questions To Sample Scene** — creates
   `Landmarks.asset` (curated Wikipedia titles) if missing, wires a
-  `PlaceQuestionSource` into the controller, and points the scene's
-  `QuizFlow` at it with a place weight of 2. Safe to re-run.
+  `WikipediaQuestionSource` (prompt "Which place is this?") into the
+  controller, and registers it in the scene's `QuizFlow` with weight 2.
+  Safe to re-run.
+- **Tools > Quiz > Add Animal Questions To Sample Scene** — the same, with
+  `Animals.asset` and the prompt "Which animal is this?". A second
+  `WikipediaQuestionSource` on the controller, registered in `QuizFlow`
+  with weight 2. Safe to re-run.
 - **Tools > Quiz > Restyle Top Pane / Repair Question Label Overrides** —
   one-time migration/repair commands from the panel's layout evolution;
   both are no-ops on an already-correct prefab/scene and are kept for
@@ -178,8 +186,9 @@ want to reset it: regeneration **overwrites your styling**.
 
 ## Credits
 
-Place images are loaded live from Wikipedia (Wikimedia Commons). Keep an
-"Images: Wikipedia (Wikimedia Commons)" credit on the itch.io page.
+Place and animal images are loaded live from Wikipedia (Wikimedia
+Commons). Keep an "Images: Wikipedia (Wikimedia Commons)" credit on the
+itch.io page.
 
 ## Tests
 
