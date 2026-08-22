@@ -3057,9 +3057,9 @@ MonoBehaviour:
     damage: 7
     knockback: {x: 7, y: 5}
     hitstun: 0.25
-    hitboxOffset: {x: 0.8, y: -1}
+    hitboxOffset: {x: 0.8, y: -0.1}
     hitboxSize: {x: 1.3, y: 1.1}
-    moveControlScale: 0.6
+    moveControlScale: 0.9
     recoveryMoveControlScale: 0.9
   hittableLayers:
     serializedVersion: 2
@@ -5190,9 +5190,9 @@ MonoBehaviour:
     damage: 7
     knockback: {x: 7, y: 5}
     hitstun: 0.25
-    hitboxOffset: {x: 0.8, y: -1}
+    hitboxOffset: {x: 0.8, y: -0.1}
     hitboxSize: {x: 1.3, y: 1.1}
-    moveControlScale: 0.6
+    moveControlScale: 0.9
     recoveryMoveControlScale: 0.9
   attackBufferTime: 0.18
   hittableLayers:
