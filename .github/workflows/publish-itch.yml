@@ -10,9 +10,65 @@ concurrency:
   group: publish-itch
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  build-and-publish:
-    name: Build WebGL and publish
+  # A job targeting an offline self-hosted runner queues for up to 24h
+  # instead of failing over, so this probe routes explicitly. Reading
+  # runner status needs a PAT with Administration:read (RUNNER_CHECK_TOKEN);
+  # without one the probe falls back to the GitHub-hosted path.
+  choose-runner:
+    name: Choose runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      mac-online: ${{ steps.probe.outputs.mac-online }}
+    steps:
+      - name: Probe self-hosted runner status
+        id: probe
+        env:
+          GH_TOKEN: ${{ secrets.RUNNER_CHECK_TOKEN }}
+        run: |
+          status=$(gh api repos/${{ github.repository }}/actions/runners \
+            --jq '.runners[] | select(.name == "mbruckner-m4max") | .status' 2>/dev/null || echo "unknown")
+          echo "Runner status: $status"
+          if [ "$status" = "online" ]; then
+            echo "mac-online=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "mac-online=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-mac:
+    name: Build WebGL (Mac)
+    needs: choose-runner
+    if: needs.choose-runner.outputs.mac-online == 'true'
+    runs-on: [self-hosted, macOS, unity]
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build WebGL
+        run: |
+          rm -rf build
+          "/Applications/Unity/Hub/Editor/6000.5.9f1/Unity.app/Contents/MacOS/Unity" \
+            -batchmode -quit -projectPath . \
+            -buildTarget WebGL \
+            -executeMethod CIBuild.BuildWebGL \
+            -logFile -
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebGL build
+          path: build/WebGL/WebGL
+          retention-days: 3
+
+  build-hosted:
+    name: Build WebGL (GitHub-hosted fallback)
+    needs: choose-runner
+    if: needs.choose-runner.outputs.mac-online != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,20 +76,14 @@ jobs:
 
       # The Unity WebGL editor image (~15 GB unpacked) does not fit in the
       # free space of a stock runner; drop preinstalled toolchains we don't use.
-      # Do NOT run `docker image prune` here: GitHub pre-builds the image for
-      # the Docker-based itch-publish action at job setup, and pruning deletes
-      # it, breaking the publish step (only ~1.8 GB reclaimed anyway).
       - name: Free disk space
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
           df -h /
 
-      # Restore/save are split so the cache is saved right after the build:
-      # the plain actions/cache post step only saves on job success, so a
-      # publish failure would discard the ~1h Library import.
-      - name: Restore Library cache
-        id: restore-library
-        uses: actions/cache/restore@v4
+      - name: Cache Library
+        uses: actions/cache@v4
         with:
           path: Library
           key: Library-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
@@ -50,12 +100,30 @@ jobs:
         with:
           targetPlatform: WebGL
 
-      - name: Save Library cache
-        if: steps.restore-library.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+      - name: Upload build
+        uses: actions/upload-artifact@v4
         with:
-          path: Library
-          key: Library-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          name: WebGL build
+          path: build/WebGL/WebGL
+          retention-days: 3
+
+  publish:
+    name: Publish to itch.io
+    needs:
+      - build-mac
+      - build-hosted
+    # Exactly one build job runs; publish when that one succeeded.
+    if: >-
+      !cancelled() &&
+      (needs.build-mac.result == 'success' || needs.build-hosted.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: WebGL build
+          path: build/WebGL/WebGL
 
       - name: Publish to itch.io
         uses: KikimoraGames/itch-publish@v0.0.3
