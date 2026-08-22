@@ -1,28 +1,31 @@
 using UnityEngine;
 using UnityEngine.Audio;
 
-[CreateAssetMenu(fileName = "AudioManager", menuName = "Scriptable Objects/AudioManager")]
-public class AudioManager : ScriptableObject
+namespace ThinkFast.Menu
 {
-    [SerializeField] private AudioMixer mainMixer;
-
-    public void SetSFXVolume(float volume)
+    [CreateAssetMenu(fileName = "AudioManager", menuName = "Scriptable Objects/AudioManager")]
+    public class AudioManager : ScriptableObject
     {
-        mainMixer.SetFloat("SFXVolume", CalcDBVolume(volume));
-    }
+        [SerializeField] private AudioMixer mainMixer;
 
-    public void SetMusicVolume(float volume)
-    {
-        mainMixer.SetFloat("MusicVolume", CalcDBVolume(volume));
-    }
-
-    private float CalcDBVolume(float volume)
-    {
-        if (volume <= 0)
+        public void SetSFXVolume(float volume)
         {
-            //volume: 0.0001f == -80dB
-            return -80f;
+            mainMixer.SetFloat("SFXVolume", CalcDBVolume(volume));
         }
-        return Mathf.Log10(volume) * 20; // Convert linear volume to decibels (dB is logarithmic)
+
+        public void SetMusicVolume(float volume)
+        {
+            mainMixer.SetFloat("MusicVolume", CalcDBVolume(volume));
+        }
+
+        private float CalcDBVolume(float volume)
+        {
+            if (volume <= 0)
+            {
+                //volume: 0.0001f == -80dB
+                return -80f;
+            }
+            return Mathf.Log10(volume) * 20; // Convert linear volume to decibels (dB is logarithmic)
+        }
     }
 }

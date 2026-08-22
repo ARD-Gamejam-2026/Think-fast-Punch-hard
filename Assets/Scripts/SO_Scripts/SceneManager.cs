@@ -1,10 +1,13 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "SceneManager", menuName = "Scriptable Objects/SceneManager")]
-public class SceneManager : ScriptableObject
+namespace ThinkFast.Menu
 {
-    public void LoadScene(string sceneName)
+    [CreateAssetMenu(fileName = "SceneManager", menuName = "Scriptable Objects/SceneManager")]
+    public class SceneManager : ScriptableObject
     {
-        UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
+        public void LoadScene(string sceneName)
+        {
+            UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
+        }
     }
 }
