@@ -21,7 +21,8 @@ namespace ThinkFast.Quiz.EditorTools
         private static readonly Color LetterBoxColor = new Color(0.16f, 0.16f, 0.40f);
         private static readonly Color TimerBackColor = new Color(0.05f, 0.05f, 0.12f);
         private static readonly Color TimerFillColor = new Color(0.95f, 0.75f, 0.10f);
-        private static readonly Color ImageFrameColor = new Color(0.55f, 0.45f, 0.05f);
+        private const float TopPaneHeight = 396f;
+        private const float ImageHeight = 320f;
 
         [MenuItem("Tools/Quiz/Create Quiz Panel")]
         public static void CreateQuizPanel()
@@ -239,6 +240,65 @@ namespace ThinkFast.Quiz.EditorTools
             return texture;
         }
 
+        /// <summary>
+        /// One-time in-place migration of an existing QuizPanel prefab to the
+        /// TopPane layout (no image frame, centered text) WITHOUT regenerating
+        /// it — regeneration would change fileIDs and break the sample scene's
+        /// added components (QuizFlow, PlaceQuestionSource).
+        /// </summary>
+        [MenuItem("Tools/Quiz/Restyle Top Pane (no frame, centered text)")]
+        public static void RestyleTopPane()
+        {
+            var root = PrefabUtility.LoadPrefabContents(PrefabPath);
+            try
+            {
+                var container = (RectTransform)root.transform.Find("Container");
+                var imagePanel = (RectTransform)container.Find("ImagePanel");
+                if (imagePanel == null)
+                {
+                    Debug.Log("Quiz panel already uses the TopPane layout.");
+                    return;
+                }
+
+                var label = (RectTransform)container.Find("QuestionLabel");
+                var image = (RectTransform)imagePanel.Find("QuestionImage");
+
+                var topPane = new GameObject("TopPane", typeof(RectTransform), typeof(LayoutElement));
+                var topRect = (RectTransform)topPane.transform;
+                topRect.SetParent(container, worldPositionStays: false);
+                topRect.SetSiblingIndex(label.GetSiblingIndex());
+                topPane.GetComponent<LayoutElement>().preferredHeight = TopPaneHeight;
+
+                label.SetParent(topRect, worldPositionStays: false);
+                Stretch(label, margin: 0);
+                var labelLayout = label.GetComponent<LayoutElement>();
+                if (labelLayout != null)
+                    Object.DestroyImmediate(labelLayout);
+
+                image.SetParent(topRect, worldPositionStays: false);
+                PlaceQuestionImage(image);
+
+                Object.DestroyImmediate(imagePanel.gameObject);
+
+                PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+                AssetDatabase.SaveAssets();
+                Debug.Log("Quiz panel restyled: image frame removed, question text centers in the top pane.");
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        private static void PlaceQuestionImage(RectTransform image)
+        {
+            image.anchorMin = new Vector2(0f, 0f);
+            image.anchorMax = new Vector2(1f, 0f);
+            image.pivot = new Vector2(0.5f, 0f);
+            image.sizeDelta = new Vector2(-24f, ImageHeight);
+            image.anchoredPosition = Vector2.zero;
+        }
+
         private static void BuildHierarchy(GameObject root)
         {
             var container = CreateUIObject("Container", root.transform);
@@ -259,16 +319,18 @@ namespace ThinkFast.Quiz.EditorTools
             var fitter = container.gameObject.AddComponent<ContentSizeFitter>();
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            var questionLabel = CreateText("QuestionLabel", container, "Question?", 40, FontStyles.Bold);
+            // Question text and image share one fixed-height pane: with an
+            // image the text sits at the top, without one it centers itself
+            // (QuizView switches the TMP alignment per question).
+            var topPane = CreateUIObject("TopPane", container);
+            SetLayout(topPane.gameObject, preferredHeight: TopPaneHeight);
+
+            var questionLabel = CreateText("QuestionLabel", topPane, "Question?", 40, FontStyles.Bold);
             questionLabel.alignment = TextAlignmentOptions.Center;
-            SetLayout(questionLabel.gameObject, minHeight: 60);
+            Stretch(questionLabel.rectTransform, margin: 0);
 
-            var imagePanel = CreateUIObject("ImagePanel", container);
-            imagePanel.gameObject.AddComponent<Image>().color = ImageFrameColor;
-            SetLayout(imagePanel.gameObject, preferredHeight: 320);
-
-            var questionImageRect = CreateUIObject("QuestionImage", imagePanel);
-            Stretch(questionImageRect, margin: 12);
+            var questionImageRect = CreateUIObject("QuestionImage", topPane);
+            PlaceQuestionImage(questionImageRect);
             var questionImage = questionImageRect.gameObject.AddComponent<Image>();
             questionImage.preserveAspect = true;
 

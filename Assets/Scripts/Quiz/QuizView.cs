@@ -36,10 +36,14 @@ namespace ThinkFast.Quiz
 
         public void ShowQuestion(QuizQuestion question)
         {
+            bool hasImage = question.image != null;
             questionLabel.text = question.questionText;
-            // The image area stays reserved either way so the panel height
-            // does not jump between image and text-only questions.
-            questionImage.enabled = question.image != null;
+            // The top pane keeps its height either way; text-only questions
+            // center their text in it, image questions push the text up.
+            questionLabel.alignment = hasImage
+                ? TextAlignmentOptions.Top
+                : TextAlignmentOptions.Center;
+            questionImage.enabled = hasImage;
             questionImage.sprite = question.image;
             SetTimerFill(1f, question.timeLimitSeconds);
 
