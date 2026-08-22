@@ -56,6 +56,10 @@ public class DebugMenu : MonoBehaviour
                         UnityEngine.SceneManagement.SceneManager.LoadScene("Scene_End");
                         ToggleVisible();
                         break;
+                    case "quiz":
+                        UnityEngine.SceneManagement.SceneManager.LoadScene("SampleScene");
+                        ToggleVisible();
+                        break;
                     default:
                         break;
                 }
