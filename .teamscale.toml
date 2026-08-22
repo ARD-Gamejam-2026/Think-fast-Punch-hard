@@ -1,0 +1,9 @@
+version = 1.0
+root = true
+
+[server]
+url = "https://teamscale.marcelbruckner.com/"
+
+[project]
+id = "think-fast-punch-hard"
+path = "/"
