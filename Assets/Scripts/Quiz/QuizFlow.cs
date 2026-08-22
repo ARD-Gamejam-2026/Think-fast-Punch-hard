@@ -5,25 +5,42 @@ namespace ThinkFast.Quiz
     /// <summary>
     /// Endless quiz driver. Each round rolls among the question types that
     /// are currently available — authored list (cycling), generated math,
-    /// prefetched place questions — proportionally to their weights.
+    /// prefetched Wikipedia topics (places, animals, ...) — proportionally
+    /// to their weights.
     /// </summary>
     public class QuizFlow : MonoBehaviour
     {
+        /// <summary>One prefetching Wikipedia source and its relative roll weight in the mix.</summary>
+        [System.Serializable]
+        public class WeightedWikipediaSource
+        {
+            /// <summary>Source component that prefetches the questions for one topic list.</summary>
+            public WikipediaQuestionSource source;
+
+            /// <summary>Relative weight of this source per round, alongside the other types.</summary>
+            [Min(0f)] public float weight = 1f;
+        }
+
         [SerializeField] private QuizController quiz;
         [SerializeField] private QuizQuestion[] questions;
 
         [Header("Type mixing (relative weights per round)")]
         [SerializeField, Min(0f)] private float authoredWeight = 1f;
         [SerializeField, Min(0f)] private float mathWeight = 1f;
-        [SerializeField, Min(0f)] private float placeWeight;
 
         [Header("Random math questions")]
         [SerializeField, Min(1f)] private float mathTimeLimitSeconds = 5f;
 
-        [Header("Place questions")]
-        [SerializeField] private PlaceQuestionSource placeSource;
+        [Header("Wikipedia questions (places, animals, ...)")]
+        [SerializeField] private WeightedWikipediaSource[] wikipediaSources = new WeightedWikipediaSource[0];
 
         private const float RetrySeconds = 0.5f;
+
+        // Weight indices 0 and 1 are the fixed buckets; Wikipedia sources
+        // follow at FixedBuckets + i.
+        private const int AuthoredBucket = 0;
+        private const int MathBucket = 1;
+        private const int FixedBuckets = 2;
 
         private MathQuestionGenerator generator;
         private int current;
@@ -64,11 +81,7 @@ namespace ThinkFast.Quiz
                 System.Array.Resize(ref questions, valid);
             }
 
-            bool anyConfigured =
-                (valid > 0 && authoredWeight > 0f)
-                || mathWeight > 0f
-                || (placeSource != null && placeWeight > 0f);
-            if (!anyConfigured)
+            if (!AnyTypeConfigured(valid))
             {
                 Debug.LogError("QuizFlow has no available question type", this);
                 enabled = false;
@@ -78,6 +91,26 @@ namespace ThinkFast.Quiz
             ShowNext();
         }
 
+        private bool AnyTypeConfigured(int authoredCount)
+        {
+            if (authoredCount > 0 && authoredWeight > 0f)
+            {
+                return true;
+            }
+            if (mathWeight > 0f)
+            {
+                return true;
+            }
+            foreach (var weighted in wikipediaSources)
+            {
+                if (weighted != null && weighted.source != null && weighted.weight > 0f)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private void OnAnswered(QuizResult result, float normalizedTimeRemaining)
         {
             ShowNext();
@@ -85,59 +118,18 @@ namespace ThinkFast.Quiz
 
         private void ShowNext()
         {
-            float authored = questions.Length > 0 ? authoredWeight : 0f;
-            float math = mathWeight;
-            float place = placeSource != null && placeSource.HasQuestion ? placeWeight : 0f;
-            float total = authored + math + place;
+            float[] weights = BuildAvailableWeights();
+            int selected = WeightedPicker.Pick(weights, Random.value);
 
-            if (total <= 0f)
+            if (selected < 0)
             {
-                // Nothing available right now (e.g. places-only while the
-                // queue still fills). Retry shortly instead of stalling.
+                // Nothing available right now (e.g. Wikipedia-only while the
+                // queues still fill). Retry shortly instead of stalling.
                 Invoke(nameof(ShowNext), RetrySeconds);
                 return;
             }
 
-            // Cumulative weighted pick over the available buckets. Random.value
-            // is inclusive of 1, so a boundary roll (roll == total) must never
-            // fall past the end: the last weighted bucket stays selected when
-            // the loop runs out.
-            float roll = Random.value * total;
-            float[] weights = { authored, math, place };
-            float cumulative = 0f;
-            int selected = 0;
-            for (int i = 0; i < weights.Length; i++)
-            {
-                if (weights[i] <= 0f)
-                {
-                    continue;
-                }
-                cumulative += weights[i];
-                selected = i;
-                if (roll < cumulative)
-                {
-                    break;
-                }
-            }
-
-            QuizQuestion next;
-            bool generated = selected != 0;
-            switch (selected)
-            {
-                case 0:
-                    next = questions[current];
-                    current = (current + 1) % questions.Length;
-                    break;
-                // selected == 2 implies place > 0, which implies placeSource
-                // is non-null with a ready question; the pattern guard makes
-                // that invariant explicit (falls back to math otherwise).
-                case 2 when placeSource != null:
-                    next = placeSource.Dequeue();
-                    break;
-                default:
-                    next = generator.Next();
-                    break;
-            }
+            QuizQuestion next = TakeQuestion(selected);
 
             var previousGenerated = displayedGenerated;
             quiz.ShowQuestion(next);
@@ -155,7 +147,62 @@ namespace ThinkFast.Quiz
                 }
                 Destroy(previousGenerated);
             }
-            displayedGenerated = generated ? next : null;
+
+            if (selected == AuthoredBucket)
+            {
+                displayedGenerated = null;
+            }
+            else
+            {
+                displayedGenerated = next;
+            }
+        }
+
+        /// <summary>
+        /// Builds the per-bucket weights for this round; unavailable buckets
+        /// (empty authored list, Wikipedia source with no prefetched question)
+        /// get weight 0.
+        /// </summary>
+        private float[] BuildAvailableWeights()
+        {
+            var weights = new float[FixedBuckets + wikipediaSources.Length];
+            if (questions.Length > 0)
+            {
+                weights[AuthoredBucket] = authoredWeight;
+            }
+            weights[MathBucket] = mathWeight;
+            for (int i = 0; i < wikipediaSources.Length; i++)
+            {
+                var weighted = wikipediaSources[i];
+                if (weighted != null && weighted.source != null && weighted.source.HasQuestion)
+                {
+                    weights[FixedBuckets + i] = weighted.weight;
+                }
+            }
+            return weights;
+        }
+
+        private QuizQuestion TakeQuestion(int selected)
+        {
+            switch (selected)
+            {
+                case AuthoredBucket:
+                    QuizQuestion next = questions[current];
+                    current = (current + 1) % questions.Length;
+                    return next;
+                case MathBucket:
+                    return generator.Next();
+                default:
+                    // A Wikipedia bucket only gets weight when its source has
+                    // a prefetched question; the guard makes that invariant
+                    // explicit (falls back to math otherwise).
+                    var weighted = wikipediaSources[selected - FixedBuckets];
+                    if (weighted != null && weighted.source != null && weighted.source.HasQuestion)
+                    {
+                        return weighted.source.Dequeue();
+                    }
+                    return generator.Next();
+            }
         }
     }
 }

@@ -2,27 +2,32 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.Serialization;
 
 namespace ThinkFast.Quiz
 {
     /// <summary>
-    /// Prefetches fully built place-guessing questions (landmark photo from
-    /// Wikipedia + four place names) into a small ready-queue so gameplay
-    /// never waits on the network. Fetch failures log a warning, back off,
-    /// and continue; offline simply means an empty queue.
+    /// Prefetches fully built image-guessing questions (topic photo from
+    /// Wikipedia + four topic names) into a small ready-queue so gameplay
+    /// never waits on the network. The topic list and question prompt decide
+    /// what is asked ("Which place is this?", "Which animal is this?", ...).
+    /// Fetch failures log a warning, back off, and continue; offline simply
+    /// means an empty queue.
     /// </summary>
-    public class PlaceQuestionSource : MonoBehaviour
+    public class WikipediaQuestionSource : MonoBehaviour
     {
         private const string SummaryUrl = "https://en.wikipedia.org/api/rest_v1/page/summary/";
         private const int RequestTimeoutSeconds = 10;
 
-        [SerializeField] private LandmarkList landmarks;
+        [FormerlySerializedAs("landmarks")]
+        [SerializeField] private WikipediaTopicList topics;
+        [SerializeField] private string questionPrompt = "Which place is this?";
         [SerializeField, Min(1)] private int queueTargetSize = 2;
         [SerializeField, Min(1f)] private float timeLimitSeconds = 5f;
         [SerializeField, Min(0f)] private float retryDelaySeconds = 5f;
 
         private readonly Queue<QuizQuestion> ready = new Queue<QuizQuestion>();
-        private LandmarkDeck deck;
+        private ShuffleDeck deck;
         private System.Random random;
 
         /// <summary>True when a prefetched question is ready to show.</summary>
@@ -40,18 +45,18 @@ namespace ThinkFast.Quiz
 
         private void Start()
         {
-            if (landmarks == null || landmarks.entries == null
-                || landmarks.entries.Length < QuizQuestion.AnswerCount)
+            if (topics == null || topics.entries == null
+                || topics.entries.Length < QuizQuestion.AnswerCount)
             {
                 Debug.LogError(
-                    $"PlaceQuestionSource needs a LandmarkList with at least {QuizQuestion.AnswerCount} entries",
+                    $"WikipediaQuestionSource needs a WikipediaTopicList with at least {QuizQuestion.AnswerCount} entries",
                     this);
                 enabled = false;
                 return;
             }
 
             random = new System.Random();
-            deck = new LandmarkDeck(landmarks.entries.Length, random);
+            deck = new ShuffleDeck(topics.entries.Length, random);
             StartCoroutine(FillQueue());
         }
 
@@ -65,7 +70,7 @@ namespace ThinkFast.Quiz
                     continue;
                 }
 
-                var entry = landmarks.entries[deck.Next()];
+                var entry = topics.entries[deck.Next()];
 
                 WikipediaSummary summary = null;
                 // Titles may contain non-ASCII or reserved characters
@@ -83,14 +88,14 @@ namespace ThinkFast.Quiz
 
                 if (summary == null)
                 {
-                    Debug.LogWarning($"PlaceQuestionSource: summary fetch failed for {entry.wikipediaTitle}", this);
+                    Debug.LogWarning($"WikipediaQuestionSource: summary fetch failed for {entry.wikipediaTitle}", this);
                     yield return new WaitForSeconds(retryDelaySeconds);
                     continue;
                 }
 
                 if (string.IsNullOrEmpty(summary.thumbnail?.source))
                 {
-                    Debug.LogWarning($"PlaceQuestionSource: no thumbnail for {entry.wikipediaTitle}", this);
+                    Debug.LogWarning($"WikipediaQuestionSource: no thumbnail for {entry.wikipediaTitle}", this);
                     continue;
                 }
 
@@ -109,12 +114,12 @@ namespace ThinkFast.Quiz
 
                 if (texture == null)
                 {
-                    Debug.LogWarning($"PlaceQuestionSource: image fetch failed for {entry.wikipediaTitle}", this);
+                    Debug.LogWarning($"WikipediaQuestionSource: image fetch failed for {entry.wikipediaTitle}", this);
                     yield return new WaitForSeconds(retryDelaySeconds);
                     continue;
                 }
 
-                // Sprite.Create/PlaceAnswerBuilder could throw; treat that
+                // Sprite.Create/WikipediaAnswerBuilder could throw; treat that
                 // like any other fetch failure instead of ending the loop.
                 QuizQuestion question = null;
                 try
@@ -124,7 +129,7 @@ namespace ThinkFast.Quiz
                 catch (System.Exception e)
                 {
                     Debug.LogWarning(
-                        $"PlaceQuestionSource: building question failed for {entry.wikipediaTitle}: {e.Message}",
+                        $"WikipediaQuestionSource: building question failed for {entry.wikipediaTitle}: {e.Message}",
                         this);
                 }
 
@@ -152,7 +157,7 @@ namespace ThinkFast.Quiz
             catch (System.Exception e)
             {
                 Debug.LogWarning(
-                    $"PlaceQuestionSource: summary parse failed for {title}: {e.Message}", this);
+                    $"WikipediaQuestionSource: summary parse failed for {title}: {e.Message}", this);
                 return null;
             }
         }
@@ -180,20 +185,20 @@ namespace ThinkFast.Quiz
             }
         }
 
-        private QuizQuestion BuildQuestion(LandmarkList.Entry entry, Texture2D texture)
+        private QuizQuestion BuildQuestion(WikipediaTopicList.Entry entry, Texture2D texture)
         {
             var sprite = Sprite.Create(
                 texture,
                 new Rect(0, 0, texture.width, texture.height),
                 new Vector2(0.5f, 0.5f));
 
-            int correctEntryIndex = System.Array.IndexOf(landmarks.entries, entry);
-            var answers = PlaceAnswerBuilder.Build(
-                landmarks.entries, correctEntryIndex, random, out int correctIndex);
+            int correctEntryIndex = System.Array.IndexOf(topics.entries, entry);
+            var answers = WikipediaAnswerBuilder.Build(
+                topics.entries, correctEntryIndex, random, out int correctIndex);
 
             var question = ScriptableObject.CreateInstance<QuizQuestion>();
-            question.name = $"Place {entry.displayName}";
-            question.questionText = "Which place is this?";
+            question.name = $"{topics.name} {entry.displayName}";
+            question.questionText = questionPrompt;
             question.image = sprite;
             question.answers = answers;
             question.correctIndex = correctIndex;
