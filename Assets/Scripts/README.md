@@ -651,6 +651,36 @@ becomes unreadable again.
   falls and takes knockback, then `RoundEvents.ReportRoundEnded(PlayerWon)` fires
   after a short delay.
 
+### The air swing, after animation
+
+The animated fighters arrived with the attacks retimed to the clips, and the air attack
+came back with its hitbox opening **halfway through the swing**, where the fist visually
+extends. That is correct for a punch thrown standing still and wrong for a dive: the
+fighter travels through its whole startup, so the hitbox opened after it had already
+arced past what it aimed at, and air attacks stopped connecting.
+
+The swing length was never the problem — animated and original totals agree at ~0.36s.
+Only the distribution changed:
+
+| Air attack | startup | active | recovery | total |
+|---|---|---|---|---|
+| original, tuned for the fight | 0.09 | 0.10 | 0.18 | 0.37 |
+| as animated | 0.18 | 0.06 | 0.12 | 0.36 |
+| **now** | **0.10** | **0.16** | **0.10** | **0.36** |
+
+So the clip still fits and nothing looks rushed, but the hitbox opens early and stays
+open across the whole visual strike. **A hitbox that leads the fist slightly is far
+less noticeable than an opponent that never lands a dive.**
+
+`Tools > Think Fast > Import Fighters From Art Scene` applies this, so re-importing
+cannot quietly put the whiffing version back. **Ground attacks are left exactly as
+animated** — a grounded fighter is rooted through its own startup, so a late hitbox
+still lands where it was aimed, and the longer wind-up is the telegraph.
+
+One thing that did change and has not been ruled on: both fighters now share a 0.25
+ground startup, where the opponent's used to be 0.20 against the player's 0.15. That
+gap was the fairness dial described below.
+
 ### The dials that matter
 
 Four numbers decide whether it feels fair, and none of them is damage:

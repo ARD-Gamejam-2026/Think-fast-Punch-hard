@@ -28,6 +28,30 @@ namespace ThinkFast.PlayerEditor
 
         private const string RigRootName = "--- Test Rig (generated) ---";
 
+        /// <summary>
+        /// The air swing's phases, redistributed without changing how long the
+        /// swing lasts.
+        ///
+        /// The animation retimed the air attack to open its hitbox halfway through
+        /// the clip, where the fist visually extends. That is right for a punch
+        /// thrown standing still and wrong for a dive: the fighter is travelling
+        /// through the whole startup, so by the time the hitbox opened it had
+        /// already arced past what it aimed at, and air attacks simply stopped
+        /// connecting.
+        ///
+        /// These keep the total at the animation's 0.36s -- so the clip still fits
+        /// and nothing looks rushed -- and spend it differently: open earlier, and
+        /// stay open across the whole visual strike. A hitbox that leads the fist
+        /// slightly is far less noticeable than an opponent that never lands a
+        /// dive. The README used the same trick once before, widening active from
+        /// 0.07 to 0.10 for this exact reason.
+        /// </summary>
+        private const float AirStartup = 0.10f;
+
+        private const float AirActive = 0.16f;
+
+        private const float AirRecovery = 0.10f;
+
         [MenuItem("Tools/Think Fast/Import Fighters From Art Scene")]
         public static void Import()
         {
@@ -60,10 +84,13 @@ namespace ThinkFast.PlayerEditor
 
             Rewire(player, enemy);
 
+            RebalanceAirAttack(player.GetComponent<ThinkFast.Player.PlayerAttack>());
+            RebalanceAirAttack(enemy.GetComponent<ThinkFast.Enemy.EnemyAttack>());
+
             EditorSceneManager.MarkSceneDirty(fight);
             EditorSceneManager.SaveScene(fight);
 
-            Debug.Log("Imported the animated fighters from the art scene. Re-running 'Build PlayerController Test Scene' will replace them with the placeholder capsules again -- re-run this afterwards if you do.");
+            Debug.Log($"Imported the animated fighters from the art scene, with the air swing rebalanced to {AirStartup}/{AirActive}/{AirRecovery} so dives still connect. Re-running 'Build PlayerController Test Scene' will replace them with the placeholder capsules again -- re-run this afterwards if you do.");
         }
 
         private static Transform FindRigRoot(Scene scene)
@@ -141,6 +168,33 @@ namespace ThinkFast.PlayerEditor
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Redistributes the air swing's phases on one fighter. Ground attacks are
+        /// left exactly as animated: a grounded fighter is rooted through its own
+        /// startup, so a late hitbox still lands where it was aimed, and the longer
+        /// wind-up is the telegraph the player reads.
+        /// </summary>
+        private static void RebalanceAirAttack(Component attack)
+        {
+            if (attack == null)
+            {
+                return;
+            }
+
+            var so = new SerializedObject(attack);
+            SerializedProperty air = so.FindProperty("airAttack");
+            if (air == null)
+            {
+                Debug.LogWarning($"{attack.GetType().Name} has no airAttack to rebalance.", attack);
+                return;
+            }
+
+            air.FindPropertyRelative("startup").floatValue = AirStartup;
+            air.FindPropertyRelative("active").floatValue = AirActive;
+            air.FindPropertyRelative("recovery").floatValue = AirRecovery;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>
