@@ -52,7 +52,19 @@ namespace ThinkFast.Quiz
 
             for (int i = 0; i < answerButtons.Length; i++)
             {
-                answerButtons[i].SetAnswerText(question.answers[i]);
+                Sprite answerImage = null;
+                if (question.answerImages != null && i < question.answerImages.Length)
+                {
+                    answerImage = question.answerImages[i];
+                }
+                if (answerImage != null)
+                {
+                    answerButtons[i].SetAnswerImage(answerImage);
+                }
+                else
+                {
+                    answerButtons[i].SetAnswerText(question.answers[i]);
+                }
                 answerButtons[i].SetVisualState(AnswerButton.VisualState.Normal);
                 answerButtons[i].SetInteractable(true);
             }
