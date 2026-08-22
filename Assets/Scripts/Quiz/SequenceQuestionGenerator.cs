@@ -24,7 +24,7 @@ namespace ThinkFast.Quiz
             if (seed.HasValue)
             {
                 random = new System.Random(seed.Value);
-                sequences = new SequenceGenerator(seed.Value);
+                sequences = new SequenceGenerator(unchecked(seed.Value ^ (int)0x9E3779B9));
             }
             else
             {
