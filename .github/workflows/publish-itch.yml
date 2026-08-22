@@ -2,10 +2,10 @@ name: Publish to itch.io
 
 on:
   push:
-    branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 
-# A newer push supersedes any in-flight publish of an older commit.
+# A newer tag supersedes any in-flight publish of an older one.
 concurrency:
   group: publish-itch
   cancel-in-progress: true
@@ -44,4 +44,4 @@ jobs:
           itchUsername: rhinocerosgamesproduction
           itchGameId: think-fast-punch-hard
           buildChannel: html5
-          buildNumber: ${{ github.run_number }}
+          buildNumber: ${{ github.ref_name }}
