@@ -95,21 +95,32 @@ namespace ThinkFast.Quiz
             float roll = Random.value * total;
             QuizQuestion next;
             bool generated;
-            if (roll < authored)
+            if (authored > 0f && roll < authored)
             {
                 next = questions[current];
                 current = (current + 1) % questions.Length;
                 generated = false;
             }
-            else if (roll < authored + math)
+            else if (math > 0f && roll < authored + math)
+            {
+                next = generator.Next();
+                generated = true;
+            }
+            else if (place > 0f)
+            {
+                next = placeSource.Dequeue();
+                generated = true;
+            }
+            else if (math > 0f)
             {
                 next = generator.Next();
                 generated = true;
             }
             else
             {
-                next = placeSource.Dequeue();
-                generated = true;
+                next = questions[current];
+                current = (current + 1) % questions.Length;
+                generated = false;
             }
 
             var previousGenerated = displayedGenerated;
