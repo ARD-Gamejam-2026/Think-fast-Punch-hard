@@ -110,6 +110,84 @@ namespace ThinkFast.Quiz.EditorTools
             Debug.Log("Quiz panel added to SampleScene with sample question.");
         }
 
+        private const string PacManSpritePath = "Assets/Quiz/PacMan.png";
+
+        [MenuItem("Tools/Quiz/Update Sample Question (Pac-Man image, 5s)")]
+        public static void UpdateSampleQuestion()
+        {
+            var question = AssetDatabase.LoadAssetAtPath<QuizQuestion>(SampleQuestionPath);
+            if (question == null)
+            {
+                Debug.LogError($"No question at {SampleQuestionPath} — run Tools/Quiz/Add Quiz Panel To Sample Scene first.");
+                return;
+            }
+
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(PacManSpritePath) == null)
+            {
+                var texture = GeneratePacManTexture(256);
+                System.IO.File.WriteAllBytes(PacManSpritePath, texture.EncodeToPNG());
+                Object.DestroyImmediate(texture);
+                AssetDatabase.ImportAsset(PacManSpritePath);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(PacManSpritePath);
+                importer.textureType = TextureImporterType.Sprite;
+                // Setting textureType from code does not imply a sprite mode;
+                // without Single there are no Sprite sub-assets to load.
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.alphaIsTransparency = true;
+                importer.SaveAndReimport();
+            }
+
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PacManSpritePath);
+            if (sprite == null)
+            {
+                Debug.LogError($"No sprite at {PacManSpritePath} after import — check the texture import settings.");
+                return;
+            }
+
+            question.image = sprite;
+            question.timeLimitSeconds = 5f;
+            EditorUtility.SetDirty(question);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"Sample question updated: Pac-Man image, {question.timeLimitSeconds}s timer.");
+        }
+
+        private static Texture2D GeneratePacManTexture(int size)
+        {
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var pixels = new Color32[size * size];
+
+            var yellow = new Color32(255, 220, 20, 255);
+            var black = new Color32(20, 20, 20, 255);
+            var clear = new Color32(0, 0, 0, 0);
+
+            float center = (size - 1) / 2f;
+            float radius = size * 0.48f;
+            float mouthHalfAngle = 35f;
+            // Eye sits above the mouth, slightly toward the facing side.
+            var eyeCenter = new Vector2(center + radius * 0.25f, center + radius * 0.45f);
+            float eyeRadius = radius * 0.12f;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = x - center;
+                    float dy = y - center;
+                    bool insideBody = dx * dx + dy * dy <= radius * radius;
+                    bool insideMouth = Mathf.Abs(Mathf.Atan2(dy, dx) * Mathf.Rad2Deg) < mouthHalfAngle;
+                    bool insideEye = (new Vector2(x, y) - eyeCenter).sqrMagnitude <= eyeRadius * eyeRadius;
+
+                    pixels[y * size + x] = insideBody && !insideMouth
+                        ? (insideEye ? black : yellow)
+                        : clear;
+                }
+            }
+
+            texture.SetPixels32(pixels);
+            texture.Apply();
+            return texture;
+        }
+
         private static void BuildHierarchy(GameObject root)
         {
             var container = CreateUIObject("Container", root.transform);

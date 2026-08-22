@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: SampleQuestion
   m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.QuizQuestion
   questionText: Who is behind the box?
-  image: {fileID: 0}
+  image: {fileID: 21300000, guid: 5b665d85e53b34448aba46c7388800fc, type: 3}
   answers:
   - Bat Man
   - Supper Man
   - Pac Man
   - Pack Man
   correctIndex: 3
-  timeLimitSeconds: 10
+  timeLimitSeconds: 5
