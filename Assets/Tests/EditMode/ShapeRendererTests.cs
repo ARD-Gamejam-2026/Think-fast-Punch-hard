@@ -32,20 +32,33 @@ namespace ThinkFast.Quiz.Tests
         }
 
         [Test]
-        public void Render_strip_produces_a_wider_than_tall_sprite()
+        public void Render_strip_lays_terms_in_two_rows_with_a_placeholder_row()
         {
             var renderer = new ShapeRenderer();
-            var terms = new List<ShapeSpec>
-            {
-                new ShapeSpec(ShapeKind.Circle, 0, 1, 0, true),
-                new ShapeSpec(ShapeKind.Circle, 0, 2, 0, true),
-                new ShapeSpec(ShapeKind.Circle, 0, 3, 0, true),
-            };
-            Sprite strip = renderer.RenderStrip(terms);
-            Assert.Greater(strip.texture.width, strip.texture.height);
 
-            Object.DestroyImmediate(strip.texture);
-            Object.DestroyImmediate(strip);
+            Sprite six = renderer.RenderStrip(CircleTerms(6));
+            int sixCell = six.texture.height / 3;
+            Assert.AreEqual(sixCell * 3, six.texture.width, "six terms use three columns");
+            Assert.AreEqual(sixCell * 3, six.texture.height, "two term rows plus a placeholder row");
+            Object.DestroyImmediate(six.texture);
+            Object.DestroyImmediate(six);
+
+            Sprite four = renderer.RenderStrip(CircleTerms(4));
+            int fourCell = four.texture.height / 3;
+            Assert.AreEqual(fourCell * 2, four.texture.width, "four terms use two columns");
+            Assert.Greater(four.texture.height, four.texture.width, "placeholder row makes it taller than wide");
+            Object.DestroyImmediate(four.texture);
+            Object.DestroyImmediate(four);
+        }
+
+        private static List<ShapeSpec> CircleTerms(int count)
+        {
+            var terms = new List<ShapeSpec>();
+            for (int i = 0; i < count; i++)
+            {
+                terms.Add(new ShapeSpec(ShapeKind.Circle, 0, 1, 0, true));
+            }
+            return terms;
         }
 
         [Test]

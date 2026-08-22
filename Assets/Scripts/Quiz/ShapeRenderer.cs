@@ -31,22 +31,33 @@ namespace ThinkFast.Quiz
         public Sprite Render(ShapeSpec spec)
         {
             var pixels = NewTransparentBuffer(CellSize, CellSize);
-            DrawCell(pixels, CellSize, 0, spec);
+            DrawCell(pixels, CellSize, CellSize, 0, 0, spec);
             return BuildSprite(pixels, CellSize, CellSize);
         }
 
-        /// <summary>Renders the terms left to right, then an outlined placeholder box.</summary>
+        /// <summary>
+        /// Renders the terms across two rows with the "?" placeholder centered on
+        /// a third row below, keeping the prompt compact instead of one wide row.
+        /// </summary>
         public Sprite RenderStrip(IReadOnlyList<ShapeSpec> terms)
         {
-            int cells = terms.Count + 1;
-            int width = CellSize * cells;
-            var pixels = NewTransparentBuffer(width, CellSize);
-            for (int i = 0; i < terms.Count; i++)
+            int termCount = terms.Count;
+            int columns = Mathf.Max(1, Mathf.CeilToInt(termCount / 2f));
+            int width = columns * CellSize;
+            int height = 3 * CellSize;
+            var pixels = NewTransparentBuffer(width, height);
+            for (int i = 0; i < termCount; i++)
             {
-                DrawCell(pixels, width, i * CellSize, terms[i]);
+                int rowFromTop = i / columns;
+                int column = i % columns;
+                int inThisRow = Mathf.Min(columns, termCount - rowFromTop * columns);
+                int rowLeft = (width - inThisRow * CellSize) / 2;
+                int cellX = rowLeft + column * CellSize;
+                int cellY = (2 - rowFromTop) * CellSize;
+                DrawCell(pixels, width, height, cellX, cellY, terms[i]);
             }
-            DrawPlaceholder(pixels, width, terms.Count * CellSize);
-            return BuildSprite(pixels, width, CellSize);
+            DrawPlaceholder(pixels, width, height, (width - CellSize) / 2, 0);
+            return BuildSprite(pixels, width, height);
         }
 
         private Color[] NewTransparentBuffer(int width, int height)
@@ -59,7 +70,7 @@ namespace ThinkFast.Quiz
             return pixels;
         }
 
-        private void DrawCell(Color[] pixels, int texWidth, int cellX, ShapeSpec spec)
+        private void DrawCell(Color[] pixels, int texWidth, int texHeight, int cellX, int cellY, ShapeSpec spec)
         {
             Color color = Palette[Mathf.Clamp(spec.ColorIndex, 0, Palette.Length - 1)];
             int grid = Mathf.CeilToInt(Mathf.Sqrt(spec.Count));
@@ -69,14 +80,14 @@ namespace ThinkFast.Quiz
             {
                 for (int gx = 0; gx < grid && drawn < spec.Count; gx++)
                 {
-                    var rect = new Rect(cellX + gx * sub, gy * sub, sub, sub);
-                    DrawShapeInRect(pixels, texWidth, rect, spec, color);
+                    var rect = new Rect(cellX + gx * sub, cellY + gy * sub, sub, sub);
+                    DrawShapeInRect(pixels, texWidth, texHeight, rect, spec, color);
                     drawn++;
                 }
             }
         }
 
-        private void DrawShapeInRect(Color[] pixels, int texWidth, Rect rect, ShapeSpec spec, Color color)
+        private void DrawShapeInRect(Color[] pixels, int texWidth, int texHeight, Rect rect, ShapeSpec spec, Color color)
         {
             float inset = rect.width * Margin;
             var inner = new Rect(rect.x + inset, rect.y + inset,
@@ -88,7 +99,7 @@ namespace ThinkFast.Quiz
             int x0 = Mathf.Max(0, Mathf.FloorToInt(rect.x));
             int x1 = Mathf.Min(texWidth - 1, Mathf.CeilToInt(rect.xMax));
             int y0 = Mathf.Max(0, Mathf.FloorToInt(rect.y));
-            int y1 = Mathf.Min(CellSize - 1, Mathf.CeilToInt(rect.yMax));
+            int y1 = Mathf.Min(texHeight - 1, Mathf.CeilToInt(rect.yMax));
             for (int y = y0; y <= y1; y++)
             {
                 for (int x = x0; x <= x1; x++)
@@ -236,11 +247,11 @@ namespace ThinkFast.Quiz
             return Vector2.Distance(p, a + ab * t);
         }
 
-        private void DrawPlaceholder(Color[] pixels, int texWidth, int cellX)
+        private void DrawPlaceholder(Color[] pixels, int texWidth, int texHeight, int cellX, int cellY)
         {
             var spec = new ShapeSpec(ShapeKind.Square, 0, 1, 0, false);
-            DrawShapeInRect(pixels, texWidth,
-                new Rect(cellX, 0, CellSize, CellSize), spec, new Color(0.7f, 0.7f, 0.7f));
+            DrawShapeInRect(pixels, texWidth, texHeight,
+                new Rect(cellX, cellY, CellSize, CellSize), spec, new Color(0.7f, 0.7f, 0.7f));
         }
 
         private void BlendPixel(Color[] pixels, int texWidth, int x, int y, Color color, float coverage)
