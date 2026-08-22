@@ -293,7 +293,6 @@ namespace ThinkFast.Quiz.EditorTools
             var view = root.AddComponent<QuizView>();
             var viewSo = new SerializedObject(view);
             viewSo.FindProperty("questionLabel").objectReferenceValue = questionLabel;
-            viewSo.FindProperty("imagePanel").objectReferenceValue = imagePanel.gameObject;
             viewSo.FindProperty("questionImage").objectReferenceValue = questionImage;
             viewSo.FindProperty("timerFill").objectReferenceValue = timerFill;
             var buttonsProperty = viewSo.FindProperty("answerButtons");

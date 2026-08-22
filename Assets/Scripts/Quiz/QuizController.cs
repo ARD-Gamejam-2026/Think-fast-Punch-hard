@@ -12,7 +12,7 @@ namespace ThinkFast.Quiz
     public class QuizController : MonoBehaviour
     {
         [SerializeField] private QuizView view;
-        [SerializeField, Min(0f)] private float feedbackDelaySeconds = 1.5f;
+        [SerializeField, Min(0f)] private float feedbackDelaySeconds = 0.5f;
 
         [Tooltip("Optional. Shown automatically on Start for quick play-mode testing.")]
         [SerializeField] private QuizQuestion startingQuestion;
@@ -75,7 +75,7 @@ namespace ThinkFast.Quiz
             if (!session.IsResolved)
             {
                 session.Tick(Time.deltaTime);
-                view.SetTimerFill(session.NormalizedTimeRemaining);
+                view.SetTimerFill(session.NormalizedTimeRemaining, session.RemainingTime);
                 if (session.IsResolved)
                     ShowResolution();
             }

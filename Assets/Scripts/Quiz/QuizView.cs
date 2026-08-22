@@ -14,10 +14,17 @@ namespace ThinkFast.Quiz
         private static readonly string[] Letters = { "A", "B", "C", "D" };
 
         [SerializeField] private TMP_Text questionLabel;
-        [SerializeField] private GameObject imagePanel;
         [SerializeField] private Image questionImage;
         [SerializeField] private Image timerFill;
         [SerializeField] private AnswerButton[] answerButtons = new AnswerButton[QuizQuestion.AnswerCount];
+
+        [Header("Timer colors (answer-speed zones)")]
+        [Tooltip("Answering in this zone is a fast solve (builds Flow).")]
+        [SerializeField] private Color timerFastColor = new Color(0.20f, 0.75f, 0.25f);
+        [SerializeField] private Color timerMidColor = new Color(0.95f, 0.75f, 0.10f);
+        [SerializeField] private Color timerLastSecondColor = new Color(0.85f, 0.15f, 0.15f);
+        [SerializeField, Range(0f, 1f)] private float fastZoneNormalized = 0.6f;
+        [SerializeField, Min(0f)] private float lastSecondSeconds = 1f;
 
         public event Action<int> AnswerClicked;
 
@@ -30,9 +37,11 @@ namespace ThinkFast.Quiz
         public void ShowQuestion(QuizQuestion question)
         {
             questionLabel.text = question.questionText;
-            imagePanel.SetActive(question.image != null);
+            // The image area stays reserved either way so the panel height
+            // does not jump between image and text-only questions.
+            questionImage.enabled = question.image != null;
             questionImage.sprite = question.image;
-            SetTimerFill(1f);
+            SetTimerFill(1f, question.timeLimitSeconds);
 
             for (int i = 0; i < answerButtons.Length; i++)
             {
@@ -42,9 +51,16 @@ namespace ThinkFast.Quiz
             }
         }
 
-        public void SetTimerFill(float normalized)
+        public void SetTimerFill(float normalized, float remainingSeconds)
         {
             timerFill.fillAmount = Mathf.Clamp01(normalized);
+
+            if (normalized > fastZoneNormalized)
+                timerFill.color = timerFastColor;
+            else if (remainingSeconds <= lastSecondSeconds)
+                timerFill.color = timerLastSecondColor;
+            else
+                timerFill.color = timerMidColor;
         }
 
         public void ShowResult(QuizResult result, int selectedIndex, int correctIndex)
@@ -63,7 +79,7 @@ namespace ThinkFast.Quiz
                     break;
                 case QuizResult.TimedOut:
                     answerButtons[correctIndex].SetVisualState(AnswerButton.VisualState.Highlighted);
-                    SetTimerFill(0f);
+                    SetTimerFill(0f, 0f);
                     break;
             }
         }

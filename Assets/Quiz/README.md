@@ -25,8 +25,9 @@ The code lives in `Assets/Scripts/Quiz/`:
    (put it in `Assets/Quiz/Questions/`).
 2. Fill in the inspector:
    - **Question Text** — shown at the top.
-   - **Image** — optional sprite. Leave empty and the image panel hides
-     itself; assign one and it shows between question and timer.
+   - **Image** — optional sprite, shown between question and timer. The
+     image area stays reserved either way, so the panel height never jumps
+     between image and text-only questions.
    - **Answers** — exactly 4 entries, shown as A–D in order.
    - **Correct Index** — 0 = A, 1 = B, 2 = C, 3 = D.
    - **Time Limit Seconds** — countdown length; running out counts as
@@ -106,8 +107,13 @@ timed out**):
   windows) so they land the moment the player earns them.
 - **`QuestionAnswered(QuizResult, float)`** — fires after the feedback
   colors have been on screen for the controller's **Feedback Delay
-  Seconds** (default 1.5 s). `QuizFlow` uses this one to advance, so the
+  Seconds** (default 0.5 s). `QuizFlow` uses this one to advance, so the
   result stays visible between questions.
+
+The timer bar doubles as a speed indicator: it is green while a solve
+still counts as fast (top 40 % of the time limit — the Flow-building
+zone), yellow after that, and red in the last second. Zone colors and
+thresholds are inspector fields on `QuizView`.
 
 Other systems subscribe alongside `QuizFlow` without interfering with it:
 

@@ -893,7 +893,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.QuizController
   view: {fileID: 6571786248370712487}
-  feedbackDelaySeconds: 1.5
+  feedbackDelaySeconds: 0.5
   startingQuestion: {fileID: 0}
 --- !u!1 &3890420927913058305
 GameObject:
