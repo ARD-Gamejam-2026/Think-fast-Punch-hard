@@ -109,6 +109,88 @@ namespace ThinkFast.Quiz.Tests
             Assert.Throws<System.ArgumentOutOfRangeException>(() => new QuizSession(-1, 10f));
             Assert.Throws<System.ArgumentOutOfRangeException>(() => new QuizSession(4, 10f));
             Assert.Throws<System.ArgumentOutOfRangeException>(() => new QuizSession(0, 0f));
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => new QuizSession(0, 10f, -1f));
+        }
+
+        [Test]
+        public void NoLockout_IsAnswerableImmediately()
+        {
+            var session = new QuizSession(correctIndex: 0, timeLimitSeconds: 10f);
+
+            Assert.That(session.IsAnswerable, Is.True);
+            Assert.That(session.LockoutRemaining, Is.Zero);
+        }
+
+        [Test]
+        public void SelectAnswer_DuringLockout_DoesNotResolve()
+        {
+            var session = new QuizSession(correctIndex: 0, timeLimitSeconds: 10f, answerLockoutSeconds: 0.35f);
+
+            session.SelectAnswer(0);
+
+            Assert.That(session.IsResolved, Is.False);
+            Assert.That(session.SelectedIndex, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public void SelectAnswer_AfterLockoutElapses_ResolvesNormally()
+        {
+            var session = new QuizSession(correctIndex: 2, timeLimitSeconds: 10f, answerLockoutSeconds: 0.35f);
+
+            session.Tick(0.4f);
+            Assert.That(session.IsAnswerable, Is.True);
+
+            session.SelectAnswer(2);
+
+            Assert.That(session.Result, Is.EqualTo(QuizResult.Correct));
+        }
+
+        [Test]
+        public void SelectAnswer_DuringLockout_PushesTheWindowBack()
+        {
+            var session = new QuizSession(correctIndex: 0, timeLimitSeconds: 10f, answerLockoutSeconds: 0.35f);
+
+            session.Tick(0.3f);
+            session.SelectAnswer(0);
+
+            // Without the push-back the window would have opened at 0.35s; the
+            // click at 0.3s moves it out to 0.65s.
+            session.Tick(0.1f);
+            Assert.That(session.IsAnswerable, Is.False);
+            Assert.That(session.LockoutRemaining, Is.EqualTo(0.25f).Within(1e-4));
+        }
+
+        [Test]
+        public void SustainedMashing_NeverResolvesAndTimesOut()
+        {
+            var session = new QuizSession(correctIndex: 0, timeLimitSeconds: 5f, answerLockoutSeconds: 0.35f);
+
+            // A masher clicking the correct slot every 0.1s for the whole
+            // countdown: the window is re-armed faster than it can ever open.
+            for (int tick = 0; tick < 60; tick++)
+            {
+                session.Tick(0.1f);
+                session.SelectAnswer(0);
+            }
+
+            Assert.That(session.Result, Is.EqualTo(QuizResult.TimedOut));
+            Assert.That(session.SelectedIndex, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public void OneStrayClick_CostsOnlyOneMoreWindow()
+        {
+            var session = new QuizSession(correctIndex: 1, timeLimitSeconds: 10f, answerLockoutSeconds: 0.35f);
+
+            session.Tick(0.2f);
+            session.SelectAnswer(1);
+            session.Tick(0.4f);
+
+            // The stray click pushed the window out to 0.55s; by 0.6s a real
+            // answer lands. Reading fast is not what gets punished, mashing is.
+            session.SelectAnswer(1);
+
+            Assert.That(session.Result, Is.EqualTo(QuizResult.Correct));
         }
     }
 }

@@ -15,6 +15,7 @@ namespace ThinkFast.Quiz
             Correct,     // green: this was the right answer and the player picked it
             Wrong,       // red: the player picked this and it was wrong
             Highlighted, // gold: reveals the right answer after Wrong/TimedOut
+            Locked,      // faded: the opening lockout is running, a click will not count yet
         }
 
         [SerializeField] private Button button;
@@ -27,6 +28,9 @@ namespace ThinkFast.Quiz
         [SerializeField] private Color correctColor = new Color(0.15f, 0.55f, 0.20f);
         [SerializeField] private Color wrongColor = new Color(0.72f, 0.12f, 0.18f);
         [SerializeField] private Color highlightColor = new Color(0.75f, 0.62f, 0.12f);
+
+        [Tooltip("Alpha the normal colour is faded to while the answer lockout runs. Derived from normalColor rather than being its own colour so it follows whatever theme the panel restyler paints.")]
+        [SerializeField, Range(0f, 1f)] private float lockedAlpha = 0.35f;
 
         private int index;
         private Action<int> onClicked;
@@ -73,8 +77,20 @@ namespace ThinkFast.Quiz
                 VisualState.Correct => correctColor,
                 VisualState.Wrong => wrongColor,
                 VisualState.Highlighted => highlightColor,
+                VisualState.Locked => LockedColor(),
                 _ => normalColor,
             };
+        }
+
+        /// <summary>
+        /// The normal colour faded by lockedAlpha, so a locked button reads as
+        /// not-yet-clickable on a light and a dark panel alike.
+        /// </summary>
+        private Color LockedColor()
+        {
+            Color locked = normalColor;
+            locked.a = normalColor.a * lockedAlpha;
+            return locked;
         }
     }
 }
