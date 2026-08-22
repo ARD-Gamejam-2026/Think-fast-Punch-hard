@@ -2,7 +2,9 @@ using System.IO;
 using ThinkFast.CameraRig;
 using ThinkFast.Combat;
 using ThinkFast.Economy;
+using ThinkFast.Enemy;
 using ThinkFast.Player;
+using ThinkFast.Rounds;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -25,7 +27,7 @@ namespace ThinkFast.PlayerEditor
         private const string InputAssetPath = "Assets/Settings/Input/FighterControls.inputactions";
         private const string PhysicsMaterialPath = "Assets/Settings/Physics/FighterNoFriction.physicsMaterial2D";
         private const string PlatformMaterialPath = "Assets/Settings/Materials/TestPlatform.mat";
-        private const string DummyMaterialPath = "Assets/Settings/Materials/TestDummy.mat";
+        private const string EnemyMaterialPath = "Assets/Settings/Materials/TestEnemy.mat";
 
         /// <summary>Root object name. Everything generated lives under it, so cleanup is one delete.</summary>
         private const string RigRootName = "--- Test Rig (generated) ---";
@@ -49,14 +51,19 @@ namespace ThinkFast.PlayerEditor
 
             BuildStage(root.transform, frictionless);
             GameObject player = BuildPlayer(root.transform, frictionless);
-            BuildTrainingDummy(root.transform, frictionless, new Vector3(2f, 1.2f, 0f));
+
+            // On the floor and clear of the step, far enough away that the fight
+            // opens with the opponent walking at you rather than already inside
+            // your guard on frame one.
+            BuildEnemy(root.transform, frictionless, new Vector3(3f, 1.2f, 0f), player.transform);
+            BuildRoundDebug(root.transform);
             FrameCamera(scene, player.transform);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
 
             Selection.activeGameObject = player;
-            Debug.Log($"Built PlayerController test rig in {ScenePath}. Press Play, then move with A/D or the arrow keys.");
+            Debug.Log($"Built PlayerController test rig in {ScenePath}. Press Play, then move with A/D or the arrow keys. The opponent fights back; R resets it, Enter restarts after a K.O.");
         }
 
         private static void RemoveExistingRig(Scene scene)
@@ -186,14 +193,15 @@ namespace ThinkFast.PlayerEditor
             AssignInputAsset(input);
 
             var controller = player.AddComponent<PlayerController>();
-            AssignVisualRoot(controller, visual.transform);
+            AssignObjectField(controller, "visualRoot", visual.transform);
 
             // Resources must exist before PlayerAttack, which looks them up in
             // Awake to decide whether attacks cost anything.
             player.AddComponent<FighterResources>();
 
             player.AddComponent<Health>();
-            player.AddComponent<PlayerHitReaction>();
+            player.AddComponent<FighterHitReaction>();
+            player.AddComponent<PlayerKnockout>();
 
             // Throwaway: press H to take a canned hit, so damage and hitstun can
             // be felt before any opponent exists that could deal them.
@@ -215,47 +223,99 @@ namespace ThinkFast.PlayerEditor
         }
 
         /// <summary>
-        /// A punching bag standing in for the AI opponent. Given the same physics
-        /// setup as the fighter so knockback reads the same way it will later,
-        /// but with nothing driving it.
+        /// The AI opponent. Given the same body as the player -- same collider,
+        /// same frictionless material, no linear damping -- so knockback reads
+        /// identically on both fighters and a hit can be tuned once.
         /// </summary>
-        private static GameObject BuildTrainingDummy(Transform parent, PhysicsMaterial2D frictionless, Vector3 position)
+        private static GameObject BuildEnemy(Transform parent, PhysicsMaterial2D frictionless, Vector3 position, Transform target)
         {
-            var dummy = new GameObject("Training Dummy");
-            dummy.transform.SetParent(parent, worldPositionStays: false);
-            dummy.transform.localPosition = position;
+            var enemy = new GameObject("Enemy");
+            enemy.transform.SetParent(parent, worldPositionStays: false);
+            enemy.transform.localPosition = position;
 
-            var body = dummy.AddComponent<Rigidbody2D>();
+            var body = enemy.AddComponent<Rigidbody2D>();
             body.freezeRotation = true;
             body.gravityScale = 5f;
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
-            // Drag, so a launched dummy comes to rest instead of sliding to the
-            // far wall on every hit. The stage is frictionless, so this damping
-            // is the ONLY thing stopping it. Roughly: it travels knockback/damping
-            // units, so ~11/2.5 is a bit over four units per punch.
-            body.linearDamping = 2.5f;
+            // No linear damping, unlike the dummy this replaces. The dummy needed
+            // it because nothing else ever stopped it sliding; the opponent
+            // brakes itself through EnemyMotor, and damping would quietly fight
+            // its own acceleration curve.
+            body.linearDamping = 0f;
 
-            var capsule = dummy.AddComponent<CapsuleCollider2D>();
+            var capsule = enemy.AddComponent<CapsuleCollider2D>();
             capsule.direction = CapsuleDirection2D.Vertical;
             capsule.size = new Vector2(0.8f, 1.8f);
             capsule.sharedMaterial = frictionless;
 
             GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             visual.name = "Visual";
-            visual.transform.SetParent(dummy.transform, worldPositionStays: false);
+            visual.transform.SetParent(enemy.transform, worldPositionStays: false);
             visual.transform.localScale = new Vector3(0.8f, 0.9f, 0.8f);
             Object.DestroyImmediate(visual.GetComponent<Collider>());
 
-            Material material = GetOrCreateDummyMaterial();
+            // A nose, so which way it is facing -- and therefore where its next
+            // hitbox lands -- is readable at a glance.
+            GameObject nose = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            nose.name = "Facing Marker";
+            nose.transform.SetParent(visual.transform, worldPositionStays: false);
+            nose.transform.localPosition = new Vector3(0.6f, 0.35f, 0f);
+            nose.transform.localScale = new Vector3(0.5f, 0.2f, 0.5f);
+            Object.DestroyImmediate(nose.GetComponent<Collider>());
+
+            Material material = GetOrCreateEnemyMaterial();
             if (material != null)
             {
                 visual.GetComponent<MeshRenderer>().sharedMaterial = material;
+                nose.GetComponent<MeshRenderer>().sharedMaterial = material;
             }
 
-            dummy.AddComponent<TrainingDummy>();
-            return dummy;
+            var motor = enemy.AddComponent<EnemyMotor>();
+            AssignObjectField(motor, "visualRoot", visual.transform);
+
+            enemy.AddComponent<Health>();
+
+            // EnemyKnockout decides the round is over; FighterHitReaction --
+            // the same component the player uses -- decides how the body reacts
+            // while it happens. The flash is enabled here and not on the player,
+            // whose Flow-state visual already owns those renderers.
+            enemy.AddComponent<EnemyKnockout>();
+            var hitReaction = enemy.AddComponent<FighterHitReaction>();
+            AssignBoolField(hitReaction, "flashOnHit", true);
+
+            enemy.AddComponent<EnemyAttack>();
+
+            var brain = enemy.AddComponent<EnemyBrain>();
+            AssignObjectField(brain, "target", target);
+
+            enemy.AddComponent<EnemyDebugHud>();
+
+            // Warns on Play if the tuning numbers have drifted out of agreement
+            // with each other. Costs nothing in a release build.
+            enemy.AddComponent<EnemyTuningCheck>();
+
+            // Placeholder cues, and the wind-up telegraph in particular: without
+            // it the opponent's startup looks like a stall rather than a swing.
+            // Throwaway, like the player's -- delete the component and its script
+            // once real art and audio land.
+            enemy.AddComponent<PlaceholderEnemyAttackFx>();
+
+            return enemy;
+        }
+
+        /// <summary>
+        /// Throwaway round-result banner. Its own object rather than a component
+        /// on a fighter, because the round outcome is not any one fighter's
+        /// business -- and because deleting it later should be one delete.
+        /// </summary>
+        private static GameObject BuildRoundDebug(Transform parent)
+        {
+            var round = new GameObject("Round Debug");
+            round.transform.SetParent(parent, worldPositionStays: false);
+            round.AddComponent<DebugRoundBanner>();
+            return round;
         }
 
         private static void AssignInputAsset(PlayerInputReader reader)
@@ -272,10 +332,38 @@ namespace ThinkFast.PlayerEditor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void AssignVisualRoot(PlayerController controller, Transform visual)
+        /// <summary>
+        /// Writes a private [SerializeField] object reference. Goes through
+        /// SerializedObject because the fields are private by design -- the
+        /// alternative is loosening them to public purely so a build script can
+        /// reach them.
+        /// </summary>
+        /// <summary>Writes a private [SerializeField] bool. Same reasoning as AssignObjectField.</summary>
+        private static void AssignBoolField(Object component, string fieldName, bool value)
         {
-            var so = new SerializedObject(controller);
-            so.FindProperty("visualRoot").objectReferenceValue = visual;
+            var so = new SerializedObject(component);
+            SerializedProperty property = so.FindProperty(fieldName);
+            if (property == null)
+            {
+                Debug.LogError($"'{component.GetType().Name}' has no serialized field '{fieldName}'.");
+                return;
+            }
+
+            property.boolValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignObjectField(Object component, string fieldName, Object value)
+        {
+            var so = new SerializedObject(component);
+            SerializedProperty property = so.FindProperty(fieldName);
+            if (property == null)
+            {
+                Debug.LogError($"'{component.GetType().Name}' has no serialized field '{fieldName}'.");
+                return;
+            }
+
+            property.objectReferenceValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -311,13 +399,14 @@ namespace ThinkFast.PlayerEditor
         }
 
         /// <summary>
-        /// Pale grey, so the dummy's red hit-flash is unmistakable against it.
-        /// The flash is driven by a property block at runtime, which needs a
-        /// material with a _BaseColor to override.
+        /// Muted purple: dark enough to read as "the other fighter" against the
+        /// grey stage, pale enough that the red hit-flash and the grey knockout
+        /// tint are both unmistakable. Both are driven by a property block at
+        /// runtime, which needs a material with a _BaseColor to override.
         /// </summary>
-        private static Material GetOrCreateDummyMaterial()
+        private static Material GetOrCreateEnemyMaterial()
         {
-            return GetOrCreateColourMaterial(DummyMaterialPath, "TestDummy", new Color(0.78f, 0.78f, 0.80f));
+            return GetOrCreateColourMaterial(EnemyMaterialPath, "TestEnemy", new Color(0.62f, 0.48f, 0.72f));
         }
 
         /// <summary>

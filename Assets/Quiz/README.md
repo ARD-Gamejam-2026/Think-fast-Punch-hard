@@ -142,6 +142,33 @@ still counts as fast (top 40 % of the time limit — the Flow-building
 zone), yellow after that, and red in the last second. Zone colors and
 thresholds are inspector fields on `QuizView`.
 
+## Feeding the fighter
+
+The fighter half is wired to these events by one component,
+`QuizRewardBridge` (in `Assets/Scripts/Economy/`, on the generated quiz
+root in the fight scene). It listens to `QuestionResolved` and pays out:
+
+| Answer | Action Points | Flow |
+|---|---|---|
+| Correct, timer bar still **green** | +1 | +25 |
+| Correct, bar already yellow or red | +1 | — |
+| Wrong / TimedOut | — | — |
+
+Two things worth knowing before changing anything here:
+
+- **The green zone is load-bearing now.** The bridge reads its threshold
+  from `QuizView.FastZoneNormalized` rather than keeping its own copy, so
+  moving `fastZoneNormalized` moves what the fighter pays for. That is
+  deliberate — a bar the player watched stay green that then paid nothing
+  would be a lie — but it means the colour is no longer only cosmetic.
+- **`QuestionResolved` is what pays out**, not `QuestionAnswered`. Anything
+  that delays or suppresses the resolve event delays the reward. The
+  feedback delay deliberately sits *after* it.
+
+The quiz still has no reference to the fighter, and none of this is
+required to run the quiz on its own: rewards go through a static seam that
+drops the call when no fighter is listening.
+
 Other systems subscribe alongside `QuizFlow` without interfering with it:
 
 ```csharp
@@ -176,7 +203,17 @@ question.
 ## Restyling the panel
 
 `QuizPanel.prefab` is a normal prefab — edit colors, fonts, spacing, and
-layout directly in the editor. The per-state button colors (normal /
+layout directly in the editor.
+
+One thing to know first: in the fight scene the panel shares the screen
+with the fighter and gets 25 % of the width, so `SplitScreenLayout`
+**scales it down uniformly** (to about 0.675) rather than re-flowing it to
+a narrower `RectTransform`. That means the design keeps working at any
+split ratio and nothing wraps that did not wrap at the authored width —
+but it also means the panel is laid out at **640 wide, always**. Style it
+against that width. If you change it, update the layout's
+`quizPanelWidth` to match, or the scale will be computed against the wrong
+number. The per-state button colors (normal /
 correct / wrong / highlight) are inspector fields on each `AnswerButton`.
 
 Only regenerate the prefab (**Tools > Quiz > Create Quiz Panel**) if you

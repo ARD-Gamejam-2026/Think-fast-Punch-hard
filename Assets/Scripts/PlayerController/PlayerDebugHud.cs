@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using ThinkFast.Common;
+using ThinkFast.Combat;
 using ThinkFast.Economy;
 using UnityEngine;
 
@@ -17,7 +17,7 @@ namespace ThinkFast.Player
     [RequireComponent(typeof(PlayerController))]
     public sealed class PlayerDebugHud : MonoBehaviour
     {
-        [SplitScreenTodo("This readout is drawn at a hard-coded screen position (top-left, 12,12) in FULL-SCREEN coordinates. Under split screen it will sit over the wrong half. Either offset it into the fighter's viewport rect or just switch it off.")]
+        [Tooltip("Draws the movement readout at the top left of the window. That is inside the fighter's half under the current split, so it needs no viewport offset -- it would only want one if the fight ever moved to the right-hand side.")]
         [SerializeField] private bool show = true;
 
         [SerializeField] private int fontSize = 16;
@@ -118,7 +118,7 @@ namespace ThinkFast.Player
 
             // Active is the only phase that can actually hit, so it is the only
             // one worth making loud.
-            string colour = attack.CurrentPhase == PlayerAttack.Phase.Active ? "#ff4444" : "#ffcc44";
+            string colour = attack.CurrentPhase == AttackRunner.Phase.Active ? "#ff4444" : "#ffcc44";
             return $"<color={colour}>{attack.CurrentAttackName} : {attack.CurrentPhase}</color>";
         }
 

@@ -28,6 +28,14 @@ namespace ThinkFast.Quiz
 
         public event Action<int> AnswerClicked;
 
+        /// <summary>
+        /// Normalized time remaining above which the timer bar is still drawn in
+        /// the fast zone colour. Exposed so a reward system can pay out on
+        /// exactly the zone the player can see, rather than on a second copy of
+        /// the same number.
+        /// </summary>
+        public float FastZoneNormalized => fastZoneNormalized;
+
         private void Awake()
         {
             for (int i = 0; i < answerButtons.Length; i++)
