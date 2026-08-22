@@ -74,10 +74,10 @@ alternating) reuse the plain text question/answer presentation, and shape
 sequences (rotation, count, shape-cycle, color-fill) render the prompt and
 all four answers as procedurally-drawn images via `ShapeRenderer`. Both
 families mix into the same `QuizFlow` bucket, tuned by three inspector
-fields: **Sequence Weight** (relative roll weight, default 0 — opt in per
-scene), **Sequence Time Limit Seconds** (default 8), and **Sequence Shape
-Share** (fraction of sequence rounds that are shapes rather than numbers,
-default 0.5).
+fields: **Sequence Weight** (relative roll weight, default 1, alongside
+authored/math), **Sequence Time Limit Seconds** (default 8), and
+**Sequence Shape Share** (fraction of sequence rounds that are shapes
+rather than numbers, default 0.5).
 
 For custom behavior (scoring, lives, a win screen), write your own driver
 against the same event:
