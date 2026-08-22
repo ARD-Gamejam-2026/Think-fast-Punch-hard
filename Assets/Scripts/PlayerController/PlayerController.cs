@@ -87,12 +87,16 @@ namespace ThinkFast.Player
         [Tooltip("Optional. Yawed 180 degrees so the 3D mesh faces the way we are moving.")]
         [SerializeField] private Transform visualRoot;
 
+        [Tooltip("Optional. Mesh Animator driver on a child object.")]
+        [SerializeField] private CharacterAnimation characterAnimation;
+
         /// <summary>Upward speed above which we are definitely not standing on ground.</summary>
         private const float RisingVelocityEpsilon = 0.1f;
 
         private Rigidbody2D body;
         private Collider2D bodyCollider;
         private PlayerInputReader input;
+        private ICharacterAnimation animation;
         private ContactFilter2D groundFilter;
 
         // Reused so the ground check allocates nothing per physics step.
@@ -179,6 +183,13 @@ namespace ThinkFast.Player
             body = GetComponent<Rigidbody2D>();
             bodyCollider = GetComponent<Collider2D>();
             input = GetComponent<PlayerInputReader>();
+
+            if (characterAnimation == null)
+            {
+                characterAnimation = GetComponentInChildren<CharacterAnimation>();
+            }
+
+            animation = characterAnimation;
 
             // Configure the body from code so a scene that was set up by hand
             // cannot silently drift away from what the movement maths assumes.
@@ -360,6 +371,7 @@ namespace ThinkFast.Player
                 coyoteTimer = 0f;
                 groundLockoutTimer = jumpGroundLockout;
                 jumpCutPending = true;
+                animation?.NotifyJump();
                 return;
             }
 

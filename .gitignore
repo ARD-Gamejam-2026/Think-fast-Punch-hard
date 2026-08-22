@@ -119,6 +119,7 @@ results.xml
 .superpowers/
 docs/superpowers/
 .claude
+.DS_Store
 
 # --- Project-local (Think fast Punch hard) ---
 # Working design notes, intentionally not shared.
