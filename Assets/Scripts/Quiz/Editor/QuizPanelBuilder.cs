@@ -453,5 +453,105 @@ namespace ThinkFast.Quiz.EditorTools
             };
             AssetDatabase.ImportPackage(TmpEssentialsPackage, interactive: false);
         }
+
+        private const string LandmarksPath = "Assets/Quiz/Landmarks.asset";
+
+        // Verified against the live API (sweep in the implementation plan);
+        // every title's summary returns a thumbnail.
+        private static readonly (string title, string name)[] DefaultLandmarks =
+        {
+            ("Eiffel_Tower", "Eiffel Tower"),
+            ("Statue_of_Liberty", "Statue of Liberty"),
+            ("Colosseum", "Colosseum"),
+            ("Big_Ben", "Big Ben"),
+            ("Taj_Mahal", "Taj Mahal"),
+            ("Machu_Picchu", "Machu Picchu"),
+            ("Great_Wall_of_China", "Great Wall of China"),
+            ("Sydney_Opera_House", "Sydney Opera House"),
+            ("Golden_Gate_Bridge", "Golden Gate Bridge"),
+            ("Neuschwanstein_Castle", "Neuschwanstein Castle"),
+            ("Mount_Fuji", "Mount Fuji"),
+            ("Stonehenge", "Stonehenge"),
+            ("Christ_the_Redeemer_(statue)", "Christ the Redeemer"),
+            ("Leaning_Tower_of_Pisa", "Leaning Tower of Pisa"),
+            ("Sagrada_Família", "Sagrada Família"),
+            ("Brandenburg_Gate", "Brandenburg Gate"),
+            ("Acropolis_of_Athens", "Acropolis of Athens"),
+            ("Petra", "Petra"),
+            ("Angkor_Wat", "Angkor Wat"),
+            ("Chichen_Itza", "Chichén Itzá"),
+            ("Burj_Khalifa", "Burj Khalifa"),
+            ("Empire_State_Building", "Empire State Building"),
+            ("Tower_Bridge", "Tower Bridge"),
+            ("Louvre", "Louvre"),
+            ("Notre-Dame_de_Paris", "Notre-Dame de Paris"),
+            ("Buckingham_Palace", "Buckingham Palace"),
+            ("St._Peter's_Basilica", "St. Peter's Basilica"),
+            ("Red_Square", "Red Square"),
+            ("Mount_Rushmore", "Mount Rushmore"),
+            ("Niagara_Falls", "Niagara Falls"),
+            ("Grand_Canyon", "Grand Canyon"),
+            ("Uluru", "Uluru"),
+            ("Matterhorn", "Matterhorn"),
+            ("Cologne_Cathedral", "Cologne Cathedral"),
+            ("Hagia_Sophia", "Hagia Sophia"),
+            ("Alhambra", "Alhambra"),
+            ("Forbidden_City", "Forbidden City"),
+            ("Times_Square", "Times Square"),
+            ("Hollywood_Sign", "Hollywood Sign"),
+            ("Moai", "Moai (Easter Island)"),
+            ("Tower_of_London", "Tower of London"),
+            ("Arc_de_Triomphe", "Arc de Triomphe"),
+            ("Mount_Everest", "Mount Everest"),
+            ("Great_Pyramid_of_Giza", "Great Pyramid of Giza"),
+        };
+
+        [MenuItem("Tools/Quiz/Add Place Questions To Sample Scene")]
+        public static void AddPlaceQuestionsToSampleScene()
+        {
+            var scene = EditorSceneManager.OpenScene(ScenePath);
+
+            var controller = Object.FindFirstObjectByType<QuizController>();
+            var flow = controller != null ? controller.GetComponent<QuizFlow>() : null;
+            if (flow == null)
+            {
+                Debug.LogError("No QuizFlow in SampleScene — run Tools/Quiz/Add Quiz Flow To Sample Scene first.");
+                return;
+            }
+
+            EnsureFolder("Assets/Quiz");
+            var list = AssetDatabase.LoadAssetAtPath<LandmarkList>(LandmarksPath);
+            if (list == null)
+            {
+                list = ScriptableObject.CreateInstance<LandmarkList>();
+                list.entries = System.Array.ConvertAll(DefaultLandmarks, landmark =>
+                    new LandmarkList.Entry
+                    {
+                        wikipediaTitle = landmark.title,
+                        displayName = landmark.name,
+                    });
+                AssetDatabase.CreateAsset(list, LandmarksPath);
+            }
+
+            var source = controller.GetComponent<PlaceQuestionSource>();
+            if (source == null)
+                source = controller.gameObject.AddComponent<PlaceQuestionSource>();
+
+            var sourceSo = new SerializedObject(source);
+            sourceSo.FindProperty("landmarks").objectReferenceValue = list;
+            sourceSo.ApplyModifiedProperties();
+            PrefabUtility.RecordPrefabInstancePropertyModifications(source);
+
+            var flowSo = new SerializedObject(flow);
+            flowSo.FindProperty("placeSource").objectReferenceValue = source;
+            flowSo.FindProperty("placeWeight").floatValue = 2f;
+            flowSo.ApplyModifiedProperties();
+            PrefabUtility.RecordPrefabInstancePropertyModifications(flow);
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("Place questions wired into SampleScene (weights: authored 1, math 1, places 2).");
+        }
     }
 }

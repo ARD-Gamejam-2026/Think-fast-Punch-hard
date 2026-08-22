@@ -1138,6 +1138,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3578240022214496066, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1349187494}
+    - targetCorrespondingSourceObject: {fileID: 3578240022214496066, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1349187495}
   m_SourcePrefab: {fileID: 100100000, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
 --- !u!1 &1349187492 stripped
 GameObject:
@@ -1170,9 +1173,27 @@ MonoBehaviour:
   quiz: {fileID: 1349187493}
   questions:
   - {fileID: 11400000, guid: 1d690abe36b2844f7978546781c328cd, type: 2}
-  includeRandomMath: 1
-  mathChance: 0.5
+  authoredWeight: 1
+  mathWeight: 1
+  placeWeight: 2
   mathTimeLimitSeconds: 5
+  placeSource: {fileID: 1349187495}
+--- !u!114 &1349187495
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1349187492}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5ee0021c79c4748b014266b14bf2b9e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.PlaceQuestionSource
+  landmarks: {fileID: 11400000, guid: 998a3ae7c48094285bb1f1d0192c13b8, type: 2}
+  queueTargetSize: 2
+  timeLimitSeconds: 5
+  retryDelaySeconds: 5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

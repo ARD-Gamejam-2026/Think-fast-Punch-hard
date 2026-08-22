@@ -15,6 +15,8 @@ The code lives in `Assets/Scripts/Quiz/`:
 | `QuizController` | Glue: runs a question, raises `QuestionAnswered` |
 | `QuizFlow` | Endless driver: authored questions, optionally mixed with random math |
 | `MathQuestionGenerator` | Builds the random math questions (unit-tested) |
+| `PlaceQuestionSource` | Prefetches live Wikipedia landmark questions |
+| `LandmarkList` | Curated landmark names for place questions |
 | `Editor/QuizPanelBuilder` | One-time generators under **Tools > Quiz** |
 
 ## Adding a new question
@@ -46,12 +48,18 @@ after the last question it wraps back to the first. Leave the controller's
 **Starting Question** empty when a flow is driving it, or the first
 question shows twice.
 
-`QuizFlow` can also mix in randomly generated arithmetic: tick **Include
-Random Math** and each round rolls **Math Chance** (default 50%) to decide
-between a fresh `+ − ×` question from `MathQuestionGenerator` (small
-operands, near-miss wrong answers, nothing stored as assets) and the next
-authored question. With an empty question list and math enabled, every
-round is math.
+`QuizFlow` mixes in generated and prefetched question types alongside the
+authored list using relative weights: **Authored Weight**, **Math
+Weight**, and **Place Weight** (defaults 1 / 1 / 0). Each round rolls
+proportionally among whichever types are currently available — authored
+questions are available whenever the list is non-empty, math is always
+available when its weight is non-zero, and place questions only count as
+available once `PlaceQuestionSource` has a prefetched question ready (its
+background fetch queue takes a moment to fill, and it stays empty while
+offline). With an empty question list and math enabled, every round is
+math; if the only available weight momentarily has none ready (e.g.
+places-only while the queue refills), `QuizFlow` retries shortly instead
+of stalling.
 
 For custom behavior (scoring, lives, a win screen), write your own driver
 against the same event:
@@ -141,8 +149,17 @@ want to reset it: regeneration **overwrites your styling**.
   regenerates the procedural Pac-Man sprite and points the sample question
   at it.
 - **Tools > Quiz > Add Quiz Flow To Sample Scene** — adds the looping
-  `QuizFlow` with the sample question, enables 50% random math mixing,
+  `QuizFlow` with the sample question, sets authored/math weights,
   and clears the controller's starting question. Safe to re-run.
+- **Tools > Quiz > Add Place Questions To Sample Scene** — creates
+  `Landmarks.asset` (curated Wikipedia titles) if missing, wires a
+  `PlaceQuestionSource` into the controller, and points the scene's
+  `QuizFlow` at it with a place weight of 2. Safe to re-run.
+
+## Credits
+
+Place images are loaded live from Wikipedia (Wikimedia Commons). Keep an
+"Images: Wikipedia (Wikimedia Commons)" credit on the itch.io page.
 
 ## Tests
 
