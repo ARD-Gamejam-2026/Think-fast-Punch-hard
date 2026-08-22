@@ -462,7 +462,7 @@ gap leaves no room to kite it.
 | max AP | 5 | max health | 100 |
 | starting AP | 2 | invulnerability | 0.15 |
 | max Flow | 100 | round-end delay | 1.2 |
-| Flow drain | 6 /s | | |
+| Flow drain | 2.5 /s, after a 1.5s grace | | |
 | Flow-state drain | 20 /s (→ 5s window) | | |
 | Flow cost per attack | 10 (Flow state only) | | |
 | damage multiplier | ×2 | knockback multiplier | ×1.6 |
@@ -881,10 +881,13 @@ That asymmetry is the whole point of the pairing. Solving buys you *swings*; sol
 **quickly** is the only thing that buys the burst. A player who answers everything
 correctly but slowly stays armed and never reaches Flow state.
 
-Wrong answers and timeouts carry no extra penalty, and deliberately so: Flow drains
-at 6/s throughout, so a miss has already cost about one solve's worth of progress by
-the time the next question appears. Stacking a subtraction on top of that makes a bad
-streak unrecoverable rather than merely expensive.
+Wrong answers and timeouts still cost no Flow or AP directly — stacking a subtraction
+on top of the drain makes a bad streak unrecoverable rather than merely expensive.
+What they do cost is **time**: a miss holds its feedback for `missFeedbackDelaySeconds`
+(1.2s) against a correct answer's 0.5s, so the next question is slower to arrive. That
+is a pacing penalty, not a resource one, and it exists because the drain alone stopped
+being much of a deterrent once it dropped to 2.5/s — three of every four blind guesses
+are wrong, so the delay is what makes guessing slower than solving.
 
 **The threshold is read off `QuizView`, not copied.** `QuizView.FastZoneNormalized`
 (0.6) is what decides the timer bar is still green, and the bar's own tooltip already
@@ -893,9 +896,12 @@ than keeping a second copy, because the failure mode of two copies is a bar the
 player watched stay green that then paid nothing — the exact thing the colour exists
 to communicate. A `fallbackFastZone` field covers the case where no view is assigned.
 
-Roughly **eight fast solves in a row** reach the 100 Flow needed for Flow state: at
-25 a solve against ~12 drained over a 5-second math question's cycle, the net is
-about +13. It is meant to be rare and to be earned while also being punched.
+Roughly **four to five fast solves in a row** reach the 100 Flow needed for Flow
+state: at 25 a solve against ~5 drained over a 5-second math question's cycle (the
+first 1.5s of which is the post-solve grace), the net is about +20. That is twice as
+reachable as the original 6/s tuning made it, which was the point of issue #29 — the
+meter is supposed to feel like it is going somewhere. It still has to be earned while
+also being punched.
 
 Question sequencing is handled by the quiz's own `QuizFlow` — an endless stream that
 auto-advances on every resolution including timeouts, which is the auto-reset timer
