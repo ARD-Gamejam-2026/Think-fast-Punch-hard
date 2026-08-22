@@ -1,0 +1,174 @@
+name: Tests
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# A newer commit on the same ref supersedes any in-flight test run.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  # A job targeting an offline self-hosted runner queues for up to 24h
+  # instead of failing over, so this probe routes explicitly. Reading
+  # runner status needs a PAT with Administration:read (RUNNER_CHECK_TOKEN);
+  # without one the probe falls back to the GitHub-hosted path.
+  choose-runner:
+    name: Choose runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      mac-online: ${{ steps.probe.outputs.mac-online }}
+    steps:
+      - name: Probe self-hosted runner status
+        id: probe
+        env:
+          GH_TOKEN: ${{ secrets.RUNNER_CHECK_TOKEN }}
+        run: |
+          status=$(gh api repos/${{ github.repository }}/actions/runners \
+            --jq '.runners[] | select(.name == "mbruckner-m4max") | .status' 2>/dev/null || echo "unknown")
+          echo "Runner status: $status"
+          if [ "$status" = "online" ]; then
+            echo "mac-online=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "mac-online=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  test-mac:
+    name: Run all tests (Mac)
+    needs: choose-runner
+    if: needs.choose-runner.outputs.mac-online == 'true'
+    # Native Unity on the self-hosted Mac runner: no image pull, no license
+    # activation, and the Library import persists between runs.
+    runs-on: [self-hosted, macOS, unity]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run EditMode and PlayMode tests with coverage
+        run: |
+          rm -rf artifacts CodeCoverage
+          UNITY="/Applications/Unity/Hub/Editor/6000.5.9f1/Unity.app/Contents/MacOS/Unity"
+          # dontClear accumulates coverage across both sessions; the report
+          # (incl. LCOV) is generated once, at the end of the second session.
+          "$UNITY" -batchmode -projectPath . -runTests -testPlatform EditMode \
+            -testResults "$PWD/artifacts/editmode-results.xml" \
+            -enableCodeCoverage -coverageResultsPath "$PWD/CodeCoverage" \
+            -coverageOptions "generateAdditionalMetrics;assemblyFilters:-*Tests*;dontClear" \
+            -logFile -
+          "$UNITY" -batchmode -projectPath . -runTests -testPlatform PlayMode \
+            -testResults "$PWD/artifacts/playmode-results.xml" \
+            -enableCodeCoverage -coverageResultsPath "$PWD/CodeCoverage" \
+            -coverageOptions "generateAdditionalMetrics;generateAdditionalReports;assemblyFilters:-*Tests*;dontClear" \
+            -logFile -
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test results
+          path: artifacts
+
+      - name: Upload coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Coverage results
+          path: CodeCoverage
+
+  test-hosted:
+    name: Run all tests (GitHub-hosted fallback)
+    needs: choose-runner
+    if: needs.choose-runner.outputs.mac-online != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Make room for the Unity editor image by dropping preinstalled
+      # toolchains we don't use (fast, unlike a full docker image prune).
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-Test-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-Test-
+            Library-
+
+      - name: Run tests
+        id: run_tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          # The default image is the il2cpp variant; editor tests only need
+          # the much smaller base image.
+          customImage: unityci/editor:ubuntu-6000.5.9f1-base-3
+          testMode: all
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          # No include filters: every assembly under Assets/ is measured by
+          # default; only test assemblies are excluded from the metric.
+          coverageOptions: generateAdditionalMetrics;generateAdditionalReports;assemblyFilters:-*Tests*
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test results
+          path: ${{ steps.run_tests.outputs.artifactsPath }}
+
+      - name: Upload coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Coverage results
+          path: ${{ steps.run_tests.outputs.coveragePath }}
+
+  upload-coverage:
+    name: Upload coverage to Teamscale
+    needs:
+      - test-mac
+      - test-hosted
+    # Exactly one test job runs; proceed when that one succeeded.
+    if: >-
+      !cancelled() &&
+      (needs.test-mac.result == 'success' || needs.test-hosted.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download coverage results
+        uses: actions/download-artifact@v4
+        with:
+          name: Coverage results
+          path: CodeCoverage
+
+      - name: Upload coverage to Teamscale
+        uses: cqse/teamscale-upload-action@v2.10.0
+        with:
+          server: "https://teamscale.marcelbruckner.com/"
+          project: "think-fast-punch-hard"
+          user: "ard-gamejam-2026-teamscale"
+          accesskey: ${{ secrets.TEAMSCALE_ACCESS_KEY }}
+          partition: "Unity Tests"
+          format: "LCOV"
+          files: "CodeCoverage/**/lcov.info"
+          revision: ${{ github.event.pull_request.head.sha || github.sha }}
+          message: ${{ github.event.head_commit.message || github.event.pull_request.title }}
