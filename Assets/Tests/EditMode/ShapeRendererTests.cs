@@ -47,5 +47,54 @@ namespace ThinkFast.Quiz.Tests
             Object.DestroyImmediate(strip.texture);
             Object.DestroyImmediate(strip);
         }
+
+        [Test]
+        public void Render_every_kind_rotation_count_and_fill_without_throwing()
+        {
+            var renderer = new ShapeRenderer();
+            var kinds = new[] { ShapeKind.Circle, ShapeKind.Square, ShapeKind.Triangle, ShapeKind.Star };
+            var rotations = new[] { 0, 45, 90, 135 };
+            var counts = new[] { 1, 4, 9 };
+            var fills = new[] { true, false };
+
+            foreach (var kind in kinds)
+            {
+                foreach (var rotation in rotations)
+                {
+                    foreach (var count in counts)
+                    {
+                        foreach (var filled in fills)
+                        {
+                            RenderAndAssertSize(renderer, kind, rotation, count, filled);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void RenderAndAssertSize(ShapeRenderer renderer, ShapeKind kind, int rotation, int count, bool filled)
+        {
+            var spec = new ShapeSpec(kind, rotation, count, 0, filled);
+            Sprite sprite = null;
+            Texture2D texture = null;
+            try
+            {
+                Assert.DoesNotThrow(() => sprite = renderer.Render(spec));
+                texture = sprite.texture;
+                Assert.AreEqual(128, texture.width);
+                Assert.AreEqual(128, texture.height);
+            }
+            finally
+            {
+                if (texture != null)
+                {
+                    Object.DestroyImmediate(texture);
+                }
+                if (sprite != null)
+                {
+                    Object.DestroyImmediate(sprite);
+                }
+            }
+        }
     }
 }

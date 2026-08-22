@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using ThinkFast.Quiz;
 
@@ -106,6 +107,76 @@ namespace ThinkFast.Quiz.Tests
                     Assert.Less(spec.ColorIndex, 4);
                     Assert.GreaterOrEqual(spec.Count, 1);
                 }
+            }
+        }
+
+        [Test]
+        public void Rotation_puzzles_never_use_square_and_options_stay_visually_distinct()
+        {
+            int rotationPuzzlesChecked = 0;
+            for (int seed = 0; seed < 20; seed++)
+            {
+                var generator = new SequenceGenerator(seed: seed * 97 + 1);
+                for (int i = 0; i < 200; i++)
+                {
+                    ShapePuzzle puzzle = generator.NextShape();
+                    if (!IsRotationPuzzle(puzzle))
+                    {
+                        continue;
+                    }
+                    rotationPuzzlesChecked++;
+                    AssertRotationPuzzleIsSolvable(puzzle);
+                }
+            }
+            Assert.Greater(rotationPuzzlesChecked, 0, "expected at least one rotation puzzle across the sampled seeds");
+        }
+
+        private static void AssertRotationPuzzleIsSolvable(ShapePuzzle puzzle)
+        {
+            ShapeKind kind = puzzle.Terms[0].Kind;
+            Assert.AreNotEqual(ShapeKind.Square, kind,
+                "square has 90-degree rotational symmetry and collides with 45/90 degree rotation steps");
+
+            int period = RotationalSymmetryPeriod(kind);
+            var reducedRotations = new HashSet<int>();
+            foreach (var option in puzzle.Options)
+            {
+                int reduced = ((option.RotationDegrees % period) + period) % period;
+                reducedRotations.Add(reduced);
+            }
+            Assert.AreEqual(4, reducedRotations.Count,
+                "rotation options must render as four visually distinct shapes");
+        }
+
+        private static bool IsRotationPuzzle(ShapePuzzle puzzle)
+        {
+            ShapeSpec first = puzzle.Terms[0];
+            var distinctRotations = new HashSet<int>();
+            foreach (var term in puzzle.Terms)
+            {
+                bool sameShape = term.Kind == first.Kind
+                    && term.Count == first.Count
+                    && term.ColorIndex == first.ColorIndex
+                    && term.Filled == first.Filled;
+                if (!sameShape)
+                {
+                    return false;
+                }
+                distinctRotations.Add(term.RotationDegrees);
+            }
+            return distinctRotations.Count >= 2;
+        }
+
+        private static int RotationalSymmetryPeriod(ShapeKind kind)
+        {
+            switch (kind)
+            {
+                case ShapeKind.Triangle:
+                    return 120;
+                case ShapeKind.Star:
+                    return 72;
+                default:
+                    return 360;
             }
         }
     }

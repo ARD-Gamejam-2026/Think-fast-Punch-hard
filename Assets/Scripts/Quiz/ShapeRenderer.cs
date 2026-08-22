@@ -88,7 +88,7 @@ namespace ThinkFast.Quiz
             int x0 = Mathf.Max(0, Mathf.FloorToInt(rect.x));
             int x1 = Mathf.Min(texWidth - 1, Mathf.CeilToInt(rect.xMax));
             int y0 = Mathf.Max(0, Mathf.FloorToInt(rect.y));
-            int y1 = Mathf.CeilToInt(rect.yMax);
+            int y1 = Mathf.Min(CellSize - 1, Mathf.CeilToInt(rect.yMax));
             for (int y = y0; y <= y1; y++)
             {
                 for (int x = x0; x <= x1; x++)

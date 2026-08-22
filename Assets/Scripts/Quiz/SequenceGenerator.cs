@@ -17,9 +17,16 @@ namespace ThinkFast.Quiz
             ShapeKind.Circle, ShapeKind.Square, ShapeKind.Triangle, ShapeKind.Star,
         };
 
+        /// <summary>
+        /// Kinds eligible for RotationPuzzle. Square is deliberately excluded:
+        /// it has 90-degree rotational symmetry, which collides with the 45/90
+        /// degree rotation steps used below and makes several of the four
+        /// "distinct" RotationDegrees options render as the same shape,
+        /// leaving the round visually unsolvable. Do not re-add it here.
+        /// </summary>
         private static readonly ShapeKind[] OrientedKinds =
         {
-            ShapeKind.Triangle, ShapeKind.Star, ShapeKind.Square,
+            ShapeKind.Triangle, ShapeKind.Star,
         };
 
         private readonly System.Random random;
