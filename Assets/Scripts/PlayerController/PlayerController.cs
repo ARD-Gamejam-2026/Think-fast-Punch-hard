@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ThinkFast.Anim;
 using ThinkFast.Combat;
 using UnityEngine;
 

@@ -1,3 +1,4 @@
+using ThinkFast.Anim;
 using UnityEngine;
 
 namespace ThinkFast.Combat
@@ -45,11 +46,16 @@ namespace ThinkFast.Combat
         [Tooltip("Left empty, every renderer in the hierarchy is tinted.")]
         [SerializeField] private Renderer[] renderers;
 
+        [Header("Animation")]
+        [Tooltip("Optional. Mesh Animator driver on a child object.")]
+        [SerializeField] private CharacterAnimation characterAnimation;
+
         private Health health;
         private IFighterMotor motor;
         private IFighterKnockout knockout;
         private Rigidbody2D body;
         private RendererTint tint;
+        private ICharacterAnimation animation;
 
         private float flashTimer;
 
@@ -69,6 +75,13 @@ namespace ThinkFast.Combat
             }
 
             knockout = GetComponent<IFighterKnockout>();
+
+            if (characterAnimation == null)
+            {
+                characterAnimation = GetComponentInChildren<CharacterAnimation>();
+            }
+
+            animation = characterAnimation;
 
             if (!flashOnHit)
             {
@@ -112,6 +125,7 @@ namespace ThinkFast.Combat
             // knockback has to look fixed.
             body.linearVelocity = hit.Knockback * knockbackScale;
             motor.ApplyStun(hit.Hitstun * hitstunScale);
+            animation?.NotifyHit(!motor.IsGrounded);
 
             if (tint == null)
             {
@@ -126,12 +140,14 @@ namespace ThinkFast.Combat
         {
             flashTimer = 0f;
             tint?.Set(knockedOutColour);
+            animation?.NotifyKnockout();
         }
 
         private void HandleRevived()
         {
             flashTimer = 0f;
             tint?.Clear();
+            animation?.NotifyRespawn();
         }
 
         private void Update()

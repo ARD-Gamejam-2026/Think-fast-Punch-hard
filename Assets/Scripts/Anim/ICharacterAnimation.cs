@@ -1,4 +1,4 @@
-namespace ThinkFast.Player
+namespace ThinkFast.Anim
 {
     /// <summary>
     /// Presentation seam for the fighter mesh. Gameplay calls these when movement,
