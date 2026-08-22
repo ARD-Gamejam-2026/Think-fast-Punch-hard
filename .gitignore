@@ -112,3 +112,9 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# --- Project-local (Think fast Punch hard) ---
+# Working design notes, intentionally not shared.
+GAME_DESIGN.md
+# Headless compile-check scratch output (see tools/compile-check.ps1).
+/.compilecheck/
