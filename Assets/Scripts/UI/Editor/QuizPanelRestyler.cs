@@ -76,7 +76,7 @@ namespace ThinkFast.UIEditor
                 return;
             }
 
-            Paint(bar.GetComponent<Image>(), sprites.Pill, MenuTheme.Track);
+            Paint(bar.GetComponent<Image>(), sprites.Block, MenuTheme.Track);
 
             Transform fill = bar.Find("TimerFill");
             if (fill == null)
@@ -84,27 +84,40 @@ namespace ThinkFast.UIEditor
                 return;
             }
 
-            // Only the shape is set here. The colour is the timer's own business:
-            // QuizView repaints this every frame to show which speed zone the
-            // answer is currently in.
             var fillImage = fill.GetComponent<Image>();
-            if (fillImage != null)
+            if (fillImage == null)
             {
-                fillImage.sprite = sprites.Pill;
-                fillImage.type = Image.Type.Sliced;
+                return;
             }
+
+            // Filled, and it MUST stay Filled. The timer empties by setting
+            // fillAmount, which only does anything on this image type -- an
+            // earlier pass set it to Sliced and the bar stopped draining, leaving
+            // a timer that changed colour while staying full. Filled also needs a
+            // sprite: with none it draws nothing at all.
+            fillImage.sprite = sprites.Block;
+            fillImage.type = Image.Type.Filled;
+            fillImage.fillMethod = Image.FillMethod.Horizontal;
+            fillImage.fillOrigin = (int)Image.OriginHorizontal.Left;
+
+            // The colour is the timer's own business: QuizView repaints this every
+            // frame to show which speed zone the answer is currently in.
         }
 
         private static void RestyleAnswers(GameObject root, UiSpriteFactory.Sprites sprites, TMP_FontAsset font)
         {
             foreach (AnswerButton answer in root.GetComponentsInChildren<AnswerButton>(includeInactive: true))
             {
-                // The card's corner radius was drawn for a tile several hundred
-                // pixels tall. An answer button is 72, where that radius is larger
-                // than half the height -- the nine-slice corners would meet in the
-                // middle and distort. The multiplier scales the slice down so the
-                // rounding stays proportional instead.
-                Paint(answer.GetComponent<Image>(), sprites.Card, MenuTheme.Surface, sliceScale: 1.8f);
+                // Grey chips on a white panel, not white on white. White buttons on
+                // a white card left only a hairline separating them, which is why
+                // the panel read as flat: sitting a shade below the panel gives
+                // each answer an edge without adding a single line.
+                //
+                // The slice scale is a separate matter -- the card's corner radius
+                // was drawn for a tile several hundred pixels tall, and an answer
+                // button is 72, where that radius exceeds half the height and the
+                // nine-slice corners would meet in the middle and distort.
+                Paint(answer.GetComponent<Image>(), sprites.Card, MenuTheme.Background, sliceScale: 1.8f);
 
                 Transform letterBox = answer.transform.Find("LetterBox");
                 if (letterBox != null)
@@ -137,7 +150,11 @@ namespace ThinkFast.UIEditor
         private static void SetStateColours(AnswerButton answer)
         {
             var so = new SerializedObject(answer);
-            so.FindProperty("normalColor").colorValue = MenuTheme.Surface;
+
+            // Must match the chip colour painted above: this is what the button is
+            // reset to at the start of every question, so a mismatch here would
+            // repaint all four white again on question two.
+            so.FindProperty("normalColor").colorValue = MenuTheme.Background;
             so.FindProperty("correctColor").colorValue = MenuTheme.PositiveTint;
             so.FindProperty("wrongColor").colorValue = MenuTheme.NegativeTint;
             so.FindProperty("highlightColor").colorValue = MenuTheme.CautionTint;
@@ -188,7 +205,15 @@ namespace ThinkFast.UIEditor
             image.pixelsPerUnitMultiplier = sliceScale;
         }
 
-        private static void SetText(Transform target, Color colour, TMP_FontAsset font)
+        /// <summary>
+        /// Applies colour, font and weight to one label.
+        ///
+        /// Weight is not decoration here. Nunito is a variable font and Google
+        /// Fonts ships only its default instance, which TMP builds at Regular --
+        /// a light, round face that goes weak against a white panel however dark
+        /// the ink is. Bold is what makes the type hold the page.
+        /// </summary>
+        private static void SetText(Transform target, Color colour, TMP_FontAsset font, FontStyles style = FontStyles.Bold)
         {
             if (target == null)
             {
@@ -202,6 +227,7 @@ namespace ThinkFast.UIEditor
             }
 
             label.color = colour;
+            label.fontStyle = style;
 
             if (font != null)
             {

@@ -2,6 +2,7 @@ using ThinkFast.UI;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace ThinkFast.UIEditor
@@ -45,6 +46,16 @@ namespace ThinkFast.UIEditor
 
             GameObject root = CreateCanvas();
 
+            // Registered here, immediately after creation, and NOT at the end of
+            // the build. Registering late is what made a rebuild delete the HUD
+            // and put nothing back: the previous run left a "Build Fighter HUD"
+            // record on the undo stack pointing at an object this run had already
+            // destroyed, and registering a new creation under the same name merged
+            // into that stale group. Building into an empty scene worked, because
+            // there was no earlier record to merge with -- which is exactly the
+            // "only works the first time" shape of the bug.
+            Undo.RegisterCreatedObjectUndo(root, "Build Fighter HUD");
+
             // Everything hangs off this, and the split-screen layout anchors it to
             // the fighter's share of the window.
             RectTransform viewport = UiFactory.Stretch(UiFactory.NewRect("Viewport", root.transform));
@@ -60,7 +71,6 @@ namespace ThinkFast.UIEditor
 
             RegisterWithSplitScreen(viewport);
 
-            Undo.RegisterCreatedObjectUndo(root, "Build Fighter HUD");
             Selection.activeGameObject = root;
 
             // Without this the new HUD is not part of the scene's unsaved state,
@@ -70,13 +80,28 @@ namespace ThinkFast.UIEditor
             Debug.Log("Built the fighter HUD. It finds both fighters automatically on Play.");
         }
 
+        /// <summary>
+        /// Clears the previous HUD. The removal goes through the undo system too,
+        /// so the stack does not end up holding a record of an object that was
+        /// destroyed behind its back.
+        ///
+        /// Only scene roots are searched: the HUD is one, and scanning every
+        /// GameObject would also match anything a designer happened to nest and
+        /// name the same.
+        /// </summary>
         private static void RemoveExisting()
         {
-            foreach (GameObject go in Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include))
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid())
+            {
+                return;
+            }
+
+            foreach (GameObject go in scene.GetRootGameObjects())
             {
                 if (go.name == RootName)
                 {
-                    Object.DestroyImmediate(go);
+                    Undo.DestroyObjectImmediate(go);
                 }
             }
         }
