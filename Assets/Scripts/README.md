@@ -860,6 +860,16 @@ subscribe or report. That is why the reset lives at the *start* of a fight rathe
 at the end of one: an ending that fails to clean up leaves the next fight broken,
 whereas a beginning that cleans up first cannot.
 
+### Watch what `DontDestroyOnLoad` drags along
+
+`DebugMenu` in `Scene_Menu` survives scene loads, and it takes **its children** with
+it. The `EventSystem` was one of them, so it followed the player into every scene and
+sat alongside whichever one that scene already had — uGUI warns about this once per
+frame, which is thousands of lines per fight. It is now a scene root instead.
+
+Anything parented under a persistent object becomes persistent too. Each scene here
+already has its own `EventSystem`, so nothing needs to travel.
+
 ---
 
 ## Split screen
