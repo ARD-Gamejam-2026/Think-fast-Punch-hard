@@ -17,29 +17,34 @@ namespace ThinkFast.UIEditor
     {
         private const string RootName = "--- Fighter HUD (generated) ---";
 
-        private const float PanelWidth = 420f;
-        private const float BarHeight = 26f;
+        private const float PanelWidth = 400f;
+        private const float BarHeight = 24f;
         private const float PipSize = 22f;
         private const float Gap = 10f;
+
+        /// <summary>Breathing room between the card's edge and the bars inside it.</summary>
+        private const float CardPadding = 18f;
 
         [MenuItem("Tools/Think Fast/Build Fighter HUD")]
         public static void Build()
         {
             RemoveExisting();
 
+            UiSpriteFactory.Sprites sprites = UiSpriteFactory.Load();
+
             GameObject root = CreateCanvas();
-            RectTransform panel = CreatePanel(root.transform);
+            RectTransform panel = CreatePanel(root.transform, sprites);
 
             // Laid out upward from the bottom: health is the thing you check most
             // often under pressure, so it sits closest to the fight.
             RectTransform apRow = CreateRow(panel, "Action Points", 0f, PipSize);
-            Image[] pips = CreatePips(apRow, 5);
+            Image[] pips = CreatePips(apRow, 5, sprites);
 
             RectTransform flowRow = CreateRow(panel, "Flow", PipSize + Gap, BarHeight);
-            Image flowFill = CreateBar(flowRow, new Color(0.45f, 0.60f, 1f));
+            Image flowFill = CreateBar(flowRow, MenuTheme.Accent, sprites);
 
             RectTransform healthRow = CreateRow(panel, "Health", PipSize + Gap + BarHeight + Gap, BarHeight);
-            Image healthFill = CreateBar(healthRow, new Color(0.30f, 0.85f, 0.40f));
+            Image healthFill = CreateBar(healthRow, MenuTheme.Positive, sprites);
 
             var hud = root.AddComponent<FighterHud>();
             Wire(hud, healthFill, flowFill, pips);
@@ -88,17 +93,35 @@ namespace ThinkFast.UIEditor
             return root;
         }
 
-        private static RectTransform CreatePanel(Transform parent)
+        private static RectTransform CreatePanel(Transform parent, UiSpriteFactory.Sprites sprites)
         {
-            var panel = new GameObject("Panel", typeof(RectTransform)).GetComponent<RectTransform>();
-            panel.SetParent(parent, worldPositionStays: false);
+            var card = new GameObject("Card", typeof(RectTransform)).GetComponent<RectTransform>();
+            card.SetParent(parent, worldPositionStays: false);
 
             // Bottom-left: the fighter's half of the screen.
+            card.anchorMin = Vector2.zero;
+            card.anchorMax = Vector2.zero;
+            card.pivot = Vector2.zero;
+            card.anchoredPosition = new Vector2(28f, 28f);
+            card.sizeDelta = new Vector2(PanelWidth + (CardPadding * 2f), 120f + (CardPadding * 2f));
+
+            // The bars sit on a card rather than straight on the stage. That is a
+            // contrast decision before it is a stylistic one: a bar drawn directly
+            // over the fight has to survive whatever colour happens to be behind
+            // it that frame, and the stage is going to change. On a near-opaque
+            // card, every reading holds no matter what the level looks like.
+            var background = card.gameObject.AddComponent<Image>();
+            background.sprite = sprites.Card;
+            background.type = Image.Type.Sliced;
+            background.color = MenuTheme.HudCard;
+            background.raycastTarget = false;
+
+            var panel = new GameObject("Panel", typeof(RectTransform)).GetComponent<RectTransform>();
+            panel.SetParent(card, worldPositionStays: false);
             panel.anchorMin = Vector2.zero;
-            panel.anchorMax = Vector2.zero;
-            panel.pivot = Vector2.zero;
-            panel.anchoredPosition = new Vector2(32f, 32f);
-            panel.sizeDelta = new Vector2(PanelWidth, 120f);
+            panel.anchorMax = Vector2.one;
+            panel.offsetMin = new Vector2(CardPadding, CardPadding);
+            panel.offsetMax = new Vector2(-CardPadding, -CardPadding);
 
             return panel;
         }
@@ -121,35 +144,46 @@ namespace ThinkFast.UIEditor
         /// A dark track with a coloured fill child. The fill is stretched by its
         /// anchors at runtime, which is why it needs no sprite.
         /// </summary>
-        private static Image CreateBar(RectTransform row, Color fillColour)
+        private static Image CreateBar(RectTransform row, Color fillColour, UiSpriteFactory.Sprites sprites)
         {
-            Image track = CreateImage(row, "Track", new Color(0f, 0f, 0f, 0.55f));
+            Image track = CreateImage(row, "Track", MenuTheme.Track);
+            track.sprite = sprites.Pill;
+            track.type = Image.Type.Sliced;
             Stretch(track.rectTransform);
 
             Image fill = CreateImage(track.rectTransform, "Fill", fillColour);
+            fill.sprite = sprites.Pill;
+            fill.type = Image.Type.Sliced;
+
             RectTransform rect = fill.rectTransform;
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
-            rect.offsetMin = new Vector2(2f, 2f);
-            rect.offsetMax = new Vector2(-2f, -2f);
+
+            // No inset. The fill is a rounded pill on a rounded track, so insetting
+            // it would leave a sliver of track showing inside the fill's own
+            // rounded end, which reads as the bar never quite reaching full.
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
 
             return fill;
         }
 
-        private static Image[] CreatePips(RectTransform row, int count)
+        private static Image[] CreatePips(RectTransform row, int count, UiSpriteFactory.Sprites sprites)
         {
             var pips = new Image[count];
 
             for (int i = 0; i < count; i++)
             {
                 Image pip = CreateImage(row, $"Pip {i}", Color.white);
-                RectTransform rect = pip.rectTransform;
+                pip.sprite = sprites.Circle;
+                pip.type = Image.Type.Simple;
 
+                RectTransform rect = pip.rectTransform;
                 rect.anchorMin = Vector2.zero;
                 rect.anchorMax = Vector2.zero;
                 rect.pivot = Vector2.zero;
                 rect.sizeDelta = new Vector2(PipSize, PipSize);
-                rect.anchoredPosition = new Vector2(i * (PipSize + 6f), 0f);
+                rect.anchoredPosition = new Vector2(i * (PipSize + 8f), 0f);
 
                 pips[i] = pip;
             }
@@ -197,6 +231,20 @@ namespace ThinkFast.UIEditor
             {
                 pipArray.GetArrayElementAtIndex(i).objectReferenceValue = pips[i];
             }
+
+            // The colours have to be written here, not just onto the images. The
+            // HUD re-applies them every frame from its own fields, so a bar tinted
+            // at build time would be repainted with the old palette on frame one.
+            so.FindProperty("healthColour").colorValue = MenuTheme.Positive;
+            so.FindProperty("healthLowColour").colorValue = MenuTheme.Negative;
+            so.FindProperty("flowColour").colorValue = MenuTheme.Accent;
+            so.FindProperty("flowActiveColour").colorValue = MenuTheme.Flow;
+            so.FindProperty("pipFilledColour").colorValue = MenuTheme.Accent;
+
+            // Empty pips stay a visible shape rather than fading out, so the
+            // player can see how many they are missing, not just how many they
+            // have.
+            so.FindProperty("pipEmptyColour").colorValue = MenuTheme.Track;
 
             so.ApplyModifiedPropertiesWithoutUndo();
         }

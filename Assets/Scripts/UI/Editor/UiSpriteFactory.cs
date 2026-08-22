@@ -75,6 +75,27 @@ namespace ThinkFast.UIEditor
                 AssetDatabase.LoadAssetAtPath<Sprite>(CirclePath));
         }
 
+        /// <summary>
+        /// Returns the sprites without redrawing them, generating them only if
+        /// they are missing. For callers that want to use the shapes rather than
+        /// decide what they look like.
+        /// </summary>
+        public static Sprites Load()
+        {
+            var loaded = new Sprites(
+                AssetDatabase.LoadAssetAtPath<Sprite>(CardPath),
+                AssetDatabase.LoadAssetAtPath<Sprite>(CardGlowPath),
+                AssetDatabase.LoadAssetAtPath<Sprite>(PillPath),
+                AssetDatabase.LoadAssetAtPath<Sprite>(CirclePath));
+
+            if (loaded.IsComplete)
+            {
+                return loaded;
+            }
+
+            return BuildAll();
+        }
+
         private static void EnsureFolder()
         {
             if (AssetDatabase.IsValidFolder(Folder))
