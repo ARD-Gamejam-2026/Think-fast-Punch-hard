@@ -290,6 +290,41 @@ namespace ThinkFast.Quiz.EditorTools
             }
         }
 
+        /// <summary>
+        /// The sample scene recorded stale RectTransform overrides for the
+        /// question label from batch saves made before any layout pass ran
+        /// (anchors (0,0)-(0,0), size 0x0). While a layout group drove the
+        /// label they were harmless; inside the free-form TopPane they win
+        /// and collapse the label to a sliver. Revert them.
+        /// </summary>
+        [MenuItem("Tools/Quiz/Repair Question Label Overrides")]
+        public static void RepairQuestionLabelOverrides()
+        {
+            var scene = EditorSceneManager.OpenScene(ScenePath);
+
+            var view = Object.FindFirstObjectByType<QuizView>();
+            if (view == null)
+            {
+                Debug.LogError("No QuizView in SampleScene — run Tools/Quiz/Add Quiz Panel To Sample Scene first.");
+                return;
+            }
+
+            var viewSo = new SerializedObject(view);
+            var label = viewSo.FindProperty("questionLabel").objectReferenceValue as TMP_Text;
+            if (label == null)
+            {
+                Debug.LogError("QuizView has no questionLabel wired.");
+                return;
+            }
+
+            PrefabUtility.RevertObjectOverride(label.rectTransform, InteractionMode.AutomatedAction);
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("Question label overrides reverted; label follows the prefab layout again.");
+        }
+
         private static void PlaceQuestionImage(RectTransform image)
         {
             image.anchorMin = new Vector2(0f, 0f);
