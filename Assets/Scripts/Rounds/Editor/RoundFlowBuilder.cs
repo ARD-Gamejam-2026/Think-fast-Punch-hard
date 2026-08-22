@@ -96,7 +96,7 @@ namespace ThinkFast.RoundsEditor
         /// </summary>
         private static TMP_Text FindEndMessage()
         {
-            foreach (TMP_Text candidate in Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (TMP_Text candidate in Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Include))
             {
                 if (candidate.name == EndMessageName)
                 {
