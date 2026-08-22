@@ -67,5 +67,46 @@ namespace ThinkFast.Quiz.Tests
                 Assert.AreEqual(1, occurrences, "correct term must be unique among options");
             }
         }
+
+        [Test]
+        public void Shape_options_are_four_distinct_with_valid_correct_index()
+        {
+            var generator = new SequenceGenerator(seed: 99);
+            for (int i = 0; i < 100; i++)
+            {
+                ShapePuzzle puzzle = generator.NextShape();
+                Assert.AreEqual(4, puzzle.Options.Length);
+                CollectionAssert.AllItemsAreUnique(puzzle.Options);
+                Assert.GreaterOrEqual(puzzle.CorrectIndex, 0);
+                Assert.Less(puzzle.CorrectIndex, 4);
+                Assert.GreaterOrEqual(puzzle.Terms.Length, 4);
+            }
+        }
+
+        [Test]
+        public void Shape_generator_is_deterministic_for_a_seed()
+        {
+            var a = new SequenceGenerator(seed: 5).NextShape();
+            var b = new SequenceGenerator(seed: 5).NextShape();
+            CollectionAssert.AreEqual(a.Terms, b.Terms);
+            CollectionAssert.AreEqual(a.Options, b.Options);
+            Assert.AreEqual(a.CorrectIndex, b.CorrectIndex);
+        }
+
+        [Test]
+        public void Shape_color_index_stays_within_palette()
+        {
+            var generator = new SequenceGenerator(seed: 3);
+            for (int i = 0; i < 100; i++)
+            {
+                ShapePuzzle puzzle = generator.NextShape();
+                foreach (var spec in puzzle.Options)
+                {
+                    Assert.GreaterOrEqual(spec.ColorIndex, 0);
+                    Assert.Less(spec.ColorIndex, 4);
+                    Assert.GreaterOrEqual(spec.Count, 1);
+                }
+            }
+        }
     }
 }

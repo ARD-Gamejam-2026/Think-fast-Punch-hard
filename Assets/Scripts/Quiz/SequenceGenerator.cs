@@ -10,6 +10,17 @@ namespace ThinkFast.Quiz
     public sealed class SequenceGenerator
     {
         private const int OptionCount = QuizQuestion.AnswerCount;
+        private const int PaletteSize = 4;
+
+        private static readonly ShapeKind[] AllKinds =
+        {
+            ShapeKind.Circle, ShapeKind.Square, ShapeKind.Triangle, ShapeKind.Star,
+        };
+
+        private static readonly ShapeKind[] OrientedKinds =
+        {
+            ShapeKind.Triangle, ShapeKind.Star, ShapeKind.Square,
+        };
 
         private readonly System.Random random;
 
@@ -40,6 +51,161 @@ namespace ThinkFast.Quiz
                 default:
                     return Alternating();
             }
+        }
+
+        /// <summary>Generates the next shape puzzle from a random transformation.</summary>
+        public ShapePuzzle NextShape()
+        {
+            switch (random.Next(4))
+            {
+                case 0:
+                    return RotationPuzzle();
+                case 1:
+                    return CountPuzzle();
+                case 2:
+                    return ShapeCyclePuzzle();
+                default:
+                    return ColorCyclePuzzle();
+            }
+        }
+
+        private ShapePuzzle RotationPuzzle()
+        {
+            ShapeKind kind = OrientedKinds[random.Next(OrientedKinds.Length)];
+            int color = random.Next(PaletteSize);
+            int step = 90;
+            if (random.Next(2) == 0)
+            {
+                step = 45;
+            }
+            if (random.Next(2) == 0)
+            {
+                step = -step;
+            }
+            int start = random.Next(4) * 90;
+            var terms = new ShapeSpec[4];
+            for (int i = 0; i < 4; i++)
+            {
+                terms[i] = new ShapeSpec(kind, start + step * i, 1, color, true);
+            }
+            var correct = new ShapeSpec(kind, start + step * 4, 1, color, true);
+            var wrong = new List<ShapeSpec>
+            {
+                new ShapeSpec(kind, start + step * 3, 1, color, true),
+                new ShapeSpec(kind, start + step * 5, 1, color, true),
+                new ShapeSpec(kind, start - step * 2, 1, color, true),
+            };
+            return BuildShapePuzzle(terms, correct, wrong);
+        }
+
+        private ShapePuzzle CountPuzzle()
+        {
+            ShapeKind kind = AllKinds[random.Next(AllKinds.Length)];
+            int color = random.Next(PaletteSize);
+            int step = random.Next(1, 3);
+            int start = random.Next(1, 3);
+            var terms = new ShapeSpec[4];
+            for (int i = 0; i < 4; i++)
+            {
+                terms[i] = new ShapeSpec(kind, 0, start + step * i, color, true);
+            }
+            int nextCount = start + step * 4;
+            var correct = new ShapeSpec(kind, 0, nextCount, color, true);
+            var wrong = new List<ShapeSpec>
+            {
+                new ShapeSpec(kind, 0, nextCount - 1, color, true),
+                new ShapeSpec(kind, 0, nextCount + 1, color, true),
+                new ShapeSpec(kind, 0, nextCount + 2, color, true),
+            };
+            return BuildShapePuzzle(terms, correct, wrong);
+        }
+
+        private ShapePuzzle ShapeCyclePuzzle()
+        {
+            int color = random.Next(PaletteSize);
+            int cycleLength = random.Next(2, 4);
+            ShapeKind[] cycle = DistinctKinds(cycleLength);
+            var terms = new ShapeSpec[6];
+            for (int i = 0; i < 6; i++)
+            {
+                terms[i] = new ShapeSpec(cycle[i % cycle.Length], 0, 1, color, true);
+            }
+            ShapeKind nextKind = cycle[6 % cycle.Length];
+            var correct = new ShapeSpec(nextKind, 0, 1, color, true);
+            var wrong = new List<ShapeSpec>();
+            foreach (var kind in AllKinds)
+            {
+                if (kind != nextKind)
+                {
+                    wrong.Add(new ShapeSpec(kind, 0, 1, color, true));
+                }
+            }
+            return BuildShapePuzzle(terms, correct, wrong);
+        }
+
+        private ShapePuzzle ColorCyclePuzzle()
+        {
+            ShapeKind kind = AllKinds[random.Next(AllKinds.Length)];
+            int cycleLength = random.Next(2, 4);
+            int[] cycle = DistinctColors(cycleLength);
+            var terms = new ShapeSpec[6];
+            for (int i = 0; i < 6; i++)
+            {
+                int color = cycle[i % cycle.Length];
+                terms[i] = new ShapeSpec(kind, 0, 1, color, color % 2 == 0);
+            }
+            int nextColor = cycle[6 % cycle.Length];
+            var correct = new ShapeSpec(kind, 0, 1, nextColor, nextColor % 2 == 0);
+            var wrong = new List<ShapeSpec>();
+            for (int c = 0; c < PaletteSize; c++)
+            {
+                if (c != nextColor)
+                {
+                    wrong.Add(new ShapeSpec(kind, 0, 1, c, c % 2 == 0));
+                }
+            }
+            return BuildShapePuzzle(terms, correct, wrong);
+        }
+
+        private ShapeKind[] DistinctKinds(int count)
+        {
+            var pool = new List<ShapeKind>(AllKinds);
+            Shuffle(pool);
+            return pool.GetRange(0, count).ToArray();
+        }
+
+        private int[] DistinctColors(int count)
+        {
+            var pool = new List<int>();
+            for (int c = 0; c < PaletteSize; c++)
+            {
+                pool.Add(c);
+            }
+            Shuffle(pool);
+            return pool.GetRange(0, count).ToArray();
+        }
+
+        private ShapePuzzle BuildShapePuzzle(ShapeSpec[] terms, ShapeSpec correct, List<ShapeSpec> wrong)
+        {
+            var options = new List<ShapeSpec> { correct };
+            foreach (var candidate in wrong)
+            {
+                if (options.Count >= OptionCount)
+                {
+                    break;
+                }
+                if (!options.Contains(candidate))
+                {
+                    options.Add(candidate);
+                }
+            }
+            Shuffle(options);
+            return new ShapePuzzle
+            {
+                Terms = terms,
+                Options = options.ToArray(),
+                CorrectIndex = options.IndexOf(correct),
+            };
         }
 
         private NumberPuzzle Arithmetic()
