@@ -31,24 +31,36 @@ namespace ThinkFast.Quiz
         [Header("Random math questions")]
         [SerializeField, Min(1f)] private float mathTimeLimitSeconds = 5f;
 
+        [Header("Sequence questions (numbers & shapes)")]
+        [SerializeField, Min(0f)] private float sequenceWeight = 1f;
+        [SerializeField, Min(1f)] private float sequenceTimeLimitSeconds = 8f;
+        [SerializeField, Range(0f, 1f)] private float sequenceShapeShare = 0.5f;
+
         [Header("Wikipedia questions (places, animals, ...)")]
         [SerializeField] private WeightedWikipediaSource[] wikipediaSources = new WeightedWikipediaSource[0];
 
         private const float RetrySeconds = 0.5f;
 
-        // Weight indices 0 and 1 are the fixed buckets; Wikipedia sources
+        // Weight indices 0, 1, and 2 are the fixed buckets; Wikipedia sources
         // follow at FixedBuckets + i.
         private const int AuthoredBucket = 0;
         private const int MathBucket = 1;
-        private const int FixedBuckets = 2;
+        private const int SequenceBucket = 2;
+        private const int FixedBuckets = 3;
 
         private MathQuestionGenerator generator;
+        private SequenceQuestionGenerator sequenceGenerator;
         private int current;
         private QuizQuestion displayedGenerated;
 
         private void Awake()
         {
             generator = new MathQuestionGenerator { TimeLimitSeconds = mathTimeLimitSeconds };
+            sequenceGenerator = new SequenceQuestionGenerator
+            {
+                TimeLimitSeconds = sequenceTimeLimitSeconds,
+                ShapeShare = sequenceShapeShare,
+            };
         }
 
         private void OnEnable()
@@ -101,6 +113,10 @@ namespace ThinkFast.Quiz
             {
                 return true;
             }
+            if (sequenceWeight > 0f)
+            {
+                return true;
+            }
             foreach (var weighted in wikipediaSources)
             {
                 if (weighted != null && weighted.source != null && weighted.weight > 0f)
@@ -137,16 +153,7 @@ namespace ThinkFast.Quiz
             // Generated questions (and their downloaded sprites/textures) are
             // runtime-only; destroy the one no longer shown so endless play
             // doesn't accumulate them. Authored assets are never destroyed.
-            if (previousGenerated != null)
-            {
-                if (previousGenerated.image != null)
-                {
-                    var texture = previousGenerated.image.texture;
-                    Destroy(previousGenerated.image);
-                    Destroy(texture);
-                }
-                Destroy(previousGenerated);
-            }
+            DestroyGeneratedVisuals(previousGenerated);
 
             if (selected == AuthoredBucket)
             {
@@ -171,6 +178,7 @@ namespace ThinkFast.Quiz
                 weights[AuthoredBucket] = authoredWeight;
             }
             weights[MathBucket] = mathWeight;
+            weights[SequenceBucket] = sequenceWeight;
             for (int i = 0; i < wikipediaSources.Length; i++)
             {
                 var weighted = wikipediaSources[i];
@@ -192,6 +200,8 @@ namespace ThinkFast.Quiz
                     return next;
                 case MathBucket:
                     return generator.Next();
+                case SequenceBucket:
+                    return sequenceGenerator.Next();
                 default:
                     // A Wikipedia bucket only gets weight when its source has
                     // a prefetched question; the guard makes that invariant
@@ -202,6 +212,37 @@ namespace ThinkFast.Quiz
                         return weighted.source.Dequeue();
                     }
                     return generator.Next();
+            }
+        }
+
+        private void DestroyGeneratedVisuals(QuizQuestion generated)
+        {
+            if (generated == null)
+            {
+                return;
+            }
+            DestroySprite(generated.image);
+            if (generated.answerImages != null)
+            {
+                foreach (var answerImage in generated.answerImages)
+                {
+                    DestroySprite(answerImage);
+                }
+            }
+            Destroy(generated);
+        }
+
+        private void DestroySprite(Sprite sprite)
+        {
+            if (sprite == null)
+            {
+                return;
+            }
+            Texture texture = sprite.texture;
+            Destroy(sprite);
+            if (texture != null)
+            {
+                Destroy(texture);
             }
         }
     }
