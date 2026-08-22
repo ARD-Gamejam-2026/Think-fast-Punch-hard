@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ThinkFast.Combat;
 using UnityEngine;
 
 namespace ThinkFast.Player
@@ -15,7 +16,7 @@ namespace ThinkFast.Player
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(PlayerInputReader))]
-    public sealed class PlayerController : MonoBehaviour
+    public sealed class PlayerController : MonoBehaviour, IFighterMotor
     {
         [Header("Run")]
         [Tooltip("Top horizontal speed, in units per second.")]
@@ -102,18 +103,11 @@ namespace ThinkFast.Player
         private readonly List<Collider2D> groundColliders = new List<Collider2D>(4);
 
         /// <summary>
-        /// A platform we are currently falling through. Collision is disabled per
-        /// collider pair, so only this fighter passes through -- rotating the
-        /// effector instead would let everything else through as well.
+        /// The platforms we are currently falling through. Shared with the AI
+        /// opponent -- the restore rules are subtle enough that a second copy
+        /// would be a second set of bugs.
         /// </summary>
-        private struct DroppedPlatform
-        {
-            public Collider2D Collider;
-            public float EarliestRestore;
-            public float ForcedRestore;
-        }
-
-        private readonly List<DroppedPlatform> droppedPlatforms = new List<DroppedPlatform>(4);
+        private OneWayDropThrough dropThrough;
 
         private float coyoteTimer;
         private float jumpBufferTimer;
@@ -138,7 +132,7 @@ namespace ThinkFast.Player
         public bool IsFastFalling { get; private set; }
 
         /// <summary>True while falling through a one-way platform.</summary>
-        public bool IsDroppingThroughPlatform => droppedPlatforms.Count > 0;
+        public bool IsDroppingThroughPlatform => dropThrough != null && dropThrough.Active;
 
         /// <summary>True while hitstun has taken control away.</summary>
         public bool IsStunned => stunTimer > 0f;
@@ -172,6 +166,14 @@ namespace ThinkFast.Player
 
         public Vector2 Velocity => body != null ? body.linearVelocity : Vector2.zero;
 
+        /// <summary>
+        /// How far a jump rises, in units. Exposed so the AI can check that it is
+        /// able to follow the player anywhere the player can actually get to --
+        /// an opponent that jumps lower than you turns every high ledge into a
+        /// safe place to stand.
+        /// </summary>
+        public float JumpApexHeight => jumpHeight;
+
         private void Awake()
         {
             body = GetComponent<Rigidbody2D>();
@@ -197,14 +199,17 @@ namespace ThinkFast.Player
             {
                 Debug.LogError($"{nameof(PlayerController)} on '{name}' needs a Collider2D.", this);
                 enabled = false;
+                return;
             }
+
+            dropThrough = new OneWayDropThrough(bodyCollider, dropThroughMinDuration, dropThroughMaxDuration);
         }
 
         private void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
 
-            RestoreClearedPlatforms();
+            dropThrough.RestoreCleared();
             IsGrounded = CheckGrounded();
 
             stunTimer -= dt;
@@ -225,7 +230,7 @@ namespace ThinkFast.Player
 
             if (input.ConsumeDownPress() && IsGrounded)
             {
-                TryDropThroughPlatform();
+                dropThrough.Drop(groundColliders);
             }
 
             groundLockoutTimer -= dt;
@@ -292,7 +297,7 @@ namespace ThinkFast.Player
                 // and does not respect IgnoreCollision, so this has to be
                 // filtered by hand -- otherwise falling through a platform would
                 // keep refreshing coyote time on the way down.
-                if (IsDroppingThrough(hit))
+                if (dropThrough.IsDroppingThrough(hit))
                 {
                     continue;
                 }
@@ -303,86 +308,11 @@ namespace ThinkFast.Player
             return groundColliders.Count > 0;
         }
 
-        private bool IsDroppingThrough(Collider2D candidate)
-        {
-            for (int i = 0; i < droppedPlatforms.Count; i++)
-            {
-                if (droppedPlatforms[i].Collider == candidate)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Disables collision with whatever one-way platform we are standing on,
-        /// so we fall through it. Solid ground is left alone: pressing down on
-        /// the floor should do nothing.
-        /// </summary>
-        private void TryDropThroughPlatform()
-        {
-            for (int i = 0; i < groundColliders.Count; i++)
-            {
-                Collider2D ground = groundColliders[i];
-                if (ground == null || ground.GetComponent<PlatformEffector2D>() == null)
-                {
-                    continue;
-                }
-
-                Physics2D.IgnoreCollision(bodyCollider, ground, true);
-                droppedPlatforms.Add(new DroppedPlatform
-                {
-                    Collider = ground,
-                    EarliestRestore = Time.time + dropThroughMinDuration,
-                    ForcedRestore = Time.time + dropThroughMaxDuration,
-                });
-            }
-        }
-
-        /// <summary>
-        /// Re-enables collision once we are genuinely clear of a platform.
-        /// Restoring while still overlapping would have the solver shove us out,
-        /// which reads as being spat back onto the platform we just left.
-        /// </summary>
-        private void RestoreClearedPlatforms()
-        {
-            for (int i = droppedPlatforms.Count - 1; i >= 0; i--)
-            {
-                DroppedPlatform dropped = droppedPlatforms[i];
-
-                if (dropped.Collider == null)
-                {
-                    droppedPlatforms.RemoveAt(i);
-                    continue;
-                }
-
-                bool waitedLongEnough = Time.time >= dropped.EarliestRestore;
-                bool outOfPatience = Time.time >= dropped.ForcedRestore;
-                bool stillOverlapping = Physics2D.Distance(bodyCollider, dropped.Collider).isOverlapped;
-
-                if (outOfPatience || (waitedLongEnough && !stillOverlapping))
-                {
-                    Physics2D.IgnoreCollision(bodyCollider, dropped.Collider, false);
-                    droppedPlatforms.RemoveAt(i);
-                }
-            }
-        }
-
         private void OnDisable()
         {
             // IgnoreCollision is a persistent property of the collider pair, so
             // leaving it set would survive this component being switched off.
-            for (int i = 0; i < droppedPlatforms.Count; i++)
-            {
-                if (droppedPlatforms[i].Collider != null && bodyCollider != null)
-                {
-                    Physics2D.IgnoreCollision(bodyCollider, droppedPlatforms[i].Collider, false);
-                }
-            }
-
-            droppedPlatforms.Clear();
+            dropThrough?.RestoreAll();
         }
 
         private void ApplyHorizontalMovement()

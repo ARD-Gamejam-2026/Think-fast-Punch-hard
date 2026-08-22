@@ -2,7 +2,8 @@
 
 The left half of "Think fast, Punch hard": a 2D sidescroller fighter with 3D art
 and 2D physics. One character, one attack button, keyboard only — the mouse
-belongs to the quiz half and is never needed here.
+belongs to the quiz half and is never needed here. Facing it is an autonomous
+opponent that chases, jumps and punches back.
 
 Everything below is in `Assembly-CSharp` (no asmdef). That means this code **can**
 reference the `Quiz` assembly, but the quiz **cannot** reference this — Unity only
@@ -18,21 +19,36 @@ quiz → fighter by us subscribing to their events.
 | `PlayerInputReader` | `ThinkFast.Player` | Reads the Input System, exposes plain values. Latches presses for FixedUpdate. |
 | `PlayerController` | `ThinkFast.Player` | Movement: run, jump, air, fast fall, drop-through, ground check, facing, hitstun. |
 | `PlayerAttack` | `ThinkFast.Player` | Attack state machine, hitboxes, AP payment, Flow multipliers. |
-| `PlayerHitReaction` | `ThinkFast.Player` | Turns a landed hit into knockback + stun + respawn. |
+| `PlayerKnockout` | `ThinkFast.Player` | Death → stop fighting → report the round lost. |
 | `PlayerDebugHud` | `ThinkFast.Player` | IMGUI debug readout. Not game UI. |
-| `PlaceholderAttackFx` | `ThinkFast.Player` | Throwaway synthesised audio + primitive visuals. |
+| `PlaceholderAttackFx` | `ThinkFast.Player` | Throwaway. Warm colours, hard shapes, synthesised audio. |
 | `DebugSelfDamage` | `ThinkFast.Player` | Throwaway. `H` applies a canned hit. |
-| `Health` | `ThinkFast.Combat` | HP only. Implements `IDamageable`. **Shared — the AI will use this.** |
+| `EnemyMotor` | `ThinkFast.Enemy` | Opponent movement: run, jump, gravity, ground check, facing, hitstun. Input-agnostic. |
+| `EnemyBrain` | `ThinkFast.Enemy` | Every decision the opponent makes. Writes to the motor and the attack, touches no physics. |
+| `EnemyAttack` | `ThinkFast.Enemy` | Ground + air attack, no AP cost. Thin wrapper over `AttackRunner`. |
+| `EnemyKnockout` | `ThinkFast.Enemy` | Death → stop fighting → report the round over. |
+| `EnemyDebugHud` | `ThinkFast.Enemy` | Throwaway. Floating HP + AI state label, and `R` to reset. |
+| `EnemyTuningCheck` | `ThinkFast.Enemy` | Warns on Play when the tuning values contradict each other. Editor / dev builds only. |
+| `PlaceholderEnemyAttackFx` | `ThinkFast.Enemy` | Throwaway. Violet, rounded shapes, low audio — and the **wind-up telegraph**. |
+| `Health` | `ThinkFast.Combat` | HP only. Implements `IDamageable`. **Shared by both fighters.** |
+| `IFighterMotor` | `ThinkFast.Combat` | **Shared.** What a fighter's body exposes to third parties. |
+| `IFighterKnockout` | `ThinkFast.Combat` | **Shared.** A fighter being knocked out, and revived. |
+| `FighterHitReaction` | `ThinkFast.Combat` | **Shared.** Knockback + stun + optional flash, for either fighter. |
 | `HitInfo` / `IDamageable` | `ThinkFast.Combat` | The combat contract. |
 | `AttackDefinition` | `ThinkFast.Combat` | Frame data + payload for one attack. Serializable, reusable. |
-| `TrainingDummy` | `ThinkFast.Combat` | Throwaway punching bag. **To be replaced by the AI.** |
-| `FighterResources` | `ThinkFast.Economy` | Action Points + Flow + Flow state. |
+| `AttackRunner` | `ThinkFast.Combat` | **Shared.** The startup→active→recovery machine and the hitbox sweep. Plain C#. |
+| `OneWayDropThrough` | `ThinkFast.Combat` | **Shared.** Falling through one-way platforms, and the restore rules. Plain C#. |
+| `RendererTint` | `ThinkFast.Combat` | **Shared.** Flat-colour flash via `MaterialPropertyBlock`. Plain C#. |
+| `RoundEvents` / `RoundOutcome` | `ThinkFast.Rounds` | The seam between a K.O. and the round ending. |
+| `DebugRoundBanner` | `ThinkFast.Rounds` | Throwaway "K.O. — YOU WIN" banner + `Enter` to restart. |
+| `FighterResources` | `ThinkFast.Economy` | Action Points + Flow + Flow state. **Player only** — it is also what identifies the player. |
 | `RiddleRewards` / `IRiddleRewardSink` | `ThinkFast.Economy` | The seam to the quiz half. |
 | `DebugRiddleDriver` | `ThinkFast.Economy` | Throwaway stand-in for the quiz. |
 | `PlaceholderFlowStateVisual` | `ThinkFast.Economy` | Throwaway gold tint + orbiting motes. |
 | `FollowCamera` | `ThinkFast.CameraRig` | Dead zone + smoothing + look-ahead + bounds. |
 | `FighterHud` | `ThinkFast.UI` | Real uGUI HUD: health, AP pips, Flow bar. |
 | `SplitScreenTodoAttribute` | `ThinkFast.Common` | Marks settings that split screen will invalidate. |
+| `PlaceholderFxKit` / `PlaceholderFxShape` | `ThinkFast.Common` | Throwaway. Runtime-synthesised clips, unlit materials, self-animating primitives. Shared by both FX components. |
 
 Anything named `Debug*` or `Placeholder*` is **deliberately throwaway** and safe to
 delete once the real thing exists.
@@ -45,7 +61,7 @@ Nothing is hand-placed. Two generators under **Tools > Think Fast**:
 
 | Menu item | Builds |
 |---|---|
-| `Build PlayerController Test Scene` | Stage, one-way platforms, player, dummy, camera — into `Assets/Scenes/PlayerControllerTest.unity` |
+| `Build PlayerController Test Scene` | Stage, one-way platforms, player, opponent, round banner, camera — into `Assets/Scenes/PlayerControllerTest.unity` |
 | `Build Fighter HUD` | The uGUI canvas, wired to find the player at runtime |
 
 Both are idempotent. The test-scene builder destroys and rebuilds everything under
@@ -65,13 +81,23 @@ Input System ──► PlayerInputReader ──► PlayerController ──► Ri
                         ▼                    │ ApplyStun
                   PlayerAttack ──────────────┘
                         │
-                        │ Physics2D.OverlapBox during Active frames
-                        ▼
-                   IDamageable ──► Health ──► PlayerHitReaction ──► knockback + stun
-                        │             │
-                        │             └──► FighterHud (polls)
-                        │
-   FighterResources ────┘  pays 1 AP per swing, multiplies damage + knockback
+                  AttackRunner ◄──────────────────── EnemyAttack
+                        │  shared: frame data,             ▲
+                        │  hitbox, self-hit skip           │ TryAttack()
+                        │                                  │
+                        │ Physics2D.OverlapBox        EnemyBrain ──► EnemyMotor
+                        │ during Active frames             │  MoveX,      │
+                        ▼                                  │  RequestJump │
+                   IDamageable ──► Health ──┬──► FighterHitReaction ◄─────┘
+                                     │      │      one component, either fighter,
+                                     │      │      via IFighterMotor
+                                     │      │
+                                     │      └──► PlayerKnockout ─┐
+                                     │           EnemyKnockout ──┴► RoundEvents ──► DebugRoundBanner
+                                     │
+                                     └──► FighterHud (polls the PLAYER's Health)
+
+   FighterResources    pays 1 AP per swing, multiplies damage + knockback (player only)
         ▲
         │ GrantSolve(flowReward)
    RiddleRewards  ◄──── quiz half (or DebugRiddleDriver)
@@ -120,6 +146,61 @@ harmlessly when no fighter exists, so the quiz half runs standalone.
 The rule "no Flow while Flow state is active" lives **here**, not at the call site,
 so callers cannot get it wrong.
 
+### `IFighterMotor` — the shared body contract
+
+```csharp
+bool IsGrounded, IsStunned;
+Vector2 Velocity;
+float Facing;                       // -1 or +1, never 0
+float JumpApexHeight;               // what makes reachability answerable
+float MoveControlScale { get; set; }
+bool FacingLocked { get; set; }
+void ApplyStun(float duration);
+```
+
+Implemented by `PlayerController` and `EnemyMotor`. Both are far bigger than this —
+one reads input and owns fast-fall and drop-through, the other exposes jump-distance
+maths for route planning. **Only what a third party needs belongs here.**
+
+The value is not that the two classes happen to share these members; it is that code
+can be written against *a fighter* without knowing which one it has.
+`FighterHitReaction` is the proof — one component knocks either fighter around,
+because it never asks whose body it is on. It replaced a near-identical pair of
+components, and the duplication is gone rather than merely documented.
+
+It is deliberately **not** `IFighter`. Health, attacks and knockouts are separate
+components with separate contracts; folding them in would produce an interface nothing
+could implement without becoming everything.
+
+`IFighterKnockout` is the same idea, smaller: `KnockedOut`, `Revived`, `IsKnockedOut`,
+so presentation can react to a knockout without caring whose it was.
+
+Two Unity caveats worth knowing before leaning on these further:
+
+- **Interfaces cannot be `RequireComponent`ed**, so `FighterHitReaction` checks for one
+  in `Awake` and disables itself with an error instead.
+- **Interfaces cannot be serialized into Inspector fields.** `GetComponent<IFighterMotor>()`
+  works fine; dragging one into a slot does not.
+
+---
+
+### `RoundEvents` — the match-flow seam
+
+```csharp
+RoundEvents.ReportRoundEnded(RoundOutcome.PlayerWon);   // raised by EnemyKnockout
+RoundEvents.RoundEnded += outcome => { ... };           // subscribed by whatever ends the round
+```
+
+Same shape as `RiddleRewards`, for the same reason: whoever lands the killing blow
+should not need a scene reference to a match manager that does not exist yet.
+
+**The first report wins** and later ones are dropped. A double K.O. in one physics
+step must not fire two contradictory endings, and a corpse can plausibly be hit
+again. `ResetRound()` reopens it.
+
+Today the only subscriber is `DebugRoundBanner`. Swapping in a real scene
+transition means subscribing here — **no combat code changes**.
+
 ---
 
 ## The fighter in detail
@@ -158,17 +239,31 @@ bool FacingLocked { get; set; }
 void ApplyStun(float duration)         // extends, never shortens
 ```
 
-### Attack (`PlayerAttack`)
+### Attack (`AttackRunner` + `PlayerAttack`)
 
-`Ready → Startup → Active → Recovery`, driven in `FixedUpdate`.
+`Ready → Startup → Active → Recovery`, driven in `FixedUpdate`. The machine itself
+is `AttackRunner` — plain C#, **shared with the opponent**, so frame data means the
+same thing for both fighters and a bug is fixed once.
 
-- **Grounded is sampled once**, when the swing starts. Landing mid-punch does not
-  switch you to the other attack.
+In `AttackRunner` (both fighters):
+
 - **Movement lock is per-phase.** Startup and Active root you (the commitment);
   Recovery only prevents *attacking*, not walking — otherwise you cannot chase what
   you just knocked away.
 - **Facing locks during Startup/Active only**, so the hitbox cannot be flipped mid-swing.
 - **One hit per target per swing**, tracked in a `HashSet<IDamageable>`.
+- **Self-hits are skipped** by `transform.IsChildOf(owner)`. No physics layers are in
+  use, so the hierarchy is the only thing separating attacker from target.
+- **A swing does not lose a step to the step it was started in.** `Begin` sets the
+  phase, the *next* `Tick` starts the clock. Startup is the window an opponent gets
+  to react in and is the most sensitive number in the attack.
+- **`DamageMultiplier`/`KnockbackMultiplier`** are set by the owner. A fighter with
+  no Flow economy just leaves them at 1 — no null handling needed.
+
+In `PlayerAttack` (the player-specific half):
+
+- **Grounded is sampled once**, when the swing starts. Landing mid-punch does not
+  switch you to the other attack. (`EnemyAttack` does the same.)
 - **AP is paid at swing start.** No AP → no swing, `AttackRefused` fires, and the
   buffered press is consumed (otherwise the refusal cue fires every physics step).
 - **Being hit cancels the swing and does not refund the AP.**
@@ -178,17 +273,36 @@ void ApplyStun(float duration)         // extends, never shortens
 - 1 AP per solve, 1 AP per attack, hard cap (default 5). The cap is the anti-farm rule.
 - Flow drains constantly — it is a gauge, not a bank.
 - At 100 → Flow state: damage and knockback multiply, drain accelerates, **and Flow can
-  no longer be added**. The burst cannot be extended; the only way to spend it is to
-  fight. AP still accrues.
-- Drains to 0 → state ends, gauge rebuilds from zero.
+  no longer be added**. The burst cannot be extended; AP still accrues.
+- **Every swing during Flow state burns Flow on top of the drain** (`flowStateCostPerAttack`,
+  default 10). This is what makes the burst something you *spend* rather than something
+  you sit inside: using it is what ends it, so how long the window lasts is a decision
+  rather than a timer. Charged at swing start, alongside the AP.
+- Drains to 0 → state ends, gauge rebuilds from zero. A swing that empties the gauge
+  lands at ×1 — the multiplier is re-read when the hit connects, and the Flow really
+  did run out mid-punch.
 
-### Health (`Health` + `PlayerHitReaction`)
+**`TryPayForAttack()` charges both costs.** They live behind one call because a caller
+must not be able to pay one and forget the other.
 
-Deliberately split. `Health` is only a number plus events; how a body reacts to being
-hit is specific to that body. **The AI opponent shares `Health` and writes its own
-reaction.**
+### Health (`Health` + `FighterHitReaction` + knockouts)
+
+Deliberately split three ways:
+
+- `Health` is a number plus events, shared by both fighters.
+- `FighterHitReaction` turns a hit into knockback and stun, and optionally a flash.
+  **One component for both fighters** — see `IFighterMotor` below.
+- `PlayerKnockout` / `EnemyKnockout` decide what a death means for the *round*. Losing
+  is not a property of a body, so it does not live in the hit reaction. These stay
+  separate because they genuinely differ: different components to switch off, opposite
+  outcomes to report.
 
 0.15s invulnerability after each hit stops one lingering hitbox draining the bar.
+
+**Neither fighter respawns.** Death disables the parts that fight — input and attack
+for the player, brain and attack for the opponent — while leaving the motor on so the
+body still falls and takes its final knockback. `Revive()` on either is a debug
+affordance, not round flow.
 
 ---
 
@@ -213,7 +327,8 @@ Bindings live in `Assets/Settings/Input/FighterControls.inputactions`, map `Figh
 | `3` | toggle auto-solve |
 | `0` | reset AP and Flow |
 | `H` | take a canned hit (knocked backwards relative to facing) |
-| `R` | reset the training dummy to its spawn point |
+| `R` | put the opponent back on its feet at its spawn point, at full health |
+| `Enter` | after either K.O., reload the scene and fight again |
 
 ---
 
@@ -232,60 +347,321 @@ length will dictate the real timings, so do not over-tune before art lands.
 | fall multiplier | 1.4 | fast fall gravity | 3.2 | hitstun | 0.40 / 0.25 |
 | max fall speed | 24 | fast fall max | 34 | move control | 0 / 0.6 |
 
+Opponent (`EnemyMotor`, `EnemyBrain`, `EnemyAttack`):
+
+| Movement | | Behaviour | | Attack (ground / air) | |
+|---|---|---|---|---|---|
+| max run speed | 6.5 | preferred distance | 1.4 | startup | 0.20 / 0.09 |
+| ground accel | 60 | spacing tolerance | 0.6 | active | 0.07 / 0.10 |
+| ground decel | 80 | attack range | 1.7 | recovery | 0.24 / 0.18 |
+| jump height | 3.8 | attack vertical range | 1.3 | damage | 8 / 6 |
+| jump buffer | 0.15 | attack reaction (ground) | 0.25 | knockback | (9,3.5) / (6,4.5) |
+| | | attack reaction (air) | 0.12 | | |
+| gravity / fall mult | 5 / 1.4 | attack cooldown | 1.2–2.2 | hitstun | 0.35 / 0.25 |
+| | | jump reaction time | 0.4 | move control | 0 / 0.9 |
+| | | drop reaction time | 0.45 | | |
+| | | jump cooldown | 1.0 | | |
+| | | jump reach height | 1.2 | | |
+| | | drop-through height | 1.2 | | |
+
+| Climbing | | | |
+|---|---|---|---|
+| jump reach margin | 0.5 (→ usable rise 3.3) | climb scan region | 24 × 10 |
+| min climb rise | 0.6 | boarding tolerance | 0.4 |
+| edge inset | 0.5 | rescan interval | 0.4 |
+| ledge probe | 0.8 | | |
+
+Run speed is under the player's 9 on purpose: an opponent that can always close the
+gap leaves no room to kite it.
+
 | Economy | | Health | |
 |---|---|---|---|
 | max AP | 5 | max health | 100 |
 | starting AP | 2 | invulnerability | 0.15 |
-| max Flow | 100 | respawn delay | 1.5 |
+| max Flow | 100 | round-end delay | 1.2 |
 | Flow drain | 6 /s | | |
 | Flow-state drain | 20 /s (→ 5s window) | | |
+| Flow cost per attack | 10 (Flow state only) | | |
 | damage multiplier | ×2 | knockback multiplier | ×1.6 |
 
 ---
 
-## Building the AI opponent
+## The opponent
 
-The intended next piece. What you can reuse, and what you cannot.
+Fully autonomous. No Action Points, no Flow, no input — it exists to be fought.
+Three components, split so that *how it thinks* can be rewritten without any risk
+to *how it moves*:
 
-### Reuse directly
+| | |
+|---|---|
+| `EnemyMotor` | Legs. Cannot see the player, does not know what a target is, and will happily walk into a wall forever. |
+| `EnemyBrain` | Decisions. Reads the world, writes `MoveX` / `RequestJump()` / `TryAttack()`. Touches no physics. |
+| `EnemyAttack` | One attack, ground and air flavours, over the shared `AttackRunner`. |
 
-- **`Health`** — already generic, implements `IDamageable`. Put it on the enemy.
-- **`AttackDefinition`** — plain serializable frame data, no player coupling.
-- **`HitInfo` / `IDamageable`** — the enemy hitting the player already works: `Health`
-  is on the player root and accepts any `HitInfo`.
+### What it does
 
-### Cannot reuse as-is
+- **Chases**, holding a preferred distance with a dead band either side — without
+  the dead band it vibrates against the player capsule.
+- **Jumps** when the target has *stayed* above it **and is actually within one jump**,
+  or immediately when a shin-height probe finds a wall or step in the way, or when the
+  floor is about to run out while it is heading somewhere higher.
+- **Climbs** via an intermediate platform when the target is too high to reach directly
+  (see below).
+- **Drops through** the one-way platform it is standing on when the target has *stayed*
+  below it.
+- **Attacks** on a randomised cooldown once the target has been in reach for
+  `reactionTime`. Ground or air, chosen the same way the player's is. Range is measured
+  against **where the fighter will be when the hitbox opens**, not where it is — see
+  below.
 
-- **`PlayerController`** is `[RequireComponent(typeof(PlayerInputReader))]` and reads
-  input directly. An AI needs either its own simpler motor, or the movement maths
-  extracted behind an input-agnostic interface (a small struct of
-  `moveX / jumpHeld / jumpPressed` would do it).
-- **`PlayerAttack`** likewise owns the state machine *and* reads input *and* pays AP.
-  The startup/active/recovery runner is worth extracting so both fighters share one
-  implementation — otherwise frame-data bugs must be fixed twice.
+### Reaction windows
 
-### Replace
+Every reaction to the *player* is gated on the condition holding for a moment first —
+`reactionTime` for attacking, `jumpReactionTime` for following upward,
+`dropReactionTime` for following downward. Reacting on the frame a condition becomes
+true does not read as an opponent reacting; it reads as a **mirror**, and the mirroring
+is what makes it look hectic. Making it wait means a quick hop is ignored and only
+actually going somewhere gets followed.
 
-- **`TrainingDummy`** duplicates HP, knockback and hitstun rather than using `Health`.
-  It predates `Health` and should be deleted once the AI exists. Its hit-flash via
-  `MaterialPropertyBlock` is worth keeping — copy that into the enemy's hit reaction.
+Two things deliberately skip the windows:
+
+- **Being blocked by geometry.** That is being stuck, not reacting to you, and
+  hesitating about it just looks broken.
+- **Hitstun and losing the target** *clear* every part-built window
+  (`ForgetReactionWindows`). Coming out of stun with a window three-quarters full would
+  produce exactly the instant reaction they exist to prevent.
+
+Raise all three to make the opponent calmer; lower them to make it stick to you.
+
+### Reaching height (`UpdateRoute` / `TryFindSteppingStone`)
+
+The opponent knows what it can reach: `UsableRise` is the motor's jump apex minus a
+margin. Every vertical decision is checked against it, which gives three outcomes:
+
+| Target is… | It… | State |
+|---|---|---|
+| within `UsableRise` | jumps at it after the reaction window | `Chase` |
+| higher, but a platform in between is reachable | goes and stands under **that**, jumps onto it, then re-plans | `Climbing` |
+| higher, with nothing to climb via | **does not jump at all** — shadows the target from below | `Stranded` |
+
+The third case is the fix for the opponent hammering the jump button under a ledge it
+could never reach. It was never asking whether the jump *could work*, only whether the
+target was up.
+
+**`TryFindSteppingStone` plans exactly one hop**, not a route. It scans for surfaces
+above the current standing height, discards anything that gains less than
+`minClimbRise` or more than `UsableRise` or overshoots past the target, and scores what
+is left. That is enough, because it **re-plans on every landing** — each hop makes the
+next one reachable, so a two-platform climb emerges without anything reasoning about
+the whole route.
+
+Scoring, in order of weight:
+
+1. **A stone that leaves the target within one more jump wins outright.** This is the
+   closest thing here to real planning: it cannot see a whole route, but it can see
+   whether *this* hop finishes the job, which keeps it off dead ends whenever a
+   completing stone exists at all.
+2. Otherwise, highest first — height is what it is short of.
+3. Ties broken by how much closer the stone leaves it to standing under the target.
+   This is what picks the correct side of the stage.
+
+Three supporting rules make the hops actually land:
+
+- **A jump is a commitment.** `UpdateRoute` returns immediately when airborne and
+  re-plans *only on landing*. This is load-bearing and easy to break: height is
+  measured from where the fighter currently is, so during the hop the gap to the target
+  shrinks, and near the apex it drops under `UsableRise`. Re-planning there reads the
+  route as "no longer needed", abandons the hop half-done, chases the target instead,
+  sails past the ledge and lands back at the start — forever, because the loop is
+  stable. Air control is spent getting *onto* the platform, not drifting toward the
+  player.
+- **Boarding spot.** It steers to a point *inset from the platform edges* and directly
+  under it, then jumps straight up through the one-way collider. No reaction window —
+  this is navigation, not a reaction to the player.
+- **Ledge jump.** Running out of floor while heading somewhere higher triggers a jump
+  immediately. This is what crosses the gap *between* two platforms; hesitating there
+  just means falling back down a level.
+
+**Navigation jumps ignore `jumpCooldown`, and they have to.** A boarding hop is
+airborne for ~0.6s against a 1.0s cooldown, so the fighter lands still holding it — and
+the ledge it must jump from next is ~0.5 units away, well under half a second of
+walking. It would detect the ledge, be refused, walk off, fall, climb again, and repeat
+forever. That loop looks like indecision but is really the cooldown outliving the
+platform. Exempting them cannot cause rapid fire: both require being grounded, and any
+jump costs ~0.6s in the air. The cooldown stays on jumps that are a *reaction* —
+following the target upward, or hopping a wall — which is the only place repeated
+firing reads as twitchiness.
+
+The two climbs in the test stage, both verified against the actual geometry:
+
+| From | Hop 1 (boarding jump) | Hop 2 (ledge jump) |
+|---|---|---|
+| floor → Platform Top Right (5.0) | via Platform Low Right (2.6), board at x 6.5 | gap 2.25 vs reach 2.87 |
+| floor → Platform High Mid (4.6) | via Platform Low Left (2.6), board at x −7.25 | gap 2.75 vs reach 3.25 |
+
+Hop 2 is launched from a **standstill** — the boarding hop lands with no horizontal
+speed, and the ledge fires on the same step — so those reach figures already include
+accelerating from zero at `groundAcceleration`. A running launch would clear by more.
+
+Margins on the second hop are only ~0.5 units. **That is why the opponent jumps higher
+than the player** (3.8 vs 3.2) — the apex buys the air time that carries the running
+jump across the gap. At 3.4 the margin halves and the hops start failing
+intermittently. See **Retuning the fighters** below before changing jump height, run
+speed or gravity, and re-check these numbers if platform heights or gaps change.
+
+### Aiming where it will be (`TryAttack` / `PredictedTravel`)
+
+*"Is the target in reach?"* is the wrong question. The hitbox does not exist until
+startup has elapsed, so the right question is whether they are in reach of **where the
+fighter will be when it opens**. `PredictedTravel` answers that, and the range test runs
+against the prediction rather than the present.
+
+Both axes matter, and the vertical one is the easy one to forget:
+
+- **Horizontally**, a jump closes most of an attack range during startup. Without the
+  lead the opponent arcs past a ledge-camper and only registers them once a swing could
+  no longer have landed. Travel is scaled by the attack's own `moveControlScale`,
+  because the swing brakes the fighter — predicting off the current speed overshoots
+  and makes it swing *too early* instead.
+- **Vertically**, a fighter blocked by the target's own body loses its horizontal speed
+  and simply falls. Falling at 4 u/s it drops **1.10 units during a 0.13s startup —
+  exactly one hitbox height**. It aimed at the target and the hitbox opened underneath
+  them. That is the near miss that makes standing on the edge of a platform safe.
+
+The airborne reaction window is also its own, much shorter number (`airReactionTime`,
+0.12s vs 0.25s): a jump arcing past the target is in range for about a third of a
+second, and the jump was itself the decision — deliberating a second time mid-flight
+means never swinging.
+
+Three further changes bought the dive its remaining margin:
+
+| | before | after | why |
+|---|---|---|---|
+| `EnemyBrain` execution order | default | `-10` | it ran *after* `EnemyAttack`, so a swing decided in one step was not ticked until the next — a whole physics step of latency |
+| air startup | 0.13 | 0.09 | every frame of startup is spent travelling back out of range |
+| air active | 0.07 | 0.10 | the only forgiveness a dive gets for arriving a step or two off |
+| air `moveControlScale` | 0.6 | 0.9 | a dive that brakes itself lands short of what it was aimed at |
+
+Decision-to-hitbox went from 0.150s to 0.090s, and the hitbox stays open 43% longer.
+
+Camping the *far* end of a platform still gets no mid-air hit — but there the opponent
+has room to land on the platform and simply fight you on it, which is the outcome you
+want anyway.
+
+### Retuning the fighters — what adapts and what does not
+
+Most of the AI derives its behaviour from the settings rather than assuming them.
+`UsableRise` comes from the motor's jump apex, swings are aimed with the attack's real
+frame data and the fighter's live velocity, and jump launch speed is derived from the
+desired apex so changing gravity does not change how high anyone jumps. **Change those
+values and the AI re-reasons correctly.**
+
+One thing does *not* adapt, and it is the one to watch:
+
+> **How wide a gap the opponent can jump is emergent, and nothing checks it.**
+> It falls out of jump height, run speed, gravity scale and fall multiplier
+> *together*, and it has to be big enough for the gaps in the stage.
+
+Sensitivity of the two test-stage climbs, as margin in units (negative = the hop fails
+and the opponent loops between platforms instead of getting up):
+
+| Change | usable rise | Top Right hop | High Mid hop |
+|---|---|---|---|
+| **current** | 3.30 | +0.62 | +0.50 |
+| enemy `jumpHeight` 3.4 | 2.90 | +0.17 | +0.12 |
+| enemy `jumpHeight` 3.2 | 2.70 | **−0.08** | **−0.10** |
+| enemy `maxRunSpeed` 5.5 | 3.30 | +0.17 | **−0.00** |
+| enemy `maxRunSpeed` 5.0 | 3.30 | **−0.05** | **−0.25** |
+| `gravityScale` 7 | 3.30 | +0.17 | **−0.00** |
+| `gravityScale` 3.5 | 3.30 | +1.17 | +1.13 |
+
+Read that as: **lowering the opponent's jump height or run speed is the dangerous
+direction**, and roughly a 15% cut in either is enough to break the climbs in the
+current stage. Raising them, or making gravity floatier, is always safe. Player
+settings do not affect this at all — only the opponent's own.
+
+The failure is graceful, not a crash: it retries, or reports `Stranded`. But it will
+never get up, and a platform becomes a safe camping spot.
+
+### `EnemyTuningCheck` — the safety net
+
+A component on the opponent that runs once on Play, warns about settings that have
+drifted out of agreement, and compiles to nothing outside the editor and development
+builds. It never corrects anything.
+
+What it catches:
+
+| Check | Why it matters |
+|---|---|
+| usable rise ≤ 0 | `jumpReachMargin` ate the whole jump; it can never climb |
+| player jumps higher than the opponent can land | **any** ledge the player reaches becomes safe — currently 3.2 vs 3.30, only 0.1 of headroom |
+| `preferredDistance` > `attackRange` | it holds a distance it cannot punch from, walks up and does nothing |
+| `attackRange` > ground hitbox reach | the ground attack roots the fighter during startup, so it must connect from where it stood |
+| stopping distance > `climbEdgeInset` | boarding jumps launch from past the platform edge and miss |
+
+Tick `alwaysReportReach` to also print the derived figures when nothing is wrong — how
+high it can climb, and how wide a gap it can cross at each height. Those are the two
+numbers a stage layout has to respect, and nothing else in the project can work them
+out.
+
+### Why the swing is telegraphed
+
+`AttackRunner.Started` fires at the beginning of startup, and
+`PlaceholderEnemyAttackFx` draws a shape that **grows to the true hitbox size over
+exactly the startup duration**. Startup is the longest phase of a swing, and with
+nothing drawn during it the opponent appears to stop dead and then hit you — which
+reads as the game hitching, not as an attack being charged.
+
+That is why the startup could then be shortened (0.28 → 0.20) without the attack
+becoming unfair: the wind-up now carries information rather than dead time. If the
+telegraph is ever removed, the startup has to come back down further or the attack
+becomes unreadable again.
+- **Gets stunned and knocked back** like the player, and **cancels its swing** when hit.
+- **On K.O.**: brain and attack switch off, the motor stays on so the body still
+  falls and takes knockback, then `RoundEvents.ReportRoundEnded(PlayerWon)` fires
+  after a short delay.
+
+### The dials that matter
+
+Four numbers decide whether it feels fair, and none of them is damage:
+
+- **`EnemyAttack.groundAttack.startup`** (0.20s vs the player's 0.15s) — the wind-up
+  *is* the window you get to react in. Only safe at this length because it is drawn.
+- **`EnemyBrain.reactionTime`** (0.25s) — an opponent that swings the instant you
+  enter range is unreadable no matter how weak the hit is. Its airborne twin
+  `airReactionTime` (0.12s) is short on purpose; raising it back up makes ledges safe
+  to camp again.
+- **`EnemyBrain.jumpReactionTime`** (0.4s) and **`dropReactionTime`** (0.45s) — these
+  are what stop it mirroring your movement. They are the difference between "chasing"
+  and "hectic".
+
+Shorten any of them to make the fight harder. Reach for the damage number last.
+
+### Communication with the motor
+
+The brain writes, the motor reads, both in `FixedUpdate` — and Unity does not
+guarantee which runs first. That is deliberate and safe:
+
+- `MoveX` is a **persistent value**, so a one-step lag is invisible.
+- `RequestJump()` is **buffered** (`jumpBufferTime`), so a request never gets dropped
+  by ordering, by being made mid-air, or by being made just before landing.
+
+No script execution order is configured, and none is needed.
 
 ### Gotchas
 
 - **No physics layers are in use.** Everything is on `Default`. Hitboxes skip only the
-  attacker's own hierarchy (`transform.IsChildOf`). Once there are two fighters that
-  is still fine, but any friendly-fire or projectile rules will need real layers.
-- **Flow multipliers are applied by the attacker**, reading its own `FighterResources`.
-  An enemy with no `FighterResources` simply hits at ×1 — no null handling needed.
-- **`PlayerHitReaction` respawns on death.** There is no round flow, no win condition,
-  no score. That is still an open design question (see `GAME_DESIGN.md`).
-- The enemy must not be able to hit itself: mirror the `IsChildOf` self-skip.
-
-### Suggested split
-
-1. Enemy that exists, has `Health`, takes hits, gets knocked back — replaces the dummy.
-2. Enemy that moves: chase / back off, reusing or sharing the motor.
-3. Enemy that attacks, using shared frame-data logic.
+  attacker's own hierarchy (`transform.IsChildOf`), which is enough for two fighters —
+  but each fighter's *ground check* also sees the other, so standing on the opponent's
+  head counts as grounded. Harmless today; friendly fire or projectiles will need real
+  layers.
+- **`FighterResources` is what identifies the player.** Only the player has one, so
+  `FighterHud` finds it and reads the `Health` next to it. Do not add one to the
+  opponent without fixing that — `FindAnyObjectByType<Health>()` would otherwise put
+  the opponent's HP on the player's bar.
+- **Neither fighter respawns.** `Revive()` on either knockout is a debug affordance
+  (`R` for the opponent), not a round flow. Both outcomes end the round; `Enter`
+  reloads the scene.
 
 ---
 
@@ -322,17 +698,29 @@ grep -rn "SplitScreenTodo(" Assets/Scripts
 
 ## Known gaps
 
-- **No opponent.** `TrainingDummy` is a static bag; the fight is one-sided.
-- **No round flow.** Death respawns after 1.5s. No win condition, score, or reset.
+- **No round flow beyond the outcome.** `RoundEvents` reports both outcomes and
+  `DebugRoundBanner` prints them, with `Enter` to reload; there is no results screen,
+  no scene transition, no score, no best-of-N.
+- **The AI has no defence.** It never blocks, never retreats from a wind-up, and
+  cannot be baited. It reacts to *where you are*, never to *what you are doing* — the
+  telegraph runs one way only.
+- **Climbing plans one hop, not a route.** It works because it re-plans on landing and
+  because a hop that completes the climb outscores everything else, but it still cannot
+  see two hops ahead. It will not descend in order to climb a better way up, and a
+  stage where the only route goes *down* first would leave it `Stranded` or looping.
+  Real pathfinding would mean a navigation graph of platform surfaces and jump arcs —
+  worth it only if the stage layout gets genuinely maze-like.
+- **A platform with no route up is a level-design problem.** `Stranded` is the honest
+  failure mode, not a fix: the opponent shadows you from below until you come down.
+  Check any new stage has a ladder of surfaces no more than ~3.3 units apart.
 - **Quiz not wired.** `RiddleRewards` exists and is driven only by `DebugRiddleDriver`.
   See below.
-- **No tests.** The economy is pure logic and would test well, but test assemblies
-  cannot reference `Assembly-CSharp` — testing it requires moving this code into an
-  asmdef first (which is exactly why the quiz has one).
+- **No tests.** `FighterResources`, `AttackRunner` and `RoundEvents` are all pure
+  logic now and would test well, but test assemblies cannot reference
+  `Assembly-CSharp` — testing them requires moving this code into an asmdef first
+  (which is exactly why the quiz has one).
 - **No text in the HUD.** TextMeshPro essentials are not in the project yet; they
   arrive with the menu branch. Importing a second copy would collide with it.
-- **`CLAUDE.md` is stale** — it still says gameplay code does not exist and no asmdefs
-  are used. Both untrue. It is on `main`, which this branch has not merged yet.
 
 ## Wiring the quiz half (ready to do)
 

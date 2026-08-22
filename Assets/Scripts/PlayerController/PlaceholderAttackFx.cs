@@ -1,5 +1,5 @@
-using System.Collections;
 using ThinkFast.Combat;
+using ThinkFast.Common;
 using UnityEngine;
 
 namespace ThinkFast.Player
@@ -8,11 +8,15 @@ namespace ThinkFast.Player
     /// THROWAWAY. Placeholder sound and visuals so the two attacks are tellable
     /// apart before any real art or audio exists.
     ///
-    /// Everything here is generated at runtime -- the sounds are synthesised
-    /// sample by sample and the visuals are Unity primitives -- so this drags in
-    /// no assets at all. It listens to <see cref="PlayerAttack"/> events and is
-    /// never called into, so deleting this one file and its GameObject removes it
-    /// completely, with no changes needed anywhere else.
+    /// Everything here is generated at runtime -- see
+    /// <see cref="PlaceholderFxKit"/> -- so this drags in no assets at all. It
+    /// listens to <see cref="PlayerAttack"/> events and is never called into, so
+    /// deleting this one file and its component removes it completely, with no
+    /// changes needed anywhere else.
+    ///
+    /// Palette and shapes are chosen to contrast with the opponent's cues in
+    /// <see cref="ThinkFast.Enemy.PlaceholderEnemyAttackFx"/>: warm colours and
+    /// hard-edged shapes here, violet and rounded there.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(PlayerAttack))]
@@ -46,8 +50,6 @@ namespace ThinkFast.Player
         private Material airMaterial;
         private Material impactMaterial;
 
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-
         private void Awake()
         {
             attack = GetComponent<PlayerAttack>();
@@ -61,17 +63,17 @@ namespace ThinkFast.Player
             // A low, slow thud versus a high, airy hiss. Pitch and noise content
             // are what actually make the two readable apart by ear -- volume and
             // length alone are not enough.
-            groundSwingClip = CreateClip("PlaceholderGroundSwing", 0.20f, 190f, 70f, 16f, 0.15f, seed: 11);
-            airSwingClip = CreateClip("PlaceholderAirSwing", 0.14f, 900f, 380f, 20f, 0.75f, seed: 22);
-            impactClip = CreateClip("PlaceholderImpact", 0.16f, 150f, 55f, 24f, 0.40f, seed: 33);
+            groundSwingClip = PlaceholderFxKit.CreateClip("PlaceholderGroundSwing", 0.20f, 190f, 70f, 16f, 0.15f, seed: 11);
+            airSwingClip = PlaceholderFxKit.CreateClip("PlaceholderAirSwing", 0.14f, 900f, 380f, 20f, 0.75f, seed: 22);
+            impactClip = PlaceholderFxKit.CreateClip("PlaceholderImpact", 0.16f, 150f, 55f, 24f, 0.40f, seed: 33);
 
             // Deliberately weak and dull: "nothing happened" has to sound
             // different from a punch, or being out of AP reads as a broken button.
-            refusedClip = CreateClip("PlaceholderRefused", 0.09f, 240f, 210f, 34f, 0.05f, seed: 44);
+            refusedClip = PlaceholderFxKit.CreateClip("PlaceholderRefused", 0.09f, 240f, 210f, 34f, 0.05f, seed: 44);
 
-            groundMaterial = CreateUnlitMaterial(groundColour);
-            airMaterial = CreateUnlitMaterial(airColour);
-            impactMaterial = CreateUnlitMaterial(impactColour);
+            groundMaterial = PlaceholderFxKit.CreateUnlitMaterial(groundColour);
+            airMaterial = PlaceholderFxKit.CreateUnlitMaterial(airColour);
+            impactMaterial = PlaceholderFxKit.CreateUnlitMaterial(impactColour);
         }
 
         private void OnEnable()
@@ -92,13 +94,13 @@ namespace ThinkFast.Player
         {
             // Runtime-created assets are not owned by the scene, so they have to
             // be cleaned up by hand.
-            DestroyAsset(groundSwingClip);
-            DestroyAsset(airSwingClip);
-            DestroyAsset(impactClip);
-            DestroyAsset(refusedClip);
-            DestroyAsset(groundMaterial);
-            DestroyAsset(airMaterial);
-            DestroyAsset(impactMaterial);
+            PlaceholderFxKit.DestroyAsset(groundSwingClip);
+            PlaceholderFxKit.DestroyAsset(airSwingClip);
+            PlaceholderFxKit.DestroyAsset(impactClip);
+            PlaceholderFxKit.DestroyAsset(refusedClip);
+            PlaceholderFxKit.DestroyAsset(groundMaterial);
+            PlaceholderFxKit.DestroyAsset(airMaterial);
+            PlaceholderFxKit.DestroyAsset(impactMaterial);
         }
 
         private void HandleAttackBecameActive(AttackDefinition definition, Vector2 centre)
@@ -131,103 +133,13 @@ namespace ThinkFast.Player
 
         private void SpawnShape(PrimitiveType type, Material material, Vector2 position, Vector3 scale)
         {
-            GameObject shape = GameObject.CreatePrimitive(type);
-            shape.name = "PlaceholderFx";
-
-            // Primitives come with a 3D collider. Gameplay is 2D, so it would
-            // never collide with anything -- but it would still be queried.
-            Collider collider = shape.GetComponent<Collider>();
-            if (collider != null)
-            {
-                Destroy(collider);
-            }
-
-            if (material != null)
-            {
-                shape.GetComponent<MeshRenderer>().sharedMaterial = material;
-            }
-
-            // Deliberately not parented to the fighter: the cue marks where the
-            // hitbox was, and should not follow you as you walk away.
-            shape.transform.position = new Vector3(position.x, position.y, transform.position.z);
-            shape.transform.localScale = scale;
-
-            // Destroy is the guarantee; the coroutine is only cosmetic, so a
-            // stopped coroutine can never leak an object.
-            Destroy(shape, shapeLifetime);
-            StartCoroutine(ShrinkAway(shape.transform, scale, shapeLifetime));
-        }
-
-        private static IEnumerator ShrinkAway(Transform target, Vector3 from, float lifetime)
-        {
-            float elapsed = 0f;
-            while (target != null && elapsed < lifetime)
-            {
-                elapsed += Time.deltaTime;
-                target.localScale = Vector3.Lerp(from, Vector3.zero, Mathf.Clamp01(elapsed / lifetime));
-                yield return null;
-            }
-        }
-
-        /// <summary>
-        /// Synthesises a one-shot: a sine sweeping from <paramref name="startHz"/>
-        /// down to <paramref name="endHz"/>, blended with noise and shaped by an
-        /// exponential decay. Low and tonal reads as a thud; high and noisy reads
-        /// as a whoosh.
-        /// </summary>
-        private static AudioClip CreateClip(string name, float duration, float startHz, float endHz, float decay, float noiseMix, int seed)
-        {
-            const int SampleRate = 44100;
-
-            int sampleCount = Mathf.Max(1, Mathf.RoundToInt(SampleRate * duration));
-            var samples = new float[sampleCount];
-            var random = new System.Random(seed);
-
-            // Phase is accumulated rather than computed from t, otherwise sweeping
-            // the frequency would introduce audible discontinuities.
-            float phase = 0f;
-
-            for (int i = 0; i < sampleCount; i++)
-            {
-                float t = (float)i / SampleRate;
-                float progress = (float)i / sampleCount;
-
-                float hz = Mathf.Lerp(startHz, endHz, progress);
-                phase += 2f * Mathf.PI * hz / SampleRate;
-
-                float tone = Mathf.Sin(phase);
-                float noise = (float)(random.NextDouble() * 2.0 - 1.0);
-                float envelope = Mathf.Exp(-t * decay);
-
-                samples[i] = Mathf.Clamp(Mathf.Lerp(tone, noise, noiseMix) * envelope, -1f, 1f);
-            }
-
-            AudioClip clip = AudioClip.Create(name, sampleCount, 1, SampleRate, false);
-            clip.SetData(samples, 0);
-            return clip;
-        }
-
-        private static Material CreateUnlitMaterial(Color colour)
-        {
-            // Unlit so the cue stays a flat, bright, obviously-placeholder blob
-            // that no one will mistake for real art.
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-            if (shader == null)
-            {
-                return null;
-            }
-
-            var material = new Material(shader);
-            material.SetColor(BaseColorId, colour);
-            return material;
-        }
-
-        private static void DestroyAsset(Object asset)
-        {
-            if (asset != null)
-            {
-                Destroy(asset);
-            }
+            PlaceholderFxKit.SpawnShape(
+                type,
+                material,
+                new Vector3(position.x, position.y, transform.position.z),
+                scale,
+                Vector3.zero,
+                shapeLifetime);
         }
     }
 }

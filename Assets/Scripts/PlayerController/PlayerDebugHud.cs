@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ThinkFast.Combat;
 using ThinkFast.Common;
 using ThinkFast.Economy;
 using UnityEngine;
@@ -118,7 +119,7 @@ namespace ThinkFast.Player
 
             // Active is the only phase that can actually hit, so it is the only
             // one worth making loud.
-            string colour = attack.CurrentPhase == PlayerAttack.Phase.Active ? "#ff4444" : "#ffcc44";
+            string colour = attack.CurrentPhase == AttackRunner.Phase.Active ? "#ff4444" : "#ffcc44";
             return $"<color={colour}>{attack.CurrentAttackName} : {attack.CurrentPhase}</color>";
         }
 
