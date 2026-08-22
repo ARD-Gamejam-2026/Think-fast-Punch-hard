@@ -20,10 +20,12 @@ jobs:
 
       # The Unity WebGL editor image (~15 GB unpacked) does not fit in the
       # free space of a stock runner; drop preinstalled toolchains we don't use.
+      # Do NOT run `docker image prune` here: GitHub pre-builds the image for
+      # the Docker-based itch-publish action at job setup, and pruning deletes
+      # it, breaking the publish step (only ~1.8 GB reclaimed anyway).
       - name: Free disk space
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force
           df -h /
 
       - name: Cache Library
