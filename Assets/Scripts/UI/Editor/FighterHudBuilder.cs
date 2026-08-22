@@ -57,10 +57,10 @@ namespace ThinkFast.UIEditor
             // the fighter's share of the window.
             RectTransform viewport = UiFactory.Stretch(UiFactory.NewRect("Viewport", root.transform));
 
-            Image playerHealth = BuildHealthBar(viewport, "Player Health", "YOU", true, sprites, font);
-            Image opponentHealth = BuildHealthBar(viewport, "Opponent Health", "TRAINER", false, sprites, font);
+            Image playerHealth = BuildHealthBar(viewport, "Player Health", "YOU", true, font);
+            Image opponentHealth = BuildHealthBar(viewport, "Opponent Health", "TRAINER", false, font);
 
-            Image flowFill = BuildFlowMeter(viewport, sprites, font);
+            Image flowFill = BuildFlowMeter(viewport, font);
             Image[] pips = BuildActionPoints(viewport, 5, sprites, font);
 
             var hud = root.AddComponent<FighterHud>();
@@ -139,7 +139,7 @@ namespace ThinkFast.UIEditor
         /// two empty toward each other.
         /// </summary>
         private static Image BuildHealthBar(
-            RectTransform parent, string name, string title, bool isPlayer, UiSpriteFactory.Sprites sprites, TMP_FontAsset font)
+            RectTransform parent, string name, string title, bool isPlayer, TMP_FontAsset font)
         {
             Vector2 anchor = new Vector2(isPlayer ? 0f : 1f, 1f);
             float x = isPlayer ? SideMargin : -SideMargin;
@@ -162,10 +162,10 @@ namespace ThinkFast.UIEditor
                 Vector2.zero,
                 new Vector2(HealthBarWidth, HealthBarHeight));
 
-            // The track is opaque, not a tint of whatever is behind it. A health
-            // bar has to be readable against a stage nobody has built yet.
-            Image trackImage = UiFactory.AddImage(track, sprites.Pill, MenuTheme.Surface);
-            trackImage.type = Image.Type.Sliced;
+            // Square, matching the sliders. The track is also opaque rather than a
+            // tint of whatever is behind it: a health bar has to stay readable
+            // against a stage nobody has built yet.
+            UiFactory.AddImage(track, null, MenuTheme.Surface);
 
             RectTransform fill = UiFactory.NewRect("Fill", track);
             fill.anchorMin = Vector2.zero;
@@ -173,13 +173,10 @@ namespace ThinkFast.UIEditor
             fill.offsetMin = new Vector2(3f, 3f);
             fill.offsetMax = new Vector2(-3f, -3f);
 
-            Image fillImage = UiFactory.AddImage(fill, sprites.Pill, MenuTheme.Positive);
-            fillImage.type = Image.Type.Sliced;
-
-            return fillImage;
+            return UiFactory.AddImage(fill, null, MenuTheme.Positive);
         }
 
-        private static Image BuildFlowMeter(RectTransform parent, UiSpriteFactory.Sprites sprites, TMP_FontAsset font)
+        private static Image BuildFlowMeter(RectTransform parent, TMP_FontAsset font)
         {
             RectTransform group = UiFactory.Place(
                 UiFactory.NewRect("Flow", parent),
@@ -197,7 +194,7 @@ namespace ThinkFast.UIEditor
                 new Vector2(0f, 0.5f),
                 new Vector2(78f, 0f),
                 new Vector2(MeterWidth - 78f, MeterHeight));
-            UiFactory.AddImage(track, sprites.Pill, MenuTheme.Surface);
+            UiFactory.AddImage(track, null, MenuTheme.Surface);
 
             RectTransform fill = UiFactory.NewRect("Fill", track);
             fill.anchorMin = Vector2.zero;
@@ -205,7 +202,7 @@ namespace ThinkFast.UIEditor
             fill.offsetMin = new Vector2(3f, 3f);
             fill.offsetMax = new Vector2(-3f, -3f);
 
-            return UiFactory.AddImage(fill, sprites.Pill, MenuTheme.Accent);
+            return UiFactory.AddImage(fill, null, MenuTheme.Accent);
         }
 
         private static Image[] BuildActionPoints(RectTransform parent, int count, UiSpriteFactory.Sprites sprites, TMP_FontAsset font)
