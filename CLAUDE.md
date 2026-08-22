@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-"Think fast, Punch hard" — a game for the ARD Game Jam 2026, built with **Unity 6000.5.9f1** using the **Universal Render Pipeline (URP)** and the **new Input System** (`com.unity.inputsystem`). The fighter half (movement, attacks, AP/Flow economy, health, HUD) and the quiz half are both implemented — see **Documentation** below before exploring the code.
+"Think fast, Punch hard" — a game for the ARD Game Jam 2026, built with **Unity 6000.5.9f1** using the **Universal Render Pipeline (URP)** and the **new Input System** (`com.unity.inputsystem`). The fighter half (movement, attacks, AP/Flow economy, health, HUD, and an autonomous AI opponent) and the quiz half are both implemented — see **Documentation** below before exploring the code.
 
 Links:
 - Design board: https://miro.com/app/board/uXjVHv0lDhg=/
@@ -17,8 +17,11 @@ Read these before working on gameplay — they explain how the systems fit toget
 and which seams to build against:
 
 - `Assets/Scripts/README.md` — **fighter half**: movement, attacks, AP/Flow economy,
-  health, HUD, the `IDamageable`/`HitInfo` contract, the `RiddleRewards` seam to the
-  quiz, debug keys, tuning defaults, and a guide to building the AI opponent.
+  health, HUD, the AI opponent (chasing, platform climbing, attacking), the
+  `IDamageable`/`HitInfo` and `IFighterMotor` contracts, the `RiddleRewards` seam to
+  the quiz and the `RoundEvents` seam to match flow, debug keys, and tuning defaults.
+  **Read its "Retuning the fighters" section before changing jump height, run speed or
+  gravity** — the opponent's platform routes depend on those and nothing enforces it.
 - `Assets/Quiz/README.md` — **quiz half**: questions, sessions, the endless `QuizFlow`
   driver, and the `QuestionResolved`/`QuestionAnswered` events other systems hook into.
 - `GAME_DESIGN.md` — game design overview and decisions. Gitignored, local only, so
