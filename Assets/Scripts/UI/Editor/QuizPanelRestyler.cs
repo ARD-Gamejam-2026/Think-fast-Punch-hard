@@ -24,6 +24,9 @@ namespace ThinkFast.UIEditor
         private const string PrefabPath = "Assets/Quiz/QuizPanel.prefab";
         private const string FontPath = "Assets/Fonts/Nunito SDF.asset";
 
+        /// <summary>The per-answer shape image, as named by the quiz's own sequence setup.</summary>
+        private const string AnswerIconName = "AnswerIcon";
+
         [MenuItem("Tools/Think Fast/Restyle Quiz Panel")]
         public static void Restyle()
         {
@@ -138,16 +141,24 @@ namespace ThinkFast.UIEditor
                 }
 
                 SetText(answer.transform.Find("AnswerLabel"), MenuTheme.TextPrimary, font);
-                SetStateColours(answer);
+                ConfigureAnswerButton(answer);
             }
         }
 
         /// <summary>
-        /// Sets the four feedback fills. Tints rather than solid colours, because
-        /// the label's colour is fixed and only the background changes -- see
+        /// Sets the four feedback fills and re-points the shape icon.
+        ///
+        /// Tints rather than solid colours for the fills, because the label's
+        /// colour is fixed and only the background changes -- see
         /// <see cref="MenuTheme.PositiveTint"/>.
+        ///
+        /// The icon reference is restored rather than merely left alone: saving
+        /// the prefab back drops it, and a null icon is not a cosmetic problem.
+        /// A sequence question calls SetAnswerImage on every answer, and that
+        /// method does not check for null, so the whole quiz throws the moment a
+        /// shape question comes up.
         /// </summary>
-        private static void SetStateColours(AnswerButton answer)
+        private static void ConfigureAnswerButton(AnswerButton answer)
         {
             var so = new SerializedObject(answer);
 
@@ -158,7 +169,37 @@ namespace ThinkFast.UIEditor
             so.FindProperty("correctColor").colorValue = MenuTheme.PositiveTint;
             so.FindProperty("wrongColor").colorValue = MenuTheme.NegativeTint;
             so.FindProperty("highlightColor").colorValue = MenuTheme.CautionTint;
+
+            RestoreAnswerIcon(answer, so);
+
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Points the button's icon field back at the child that draws it, found
+        /// by name the same way the quiz's own sequence setup creates it.
+        /// </summary>
+        private static void RestoreAnswerIcon(AnswerButton answer, SerializedObject so)
+        {
+            SerializedProperty property = so.FindProperty("answerIcon");
+            if (property == null)
+            {
+                return;
+            }
+
+            Transform icon = answer.transform.Find(AnswerIconName);
+            if (icon == null)
+            {
+                return;
+            }
+
+            var image = icon.GetComponent<Image>();
+            if (image == null)
+            {
+                return;
+            }
+
+            property.objectReferenceValue = image;
         }
 
         private static void RestyleQuestion(GameObject root, TMP_FontAsset font)

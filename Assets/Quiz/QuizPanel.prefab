@@ -157,7 +157,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 1
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 4096
   m_textAlignment: 65535
@@ -301,7 +301,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.94509804, g: 0.95686275, b: 0.96862745, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -405,7 +405,7 @@ MonoBehaviour:
   letterLabel: {fileID: 776093695309247507}
   answerLabel: {fileID: 252846768829237294}
   answerIcon: {fileID: 0}
-  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  normalColor: {r: 0.94509804, g: 0.95686275, b: 0.96862745, a: 1}
   correctColor: {r: 0.7607843, g: 0.9254902, b: 0.81960785, a: 1}
   wrongColor: {r: 0.98039216, g: 0.79607844, b: 0.7764706, a: 1}
   highlightColor: {r: 0.99215686, g: 0.8980392, b: 0.7058824, a: 1}
@@ -680,7 +680,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 1
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 4096
   m_textAlignment: 65535
@@ -804,8 +804,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 577b8745b9104a64aad487781d598882, type: 3}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: 7584903d07a7dc44cb3fcaac8b4fc6b8, type: 3}
+  m_Type: 3
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 0
@@ -1195,7 +1195,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 1
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 4096
   m_textAlignment: 65535
@@ -1608,7 +1608,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.94509804, g: 0.95686275, b: 0.96862745, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1712,7 +1712,7 @@ MonoBehaviour:
   letterLabel: {fileID: 4846955377049677676}
   answerLabel: {fileID: 1954693133770801961}
   answerIcon: {fileID: 0}
-  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  normalColor: {r: 0.94509804, g: 0.95686275, b: 0.96862745, a: 1}
   correctColor: {r: 0.7607843, g: 0.9254902, b: 0.81960785, a: 1}
   wrongColor: {r: 0.98039216, g: 0.79607844, b: 0.7764706, a: 1}
   highlightColor: {r: 0.99215686, g: 0.8980392, b: 0.7058824, a: 1}
@@ -1801,7 +1801,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.94509804, g: 0.95686275, b: 0.96862745, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1905,7 +1905,7 @@ MonoBehaviour:
   letterLabel: {fileID: 2050684826269668067}
   answerLabel: {fileID: 1677123706203485661}
   answerIcon: {fileID: 0}
-  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  normalColor: {r: 0.94509804, g: 0.95686275, b: 0.96862745, a: 1}
   correctColor: {r: 0.7607843, g: 0.9254902, b: 0.81960785, a: 1}
   wrongColor: {r: 0.98039216, g: 0.79607844, b: 0.7764706, a: 1}
   highlightColor: {r: 0.99215686, g: 0.8980392, b: 0.7058824, a: 1}
@@ -1976,7 +1976,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 577b8745b9104a64aad487781d598882, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 7584903d07a7dc44cb3fcaac8b4fc6b8, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2091,7 +2091,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.94509804, g: 0.95686275, b: 0.96862745, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2195,7 +2195,7 @@ MonoBehaviour:
   letterLabel: {fileID: 1741615314909265064}
   answerLabel: {fileID: 6968086176509559093}
   answerIcon: {fileID: 0}
-  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  normalColor: {r: 0.94509804, g: 0.95686275, b: 0.96862745, a: 1}
   correctColor: {r: 0.7607843, g: 0.9254902, b: 0.81960785, a: 1}
   wrongColor: {r: 0.98039216, g: 0.79607844, b: 0.7764706, a: 1}
   highlightColor: {r: 0.99215686, g: 0.8980392, b: 0.7058824, a: 1}
@@ -2942,7 +2942,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 1
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 4096
   m_textAlignment: 65535
