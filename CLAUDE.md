@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-"Think fast, Punch hard" — a game for the ARD Game Jam 2026, built with **Unity 6000.5.9f1** using the **Universal Render Pipeline (URP)** and the **new Input System** (`com.unity.inputsystem`). The fighter half (movement, attacks, AP/Flow economy, health, HUD, and an autonomous AI opponent) and the quiz half are both implemented — see **Documentation** below before exploring the code.
+"Think fast, Punch hard" — a game for the ARD Game Jam 2026, built with **Unity 6000.5.9f1** using the **Universal Render Pipeline (URP)** and the **new Input System** (`com.unity.inputsystem`). The fighter half (movement, attacks, AP/Flow economy, health, HUD, and an autonomous AI opponent) and the quiz half are both implemented, and are now **wired together**: split screen (fight left, quiz right) with solves paying into the fighter's economy. See **Documentation** below before exploring the code.
 
 Links:
 - Design board: https://miro.com/app/board/uXjVHv0lDhg=/
@@ -20,6 +20,8 @@ and which seams to build against:
   health, HUD, the AI opponent (chasing, platform climbing, attacking), the
   `IDamageable`/`HitInfo` and `IFighterMotor` contracts, the `RiddleRewards` seam to
   the quiz and the `RoundEvents` seam to match flow, debug keys, and tuning defaults.
+  Its **"The quiz half, wired"** and **"Split screen"** sections cover the reward rule
+  (fast solves pay Flow, slow ones only pay AP) and the viewport layout.
   **Read its "Retuning the fighters" section before changing jump height, run speed or
   gravity** — the opponent's platform routes depend on those and nothing enforces it.
 - `Assets/Quiz/README.md` — **quiz half**: questions, sessions, the endless `QuizFlow`

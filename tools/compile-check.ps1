@@ -136,11 +136,34 @@ namespace CompileCheck { internal static class Stub$Tag { } }
 $runtimeProj = Join-Path $ProjectRoot 'CompileCheck.Runtime.csproj'
 $editorProj  = Join-Path $ProjectRoot 'CompileCheck.Editor.csproj'
 
+# A folder that owns an .asmdef compiles as its OWN assembly, and Unity's csproj
+# files already pull that assembly in by reference. Globbing its sources in as
+# well would define every one of its types twice -- tolerable in the runtime
+# project (CS0436: the source copy wins) but a hard ambiguity ERROR in the editor
+# one (CS0433), which failed the whole check for anything touching the quiz.
+# Those assemblies are still compiled, via their own project references.
+function Get-AsmdefExcludes {
+    param([string]$Root)
+
+    $excludes = @()
+    $scripts = Join-Path $Root 'Assets/Scripts'
+
+    foreach ($asmdef in Get-ChildItem -Path $scripts -Filter '*.asmdef' -Recurse -File) {
+        $relative = $asmdef.Directory.FullName.Substring($Root.Length).TrimStart([char]92, [char]47)
+        $excludes += (Join-Path $relative '**\*.cs')
+    }
+
+    return $excludes
+}
+
+$asmdefExcludes = Get-AsmdefExcludes -Root $ProjectRoot
+
 New-CheckProject -SourceCsproj 'Assembly-CSharp.csproj' -TargetCsproj $runtimeProj `
-    -Include 'Assets\Scripts\**\*.cs' -Exclude 'Assets\Scripts\**\Editor\**\*.cs' -Tag 'Runtime'
+    -Include 'Assets\Scripts\**\*.cs' `
+    -Exclude ((@('Assets\Scripts\**\Editor\**\*.cs') + $asmdefExcludes) -join ';') -Tag 'Runtime'
 
 New-CheckProject -SourceCsproj 'Assembly-CSharp-Editor.csproj' -TargetCsproj $editorProj `
-    -Include 'Assets\Scripts\**\Editor\**\*.cs' -Exclude '' -Tag 'Editor'
+    -Include 'Assets\Scripts\**\Editor\**\*.cs' -Exclude ($asmdefExcludes -join ';') -Tag 'Editor'
 
 # Building the Editor project pulls in the Runtime project via ProjectReference,
 # so one invocation checks both.
