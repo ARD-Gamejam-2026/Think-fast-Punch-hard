@@ -274,8 +274,14 @@ namespace ThinkFast.Quiz
         private void DrawPlaceholder(Color[] pixels, int texWidth, int texHeight, int cellX, int cellY)
         {
             var spec = new ShapeSpec(ShapeKind.Square, 0, 1, 0, false);
+
+            // Darkened from 0.7 grey when the quiz panel went from dark navy to
+            // white: light grey on a dark panel is clear, but on white it drops to
+            // about 2.3:1 and the cell the player is being asked to fill in
+            // becomes the faintest thing on screen. This still reads as an empty
+            // slot rather than a shape, and holds up on either background.
             DrawShapeInRect(pixels, texWidth, texHeight,
-                new Rect(cellX, cellY, CellSize, CellSize), spec, new Color(0.7f, 0.7f, 0.7f));
+                new Rect(cellX, cellY, CellSize, CellSize), spec, new Color(0.54f, 0.58f, 0.62f));
         }
 
         private void BlendPixel(Color[] pixels, int texWidth, int x, int y, Color color, float coverage)
