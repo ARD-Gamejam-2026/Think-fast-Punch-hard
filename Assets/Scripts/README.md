@@ -105,6 +105,34 @@ Akbar edits Art.unity
 Change tuning by editing the prefab, not the scene instance — a scene override looks
 identical in the Inspector and silently applies to that one scene only.
 
+### The platforms use the art, but not its collider
+
+`Assets/Prefabs/Platform.prefab` is tiled across each platform's span as the visual.
+**The collider is still authored by the builder**, at exactly the widths below, and the
+art is stretched to fit it — never the other way round.
+
+That is not fussiness. The opponent's climbing routes are computed against these spans
+and the margins are thin: the High Mid hop clears its gap by about half a unit. Laying
+whole 2-unit tiles end to end rounds every width to the nearest 2 and moves the edges by
+up to a quarter of a unit — enough on its own to widen that gap from 2.75 to 3.00
+against a reach of 3.25, and halve a margin that was already the tightest in the stage.
+
+| platform | width | tiles | stretch |
+|---|---|---|---|
+| Low Left | 4.5 | 2 | +12.5% |
+| High Mid | 4.0 | 2 | none |
+| Low Right | 4.0 | 2 | none |
+| Top Right | 3.5 | 2 | −12.5% |
+
+**Every collider on the art is switched off.** The model carries a solid two-way box a
+metre tall, which would make the platform impossible to jump up through and would not
+respond to drop-through at all — it is not marked as used by the effector. Anything else
+instantiating that prefab directly inherits that problem.
+
+The art is thinner than the collider (0.25 against 0.4), so the two are aligned at the
+**top**: the fighter stands on the surface it can see, and the extra collider hangs below
+where nothing looks.
+
 The order inside `Build In-Game UI` is load-bearing: the split-screen builder
 instantiates the quiz panel prefab, so the prefab has to be restyled *before* it, and
 the HUD is built last because it goes into whichever scene the split-screen builder
