@@ -13,7 +13,7 @@ The code lives in `Assets/Scripts/Quiz/`:
 | `QuizSession` | Rules of one question in progress (plain C#, unit-tested) |
 | `QuizView` / `AnswerButton` | Presentation on the `QuizPanel` prefab |
 | `QuizController` | Glue: runs a question, raises `QuestionAnswered` |
-| `QuizFlow` | Endless driver: authored questions, optionally mixed with random math |
+| `QuizFlow` | Endless driver: rolls among authored/math/place questions by weight |
 | `MathQuestionGenerator` | Builds the random math questions (unit-tested) |
 | `PlaceQuestionSource` | Prefetches live Wikipedia landmark questions |
 | `LandmarkList` | Curated landmark names for place questions |

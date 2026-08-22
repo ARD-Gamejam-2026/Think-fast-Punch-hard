@@ -41,7 +41,7 @@ There is no lint step; C# compilation errors surface in the Unity log / `Logs/`.
 - `Assets/Settings/` — URP render pipeline assets: separate `PC_RPAsset`/`PC_Renderer` and `Mobile_RPAsset`/`Mobile_Renderer` quality tiers, plus the default volume profile.
 - `Assets/InputSystem_Actions.inputactions` — input action map (Player + UI action maps from the template). Use the Input System package for all input, not the legacy `Input` class.
 - `Assets/TutorialInfo/` — Unity template readme scaffolding; safe to delete when the project gets real content.
-- No asmdef files exist; all scripts compile into `Assembly-CSharp`.
+- Quiz code lives in its own asmdefs (`Quiz`, `Quiz.Editor`, `Quiz.EditModeTests` — required by the Unity Test Framework); everything else compiles into `Assembly-CSharp`.
 
 Unity-specific rules that matter here:
 - Every asset and folder under `Assets/` has a paired `.meta` file — always move/rename/delete them together, and commit `.meta` files with their assets.
