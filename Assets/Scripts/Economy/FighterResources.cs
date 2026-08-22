@@ -12,9 +12,9 @@ namespace ThinkFast.Economy
     /// Flow is a pressure gauge rather than a bank. It drains constantly, so
     /// standing still loses it; only a steady stream of fast solves pushes it to
     /// full. Reaching full flips the fighter into Flow state, where hits multiply
-    /// but the meter empties much faster and cannot be topped up -- so it is
-    /// strictly a window, never a plateau, and the only way to spend it is to
-    /// fight.
+    /// but the meter empties much faster, cannot be topped up, and is burned
+    /// further by every swing -- so it is strictly a window, never a plateau, and
+    /// using it is what ends it.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class FighterResources : MonoBehaviour, IRiddleRewardSink
@@ -33,6 +33,9 @@ namespace ThinkFast.Economy
 
         [Tooltip("Bleed while Flow state is active. Much faster, so the payoff is a burst window with a hard clock on it.")]
         [SerializeField] private float flowStateDrainPerSecond = 20f;
+
+        [Tooltip("Flow burned by each swing during Flow state, on top of the constant bleed. This is what makes the burst something you SPEND rather than something you sit inside: swinging is what ends it, so how long the window lasts is a decision, not a timer.")]
+        [SerializeField] private float flowStateCostPerAttack = 10f;
 
         [Header("Flow state payoff")]
         [Tooltip("Damage multiplier while Flow state is active.")]
@@ -133,8 +136,17 @@ namespace ThinkFast.Economy
             SetFlow(Flow + amount);
         }
 
-        /// <summary>Pays for one attack. Returns false when there is nothing to spend.</summary>
-        public bool TrySpendActionPoint()
+        /// <summary>
+        /// Pays the full cost of one swing: always an Action Point, plus a bite
+        /// out of the Flow gauge while Flow state is running. Returns false when
+        /// there is no AP, in which case nothing is charged at all.
+        ///
+        /// Both costs live behind one call on purpose. Two separate methods would
+        /// let a caller pay one and forget the other, and the Flow burn is not
+        /// optional -- it is the rule that stops Flow state being a free five
+        /// seconds of double damage.
+        /// </summary>
+        public bool TryPayForAttack()
         {
             if (ActionPoints <= 0)
             {
@@ -144,6 +156,15 @@ namespace ThinkFast.Economy
 
             ActionPoints--;
             ActionPointsChanged?.Invoke(ActionPoints);
+
+            // Charged at swing start, alongside the AP. The multiplier is read
+            // again when the hit actually lands, so a swing that empties the
+            // gauge lands at ×1 -- the Flow really did run out mid-punch.
+            if (IsFlowActive && flowStateCostPerAttack > 0f)
+            {
+                SetFlow(Flow - flowStateCostPerAttack);
+            }
+
             return true;
         }
 

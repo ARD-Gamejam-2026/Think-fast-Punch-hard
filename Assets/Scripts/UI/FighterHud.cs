@@ -23,7 +23,7 @@ namespace ThinkFast.UI
     public sealed class FighterHud : MonoBehaviour
     {
         [Header("Source")]
-        [Tooltip("Left empty, the HUD finds the first Health and FighterResources in the scene on Start.")]
+        [Tooltip("Left empty, the HUD finds the player's FighterResources on Start and reads the Health next to it.")]
         [SerializeField] private Health health;
 
         [SerializeField] private FighterResources resources;
@@ -62,14 +62,21 @@ namespace ThinkFast.UI
 
         private void Start()
         {
-            if (health == null)
-            {
-                health = FindAnyObjectByType<Health>();
-            }
-
             if (resources == null)
             {
                 resources = FindAnyObjectByType<FighterResources>();
+            }
+
+            if (health == null)
+            {
+                // Found via the economy, not directly. There are two Health
+                // components in a fight now, and FindAnyObjectByType picks an
+                // arbitrary one -- which would leave the player watching the
+                // opponent's health bar. Only the player has FighterResources,
+                // so it is the reliable way to identify them.
+                health = resources != null
+                    ? resources.GetComponent<Health>()
+                    : FindAnyObjectByType<Health>();
             }
 
             if (flowFill != null)
