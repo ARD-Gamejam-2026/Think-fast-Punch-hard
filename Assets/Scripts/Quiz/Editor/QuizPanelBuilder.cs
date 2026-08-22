@@ -145,8 +145,8 @@ namespace ThinkFast.Quiz.EditorTools
             var questionsProperty = flowSo.FindProperty("questions");
             questionsProperty.arraySize = 1;
             questionsProperty.GetArrayElementAtIndex(0).objectReferenceValue = firstQuestion;
-            flowSo.FindProperty("includeRandomMath").boolValue = true;
-            flowSo.FindProperty("mathChance").floatValue = 0.5f;
+            flowSo.FindProperty("authoredWeight").floatValue = 1f;
+            flowSo.FindProperty("mathWeight").floatValue = 1f;
             flowSo.ApplyModifiedProperties();
             PrefabUtility.RecordPrefabInstancePropertyModifications(flow);
 
