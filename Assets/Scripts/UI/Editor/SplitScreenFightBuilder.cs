@@ -146,6 +146,12 @@ namespace ThinkFast.UIEditor
 
             so.FindProperty("authoredWeight").floatValue = 1f;
             so.FindProperty("mathWeight").floatValue = 1f;
+
+            // Set explicitly rather than left to the field's default. The fight's
+            // question mix is a design decision, and a weight that is only correct
+            // because nobody has changed a default elsewhere is not a decision.
+            so.FindProperty("sequenceWeight").floatValue = 1f;
+
             so.ApplyModifiedPropertiesWithoutUndo();
 
             AddWikipediaSources(root, flow);

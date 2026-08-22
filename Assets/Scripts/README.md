@@ -802,6 +802,7 @@ the same weights and prompts the sample scene uses:
 |---|---|---|
 | Authored | 1 | every `QuizQuestion` in `Assets/Quiz/Questions` |
 | Generated maths | 1 | always available, 5 s limit |
+| Sequences | 1 | numbers and shapes, 8 s limit |
 | Wikipedia places | 2 | `Landmarks.asset`, "Which place is this?" |
 | Wikipedia animals | 2 | `Animals.asset`, "Which animal is this?" |
 
