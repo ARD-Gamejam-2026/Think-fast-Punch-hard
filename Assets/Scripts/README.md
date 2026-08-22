@@ -41,7 +41,10 @@ quiz → fighter by us subscribing to their events.
 | `OneWayDropThrough` | `ThinkFast.Combat` | **Shared.** Falling through one-way platforms, and the restore rules. Plain C#. |
 | `RendererTint` | `ThinkFast.Combat` | **Shared.** Flat-colour flash via `MaterialPropertyBlock`. Plain C#. |
 | `RoundEvents` / `RoundOutcome` | `ThinkFast.Rounds` | The seam between a K.O. and the round ending. |
-| `DebugRoundBanner` | `ThinkFast.Rounds` | Throwaway "K.O. — YOU WIN" banner + `Enter` to restart. |
+| `RoundFlow` | `ThinkFast.Rounds` | Records the outcome, loads the end screen — and reopens the round when a fight starts. |
+| `MatchResult` | `ThinkFast.Rounds` | Carries the outcome across the scene load. One enum and a flag. |
+| `EndScreen` | `ThinkFast.Rounds` | Writes which ending it was into the end scene's label. |
+| `DebugRoundBanner` | `ThinkFast.Rounds` | Throwaway "K.O. — YOU WIN" banner + `Enter` to restart. Switched off once the end screen exists. |
 | `FighterResources` | `ThinkFast.Economy` | Action Points + Flow + Flow state. **Player only** — it is also what identifies the player. |
 | `RiddleRewards` / `IRiddleRewardSink` | `ThinkFast.Economy` | The seam to the quiz half. |
 | `QuizRewardBridge` | `ThinkFast.Economy` | The quiz half plugged into that seam. The only object that knows both halves exist. |
@@ -60,18 +63,23 @@ delete once the real thing exists.
 
 ## Scene setup
 
-Nothing is hand-placed. Three generators under **Tools > Think Fast**:
+Nothing is hand-placed. Four generators under **Tools > Think Fast**:
 
 | Menu item | Builds |
 |---|---|
 | `Build PlayerController Test Scene` | Stage, one-way platforms, player, opponent, round banner, camera — into `Assets/Scenes/PlayerControllerTest.unity` |
 | `Build Fighter HUD` | The uGUI canvas, wired to find the player at runtime |
 | `Build Split Screen Fight` | The quiz panel, its endless flow, the reward bridge, the backdrop and the split itself — into the same scene |
+| `Build Round Flow` | The end-of-round transition, plus the component that tells the end screen which ending it was — into the fight scene **and** `Scene_End` |
 
-All three are idempotent, and each owns its own root, so one can be rebuilt without
+All four are idempotent, and each owns its own root, so one can be rebuilt without
 disturbing the others. The test-scene builder destroys and rebuilds everything under
-its root, so **re-running it resets any Inspector tuning** — but it leaves the HUD
-and the quiz alone.
+its root, so **re-running it resets any Inspector tuning** — but it leaves the HUD,
+the quiz and the round flow alone.
+
+`Build Round Flow` is the only one that touches a scene it did not create. It adds
+nothing to `Scene_End`'s layout — it wires a component to the label already there, so
+the end screen stays the authored design.
 
 `Build Split Screen Fight` also switches off `DebugRiddleDriver` on the player, since
 the real quiz is now paying into the same economy. Re-tick it to get the `1`/`2`/`3`
@@ -203,14 +211,15 @@ RoundEvents.RoundEnded += outcome => { ... };           // subscribed by whateve
 ```
 
 Same shape as `RiddleRewards`, for the same reason: whoever lands the killing blow
-should not need a scene reference to a match manager that does not exist yet.
+should not need a scene reference to a match manager.
 
 **The first report wins** and later ones are dropped. A double K.O. in one physics
 step must not fire two contradictory endings, and a corpse can plausibly be hit
 again. `ResetRound()` reopens it.
 
-Today the only subscriber is `DebugRoundBanner`. Swapping in a real scene
-transition means subscribing here — **no combat code changes**.
+The subscriber is now `RoundFlow`, which loads the end screen. That went in without
+touching a line of combat code, which is what the seam was for. See **Round flow**
+below.
 
 ---
 
@@ -340,7 +349,7 @@ Bindings live in `Assets/Settings/Input/FighterControls.inputactions`, map `Figh
 | | the four above need `DebugRiddleDriver` re-ticked — the real quiz replaced it |
 | `H` | take a canned hit (knocked backwards relative to facing) |
 | `R` | put the opponent back on its feet at its spawn point, at full health |
-| `Enter` | after either K.O., reload the scene and fight again |
+| `Enter` | after either K.O., reload the scene and fight again — needs `DebugRoundBanner` re-ticked, the end screen replaced it |
 
 ---
 
@@ -714,9 +723,12 @@ setting that needs the same treatment.
 
 ## Known gaps
 
-- **No round flow beyond the outcome.** `RoundEvents` reports both outcomes and
-  `DebugRoundBanner` prints them, with `Enter` to reload; there is no results screen,
-  no scene transition, no score, no best-of-N.
+- **One fight is the whole match.** The loop runs menu → fight → end → menu, but a
+  round *is* the match: no score, no best-of-N, no rematch button on the end screen
+  (it returns to the menu, and the menu starts a new fight). `RoundOutcome` has
+  exactly two values, so a draw has nowhere to go either.
+- **No story.** Issue #6 asks for one alongside the screens; the screens exist and
+  the story does not.
 - **The AI has no defence.** It never blocks, never retreats from a wind-up, and
   cannot be baited. It reacts to *where you are*, never to *what you are doing* — the
   telegraph runs one way only.
@@ -797,6 +809,56 @@ The two Wikipedia sources are the only type that can be *unavailable*: each keep
 small queue filled in the background, counts as available only once one is ready, and
 stays empty offline. `QuizFlow` rolls among whatever is available, so a cold queue or
 no network costs variety, never a question. See `Assets/Quiz/README.md`.
+
+---
+
+## Round flow
+
+The loop is closed: **menu → fight → end screen → menu**.
+
+```
+Scene_Menu ──Start──► PlayerControllerTest ──K.O.──► Scene_End ──Return──► Scene_Menu
+                              │                          ▲
+                    Health.Died                          │
+                              ▼                          │
+                    Player/EnemyKnockout                 │
+                    (1.2s, so the final                  │
+                     knockback plays out)                │
+                              ▼                          │
+                    RoundEvents.ReportRoundEnded         │
+                              ▼                          │
+                    RoundFlow ──records──► MatchResult ──┘
+                    (waits 1.0s, then loads)   outlives the scene load
+```
+
+`RoundFlow` is the real subscriber `RoundEvents` was written for. Combat still reports
+through the same static seam and knows nothing about scenes — adding this changed no
+combat code at all.
+
+`MatchResult` exists because a scene load destroys everything that knew the outcome.
+It is deliberately the smallest thing that can outlive it: one enum and a flag, no
+object to find, nothing to wire. It is a *result*, not a save game — nothing is
+written to disk.
+
+One scene serves both endings. The difference between winning and losing here is a
+line of text and a colour, and two scenes would mean every later layout change being
+made twice with the loss screen quietly falling behind. `EndScreen` writes into the
+label already in `Scene_End`; opened on its own with no fight behind it, it leaves the
+authored text alone rather than claiming a win you did not earn.
+
+### The bug this had been hiding
+
+`RoundEvents.IsRoundOver` is static, and **a scene load does not clear it**. Until
+there was a way back to a second fight, that never showed: one fight per Play session
+meant the flag was always fresh. With a menu to return from, the second fight of a
+session would have started already over — its first `ReportRoundEnded` dropped as a
+duplicate, so the round could never end again, and the only symptom would be a fight
+that refuses to finish.
+
+`RoundFlow.Awake` reopens the round and clears the last result, before anything can
+subscribe or report. That is why the reset lives at the *start* of a fight rather than
+at the end of one: an ending that fails to clean up leaves the next fight broken,
+whereas a beginning that cleans up first cannot.
 
 ---
 
