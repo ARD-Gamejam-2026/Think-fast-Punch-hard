@@ -58,5 +58,45 @@ namespace ThinkFast.Quiz.Tests
             Assert.That(WeightedPicker.Pick(weights, 0.5f), Is.EqualTo(2));
             Assert.That(WeightedPicker.Pick(weights, 0.9f), Is.EqualTo(2));
         }
+
+        [Test]
+        public void Pick_OverUniformRolls_SelectsInProportionToWeight()
+        {
+            // A uniform sweep of the roll must land in each bucket in
+            // proportion to its weight: {1, 1, 2} of total 4 -> 25/25/50 %.
+            var weights = new[] { 1f, 1f, 2f };
+            var counts = CountSelections(weights, 1000);
+
+            Assert.That(counts[0], Is.EqualTo(250).Within(2));
+            Assert.That(counts[1], Is.EqualTo(250).Within(2));
+            Assert.That(counts[2], Is.EqualTo(500).Within(2));
+        }
+
+        [Test]
+        public void Pick_DynamicBucketsWithGaps_SkipZeroAndStayProportional()
+        {
+            // Mirrors QuizFlow's dynamic buckets: authored 1, math disabled,
+            // then three Wikipedia sources 2 / unavailable / 1. Zero-weight
+            // buckets are never picked; the rest keep their proportions.
+            var weights = new[] { 1f, 0f, 2f, 0f, 1f };
+            var counts = CountSelections(weights, 1000);
+
+            Assert.That(counts[1], Is.Zero);
+            Assert.That(counts[3], Is.Zero);
+            Assert.That(counts[0], Is.EqualTo(250).Within(2));
+            Assert.That(counts[2], Is.EqualTo(500).Within(2));
+            Assert.That(counts[4], Is.EqualTo(250).Within(2));
+        }
+
+        private static int[] CountSelections(float[] weights, int samples)
+        {
+            var counts = new int[weights.Length];
+            for (int k = 0; k < samples; k++)
+            {
+                int selected = WeightedPicker.Pick(weights, k / (float)samples);
+                counts[selected]++;
+            }
+            return counts;
+        }
     }
 }
