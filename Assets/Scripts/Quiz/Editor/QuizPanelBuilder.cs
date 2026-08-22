@@ -1,6 +1,9 @@
 using TMPro;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace ThinkFast.Quiz.EditorTools
@@ -47,6 +50,64 @@ namespace ThinkFast.Quiz.EditorTools
             {
                 Object.DestroyImmediate(root);
             }
+        }
+
+        private const string QuestionsFolder = "Assets/Quiz/Questions";
+        private const string SampleQuestionPath = QuestionsFolder + "/SampleQuestion.asset";
+        private const string ScenePath = "Assets/Scenes/SampleScene.unity";
+
+        [MenuItem("Tools/Quiz/Add Quiz Panel To Sample Scene")]
+        public static void AddQuizPanelToSampleScene()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            if (prefab == null)
+            {
+                Debug.LogError($"No prefab at {PrefabPath} — run Tools/Quiz/Create Quiz Panel first.");
+                return;
+            }
+
+            // Open the scene before touching the question asset: switching
+            // scenes unloads assets nothing references yet, which would turn
+            // an already-loaded question into a dead object.
+            var scene = EditorSceneManager.OpenScene(ScenePath);
+
+            EnsureFolder("Assets/Quiz");
+            EnsureFolder(QuestionsFolder);
+
+            var question = AssetDatabase.LoadAssetAtPath<QuizQuestion>(SampleQuestionPath);
+            if (question == null)
+            {
+                question = ScriptableObject.CreateInstance<QuizQuestion>();
+                question.questionText = "Who is behind the box?";
+                question.answers = new[] { "Bat Man", "Supper Man", "Pac Man", "Pack Man" };
+                question.correctIndex = 3;
+                question.timeLimitSeconds = 10f;
+                AssetDatabase.CreateAsset(question, SampleQuestionPath);
+            }
+
+            var existingController = Object.FindFirstObjectByType<QuizController>();
+            var controller = existingController != null
+                ? existingController
+                : ((GameObject)PrefabUtility.InstantiatePrefab(prefab)).GetComponent<QuizController>();
+
+            var controllerSo = new SerializedObject(controller);
+            controllerSo.FindProperty("startingQuestion").objectReferenceValue = question;
+            controllerSo.ApplyModifiedProperties();
+            // Edits to a prefab instance made from batch code are not always
+            // registered as overrides automatically; record them explicitly
+            // or the scene save drops them.
+            PrefabUtility.RecordPrefabInstancePropertyModifications(controller);
+
+            if (Object.FindFirstObjectByType<EventSystem>() == null)
+            {
+                new GameObject("EventSystem",
+                    typeof(EventSystem), typeof(InputSystemUIInputModule));
+            }
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("Quiz panel added to SampleScene with sample question.");
         }
 
         private static void BuildHierarchy(GameObject root)
