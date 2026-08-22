@@ -68,6 +68,8 @@ Nothing is hand-placed. Everything is generated from **Tools > Think Fast**:
 | Menu item | Builds |
 |---|---|
 | `Build PlayerController Test Scene` | Stage, one-way platforms, player, opponent, round banner, camera — into `Assets/Scenes/PlayerControllerTest.unity` |
+| `Save Fighters As Prefabs` | The two fighters in the open scene → `Assets/Prefabs/Player.prefab` and `Enemy.prefab` |
+| `Import Fighters From Art Scene` | Moves the animated fighters out of `Art.unity`, and corrects the air swing |
 | `Build Fighter HUD` | Both fighters' health across the top of the fight view, Flow and AP in the corner |
 | `Build Split Screen Fight` | The quiz panel, its endless flow, the reward bridge, the backdrop and the split itself — into the same scene |
 | `Build Round Flow` | The end-of-round transition, plus the component that tells the end screen which ending it was — into the fight scene **and** `Scene_End` |
@@ -77,8 +79,31 @@ Nothing is hand-placed. Everything is generated from **Tools > Think Fast**:
 
 All are idempotent, and each owns its own root, so one can be rebuilt without
 disturbing the others. The test-scene builder destroys and rebuilds everything under
-its root, so **re-running it resets any Inspector tuning** — but it leaves the HUD,
-the quiz and the round flow alone.
+its root, so **re-running it resets the stage's Inspector tuning** — but it leaves the
+HUD, the quiz and the round flow alone.
+
+### The fighters are prefabs
+
+`Assets/Prefabs/Player.prefab` and `Enemy.prefab` are the fighters. The scene builder
+instantiates them and only positions them and tells the opponent who to chase; it
+generates capsules **only when the prefabs are missing**, so a fresh clone still builds
+something playable.
+
+That is what ended the rebuild dance. The fighters used to be generated from code, so
+rebuilding the stage threw away the models and the animation-matched tuning and put
+grey capsules back — the art had to be re-imported every single time. Now rebuilding
+the stage does not touch the fighters at all.
+
+The flow when new fighter art arrives:
+
+```
+Akbar edits Art.unity
+   └─► Import Fighters From Art Scene   (brings them in, corrects the air swing)
+          └─► Save Fighters As Prefabs  (makes it stick, everywhere)
+```
+
+Change tuning by editing the prefab, not the scene instance — a scene override looks
+identical in the Inspector and silently applies to that one scene only.
 
 The order inside `Build In-Game UI` is load-bearing: the split-screen builder
 instantiates the quiz panel prefab, so the prefab has to be restyled *before* it, and

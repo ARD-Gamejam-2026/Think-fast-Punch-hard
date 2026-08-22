@@ -50,12 +50,28 @@ namespace ThinkFast.PlayerEditor
             PhysicsMaterial2D frictionless = GetOrCreateFrictionlessMaterial();
 
             BuildStage(root.transform, frictionless);
-            GameObject player = BuildPlayer(root.transform, frictionless);
-
             // On the floor and clear of the step, far enough away that the fight
             // opens with the opponent walking at you rather than already inside
             // your guard on frame one.
-            BuildEnemy(root.transform, frictionless, new Vector3(3f, 1.2f, 0f), player.transform);
+            var playerSpawn = new Vector3(-4f, 1.2f, 0f);
+            var enemySpawn = new Vector3(3f, 1.2f, 0f);
+
+            // Prefabs first, so a rebuild of the stage keeps the animated fighters
+            // and their tuning. Generating them is the fallback for a project that
+            // has not saved them yet -- see FighterPrefabs.
+            GameObject player = Spawn(FighterPrefabs.PlayerPath, root.transform, playerSpawn)
+                ?? BuildPlayer(root.transform, frictionless);
+
+            GameObject enemy = Spawn(FighterPrefabs.EnemyPath, root.transform, enemySpawn)
+                ?? BuildEnemy(root.transform, frictionless, enemySpawn, player.transform);
+
+            // A spawned prefab has no idea what it is fighting: the target is a
+            // scene object, so it cannot be stored in the asset.
+            var brain = enemy.GetComponent<ThinkFast.Enemy.EnemyBrain>();
+            if (brain != null)
+            {
+                AssignObjectField(brain, "target", player.transform);
+            }
             BuildRoundDebug(root.transform);
             FrameCamera(scene, player.transform);
 
@@ -156,6 +172,23 @@ namespace ThinkFast.PlayerEditor
             collider.sharedMaterial = frictionless;
 
             return block;
+        }
+
+        /// <summary>
+        /// Instantiates a saved fighter prefab into the rig, or returns null when
+        /// none has been saved so the caller can generate one instead.
+        /// </summary>
+        private static GameObject Spawn(string prefabPath, Transform parent, Vector3 position)
+        {
+            GameObject prefab = FighterPrefabs.Load(prefabPath);
+            if (prefab == null)
+            {
+                return null;
+            }
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+            instance.transform.localPosition = position;
+            return instance;
         }
 
         private static GameObject BuildPlayer(Transform parent, PhysicsMaterial2D frictionless)
