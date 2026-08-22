@@ -1,17 +1,14 @@
-name: Run Tests
+name: Fast Tests
 
 on:
   pull_request:
     types:
       - opened
       - synchronize
-  push:
-    branches:
-      - main
 
 # A newer commit on the same ref supersedes any in-flight test run.
 concurrency:
-  group: test-${{ github.ref }}
+  group: fast-tests-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -20,7 +17,7 @@ permissions:
 
 jobs:
   test:
-    name: Run EditMode and PlayMode tests
+    name: Run EditMode tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -51,8 +48,9 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          testMode: all
+          testMode: editmode
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Test Results (EditMode)
           # No include filters: every assembly under Assets/ is measured by
           # default; only test assemblies are excluded from the metric.
           coverageOptions: generateAdditionalMetrics;generateAdditionalReports;assemblyFilters:-*Tests*
@@ -61,13 +59,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Test results
+          name: Test results (EditMode)
           path: ${{ steps.run_tests.outputs.artifactsPath }}
 
       - name: Upload coverage results
         uses: actions/upload-artifact@v4
         with:
-          name: Coverage results
+          name: Coverage results (EditMode)
           path: ${{ steps.run_tests.outputs.coveragePath }}
 
   upload-coverage:
@@ -79,7 +77,7 @@ jobs:
       - name: Download coverage results
         uses: actions/download-artifact@v4
         with:
-          name: Coverage results
+          name: Coverage results (EditMode)
           path: CodeCoverage
 
       - name: Upload coverage to Teamscale
@@ -89,7 +87,7 @@ jobs:
           project: "think-fast-punch-hard"
           user: "ard-gamejam-2026-teamscale"
           accesskey: ${{ secrets.TEAMSCALE_ACCESS_KEY }}
-          partition: "Unity Tests"
+          partition: "Unity Tests > EditMode"
           format: "LCOV"
           files: "CodeCoverage/**/lcov.info"
           revision: ${{ github.event.pull_request.head.sha || github.sha }}
