@@ -1,5 +1,4 @@
 using ThinkFast.Combat;
-using ThinkFast.Common;
 using ThinkFast.Economy;
 using UnityEngine;
 using UnityEngine.UI;
@@ -52,7 +51,6 @@ namespace ThinkFast.UI
         [SerializeField] private Color pipEmptyColour = new Color(1f, 1f, 1f, 0.18f);
 
         [Header("Flow state emphasis")]
-        [SplitScreenTodo("The HUD anchors to the bottom-left of the FULL screen. Once the fighter is confined to the left viewport this needs re-anchoring inside that rect, and the whole panel will likely want to be smaller.")]
         [Tooltip("How much the flow bar pulses while Flow state is active.")]
         [SerializeField] private float flowPulseAmount = 0.12f;
 

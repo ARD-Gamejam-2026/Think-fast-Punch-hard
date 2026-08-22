@@ -1,5 +1,4 @@
 using ThinkFast.Combat;
-using ThinkFast.Common;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -19,7 +18,7 @@ namespace ThinkFast.Enemy
     [RequireComponent(typeof(Health))]
     public sealed class EnemyDebugHud : MonoBehaviour
     {
-        [SplitScreenTodo("The label is placed with Camera.main and Screen.height, which assumes ONE full-screen camera. With a split viewport it lands in the wrong half. Throwaway, so most likely it just gets deleted before that matters.")]
+        [Tooltip("Floating HP and AI state over the opponent. Split-screen safe: WorldToScreenPoint already accounts for the camera's viewport rect, so the label follows the opponent inside the fighter half rather than across the whole window.")]
         [SerializeField] private bool showLabel = true;
 
         [Tooltip("Puts the opponent back at its spawn point at full health, without leaving Play mode.")]
