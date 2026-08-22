@@ -128,11 +128,14 @@ namespace ThinkFast.Quiz
                     next = questions[current];
                     current = (current + 1) % questions.Length;
                     break;
-                case 1:
-                    next = generator.Next();
+                // selected == 2 implies place > 0, which implies placeSource
+                // is non-null with a ready question; the pattern guard makes
+                // that invariant explicit (falls back to math otherwise).
+                case 2 when placeSource != null:
+                    next = placeSource.Dequeue();
                     break;
                 default:
-                    next = placeSource.Dequeue();
+                    next = generator.Next();
                     break;
             }
 

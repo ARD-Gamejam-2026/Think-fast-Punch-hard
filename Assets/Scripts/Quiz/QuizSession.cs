@@ -17,10 +17,10 @@ namespace ThinkFast.Quiz
         /// <summary>Index (0-3) of the correct answer.</summary>
         public int CorrectIndex { get; }
 
-        /// <summary>True once the question ended (answered or timed out).</summary>
+        /// <summary>Whether the session is resolved (answered or timed out).</summary>
         public bool IsResolved { get; private set; }
 
-        /// <summary>The outcome; only meaningful once IsResolved is true.</summary>
+        /// <summary>Result of the question; valid once IsResolved is true.</summary>
         public QuizResult Result { get; private set; }
 
         /// <summary>Index the player picked, or -1 if none (yet).</summary>
@@ -29,7 +29,7 @@ namespace ThinkFast.Quiz
         public float RemainingTime => Math.Max(0f, timeLimitSeconds - elapsedSeconds);
         public float NormalizedTimeRemaining => RemainingTime / timeLimitSeconds;
 
-        /// <summary>Starts a question with the given correct answer and time limit.</summary>
+        /// <summary>Creates a session for one question with the given correct index and time limit.</summary>
         public QuizSession(int correctIndex, float timeLimitSeconds)
         {
             if (correctIndex < 0 || correctIndex >= AnswerCount)
@@ -46,8 +46,8 @@ namespace ThinkFast.Quiz
         }
 
         /// <summary>
-        /// Resolves the question to Correct or Wrong. Ignored once resolved
-        /// or when the index is out of range.
+        /// Selects the answer at the given index, resolving the session to
+        /// Correct or Wrong. Ignored once resolved or when out of range.
         /// </summary>
         public void SelectAnswer(int index)
         {
@@ -61,8 +61,8 @@ namespace ThinkFast.Quiz
         }
 
         /// <summary>
-        /// Advances the countdown; resolves to TimedOut when it reaches zero.
-        /// Ignored once resolved.
+        /// Ticks the countdown by deltaSeconds; at zero the session resolves
+        /// as TimedOut. Ignored once resolved.
         /// </summary>
         public void Tick(float deltaSeconds)
         {

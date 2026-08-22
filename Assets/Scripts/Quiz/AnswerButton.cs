@@ -30,7 +30,7 @@ namespace ThinkFast.Quiz
         private int index;
         private Action<int> onClicked;
 
-        /// <summary>Sets the letter label and the click callback for this choice.</summary>
+        /// <summary>Initializes the button with its index, letter label, and click callback.</summary>
         public void Initialize(int index, string letter, Action<int> onClicked)
         {
             this.index = index;

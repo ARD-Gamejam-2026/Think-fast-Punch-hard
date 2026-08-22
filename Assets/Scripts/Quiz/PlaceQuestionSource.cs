@@ -29,8 +29,8 @@ namespace ThinkFast.Quiz
         public bool HasQuestion => ready.Count > 0;
 
         /// <summary>
-        /// Removes and returns the next prefetched question. Only call when
-        /// HasQuestion is true; the caller owns the runtime question and its
+        /// Dequeues the next prefetched question. Only call when HasQuestion
+        /// is true; the caller owns the runtime question and its
         /// sprite/texture and must destroy them once no longer shown.
         /// </summary>
         public QuizQuestion Dequeue()
@@ -77,19 +77,7 @@ namespace ThinkFast.Quiz
 
                     if (request.result == UnityWebRequest.Result.Success)
                     {
-                        // JsonUtility.FromJson throws on malformed JSON; a
-                        // single bad response must not kill this coroutine.
-                        try
-                        {
-                            summary = JsonUtility.FromJson<WikipediaSummary>(
-                                request.downloadHandler.text);
-                        }
-                        catch (System.Exception e)
-                        {
-                            Debug.LogWarning(
-                                $"PlaceQuestionSource: summary parse failed for {entry.wikipediaTitle}: {e.Message}",
-                                this);
-                        }
+                        summary = TryParseSummary(request.downloadHandler.text, entry.wikipediaTitle);
                     }
                 }
 
@@ -147,6 +135,25 @@ namespace ThinkFast.Quiz
                 }
 
                 ready.Enqueue(question);
+            }
+        }
+
+        /// <summary>
+        /// Tries to parse the summary JSON; returns null on malformed input.
+        /// JsonUtility.FromJson throws on malformed JSON, and a single bad
+        /// response must not kill the prefetch coroutine.
+        /// </summary>
+        private WikipediaSummary TryParseSummary(string json, string title)
+        {
+            try
+            {
+                return JsonUtility.FromJson<WikipediaSummary>(json);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning(
+                    $"PlaceQuestionSource: summary parse failed for {title}: {e.Message}", this);
+                return null;
             }
         }
 

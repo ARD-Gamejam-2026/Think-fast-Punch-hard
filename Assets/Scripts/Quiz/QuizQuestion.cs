@@ -25,7 +25,7 @@ namespace ThinkFast.Quiz
         [Min(1f)]
         public float timeLimitSeconds = 10f;
 
-        /// <summary>Repairs out-of-range values and warns about empty answers.</summary>
+        /// <summary>Validates the data: repairs out-of-range values and warns about empty answers.</summary>
         public void OnValidate()
         {
             if (answers == null || answers.Length != AnswerCount)

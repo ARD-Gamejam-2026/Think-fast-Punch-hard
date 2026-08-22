@@ -21,7 +21,7 @@ namespace ThinkFast.Quiz
             random = seed.HasValue ? new System.Random(seed.Value) : new System.Random();
         }
 
-        /// <summary>Builds a fresh runtime question with a random +, − or × problem.</summary>
+        /// <summary>Generates the next question: a random +, − or × problem.</summary>
         public QuizQuestion Next()
         {
             int a, b, result;
