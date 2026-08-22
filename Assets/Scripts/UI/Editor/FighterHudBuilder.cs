@@ -1,4 +1,5 @@
 using ThinkFast.UI;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,22 +9,31 @@ namespace ThinkFast.UIEditor
     /// <summary>
     /// Builds the fighter HUD as real uGUI objects in the open scene.
     ///
-    /// Generated rather than hand-authored for the same reason the test rig is:
-    /// re-runnable, reviewable as code, and no scene YAML edited by hand. After
-    /// generation it is ordinary UI -- move it, recolour it, resize it in the
-    /// editor and the changes stick until you rebuild it.
+    /// The layout is a fighting game's, not a status panel's: both fighters'
+    /// health runs across the top of the fight, draining toward the middle, so the
+    /// gap between the two bars *is* the score. Your own resources -- Flow and
+    /// action points -- sit apart from that in the bottom corner, because they are
+    /// something you spend rather than something you are losing.
+    ///
+    /// Everything is confined to the fighter's viewport rather than the window, so
+    /// nothing lands over the quiz. The split-screen layout drives that, which is
+    /// why the ratio lives in one place and this does not know it.
     /// </summary>
     public static class FighterHudBuilder
     {
         private const string RootName = "--- Fighter HUD (generated) ---";
 
-        private const float PanelWidth = 400f;
-        private const float BarHeight = 24f;
-        private const float PipSize = 22f;
-        private const float Gap = 10f;
+        private const float SideMargin = 34f;
+        private const float TopMargin = 26f;
 
-        /// <summary>Breathing room between the card's edge and the bars inside it.</summary>
-        private const float CardPadding = 18f;
+        private const float HealthBarHeight = 30f;
+        private const float HealthBarWidth = 400f;
+        private const float NameHeight = 30f;
+
+        private const float MeterWidth = 260f;
+        private const float MeterHeight = 18f;
+        private const float PipSize = 20f;
+        private const float PipGap = 8f;
 
         [MenuItem("Tools/Think Fast/Build Fighter HUD")]
         public static void Build()
@@ -31,23 +41,24 @@ namespace ThinkFast.UIEditor
             RemoveExisting();
 
             UiSpriteFactory.Sprites sprites = UiSpriteFactory.Load();
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/Nunito SDF.asset");
 
             GameObject root = CreateCanvas();
-            RectTransform panel = CreatePanel(root.transform, sprites);
 
-            // Laid out upward from the bottom: health is the thing you check most
-            // often under pressure, so it sits closest to the fight.
-            RectTransform apRow = CreateRow(panel, "Action Points", 0f, PipSize);
-            Image[] pips = CreatePips(apRow, 5, sprites);
+            // Everything hangs off this, and the split-screen layout anchors it to
+            // the fighter's share of the window.
+            RectTransform viewport = UiFactory.Stretch(UiFactory.NewRect("Viewport", root.transform));
 
-            RectTransform flowRow = CreateRow(panel, "Flow", PipSize + Gap, BarHeight);
-            Image flowFill = CreateBar(flowRow, MenuTheme.Accent, sprites);
+            Image playerHealth = BuildHealthBar(viewport, "Player Health", "YOU", true, sprites, font);
+            Image opponentHealth = BuildHealthBar(viewport, "Opponent Health", "TRAINER", false, sprites, font);
 
-            RectTransform healthRow = CreateRow(panel, "Health", PipSize + Gap + BarHeight + Gap, BarHeight);
-            Image healthFill = CreateBar(healthRow, MenuTheme.Positive, sprites);
+            Image flowFill = BuildFlowMeter(viewport, sprites, font);
+            Image[] pips = BuildActionPoints(viewport, 5, sprites, font);
 
             var hud = root.AddComponent<FighterHud>();
-            Wire(hud, healthFill, flowFill, pips);
+            Wire(hud, playerHealth, opponentHealth, flowFill, pips);
+
+            RegisterWithSplitScreen(viewport);
 
             Undo.RegisterCreatedObjectUndo(root, "Build Fighter HUD");
             Selection.activeGameObject = root;
@@ -56,7 +67,7 @@ namespace ThinkFast.UIEditor
             // so it silently vanishes if the scene is reloaded without a save.
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(root.scene);
 
-            Debug.Log("Built the fighter HUD. It finds the player's Health and FighterResources automatically on Play.");
+            Debug.Log("Built the fighter HUD. It finds both fighters automatically on Play.");
         }
 
         private static void RemoveExisting()
@@ -77,8 +88,8 @@ namespace ThinkFast.UIEditor
             var canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
 
-            // Above the quiz UI is wrong and below it is wrong; they occupy
-            // different halves. Left at 0 so ordering stays predictable.
+            // Above the quiz backdrop, level with the quiz panel. They occupy
+            // different halves, so the order between them never comes up.
             canvas.sortingOrder = 0;
 
             var scaler = root.GetComponent<CanvasScaler>();
@@ -93,135 +104,143 @@ namespace ThinkFast.UIEditor
             return root;
         }
 
-        private static RectTransform CreatePanel(Transform parent, UiSpriteFactory.Sprites sprites)
-        {
-            var card = new GameObject("Card", typeof(RectTransform)).GetComponent<RectTransform>();
-            card.SetParent(parent, worldPositionStays: false);
-
-            // Bottom-left: the fighter's half of the screen.
-            card.anchorMin = Vector2.zero;
-            card.anchorMax = Vector2.zero;
-            card.pivot = Vector2.zero;
-            card.anchoredPosition = new Vector2(28f, 28f);
-            card.sizeDelta = new Vector2(PanelWidth + (CardPadding * 2f), 120f + (CardPadding * 2f));
-
-            // The bars sit on a card rather than straight on the stage. That is a
-            // contrast decision before it is a stylistic one: a bar drawn directly
-            // over the fight has to survive whatever colour happens to be behind
-            // it that frame, and the stage is going to change. On a near-opaque
-            // card, every reading holds no matter what the level looks like.
-            var background = card.gameObject.AddComponent<Image>();
-            background.sprite = sprites.Card;
-            background.type = Image.Type.Sliced;
-            background.color = MenuTheme.HudCard;
-            background.raycastTarget = false;
-
-            var panel = new GameObject("Panel", typeof(RectTransform)).GetComponent<RectTransform>();
-            panel.SetParent(card, worldPositionStays: false);
-            panel.anchorMin = Vector2.zero;
-            panel.anchorMax = Vector2.one;
-            panel.offsetMin = new Vector2(CardPadding, CardPadding);
-            panel.offsetMax = new Vector2(-CardPadding, -CardPadding);
-
-            return panel;
-        }
-
-        private static RectTransform CreateRow(RectTransform parent, string name, float bottomOffset, float height)
-        {
-            var row = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
-            row.SetParent(parent, worldPositionStays: false);
-
-            row.anchorMin = Vector2.zero;
-            row.anchorMax = new Vector2(1f, 0f);
-            row.pivot = Vector2.zero;
-            row.anchoredPosition = new Vector2(0f, bottomOffset);
-            row.sizeDelta = new Vector2(0f, height);
-
-            return row;
-        }
-
         /// <summary>
-        /// A dark track with a coloured fill child. The fill is stretched by its
-        /// anchors at runtime, which is why it needs no sprite.
+        /// One fighter's health: a name above a bar, pinned to its own top corner.
+        /// The player's drains to the right and the opponent's to the left, so the
+        /// two empty toward each other.
         /// </summary>
-        private static Image CreateBar(RectTransform row, Color fillColour, UiSpriteFactory.Sprites sprites)
+        private static Image BuildHealthBar(
+            RectTransform parent, string name, string title, bool isPlayer, UiSpriteFactory.Sprites sprites, TMP_FontAsset font)
         {
-            Image track = CreateImage(row, "Track", MenuTheme.Track);
-            track.sprite = sprites.Pill;
-            track.type = Image.Type.Sliced;
-            Stretch(track.rectTransform);
+            Vector2 anchor = new Vector2(isPlayer ? 0f : 1f, 1f);
+            float x = isPlayer ? SideMargin : -SideMargin;
 
-            Image fill = CreateImage(track.rectTransform, "Fill", fillColour);
-            fill.sprite = sprites.Pill;
-            fill.type = Image.Type.Sliced;
+            RectTransform group = UiFactory.Place(
+                UiFactory.NewRect(name, parent),
+                anchor,
+                anchor,
+                new Vector2(x, -TopMargin),
+                new Vector2(HealthBarWidth, NameHeight + HealthBarHeight + 4f));
 
-            RectTransform rect = fill.rectTransform;
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
+            TextAlignmentOptions align = isPlayer ? TextAlignmentOptions.MidlineLeft : TextAlignmentOptions.MidlineRight;
+            TMP_Text label = UiFactory.AddLabel(group, "Name", title, 24f, MenuTheme.TextPrimary, font, FontStyles.Bold, align);
+            UiFactory.Place(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(HealthBarWidth, NameHeight));
 
-            // No inset. The fill is a rounded pill on a rounded track, so insetting
-            // it would leave a sliver of track showing inside the fill's own
-            // rounded end, which reads as the bar never quite reaching full.
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
+            RectTransform track = UiFactory.Place(
+                UiFactory.NewRect("Track", group),
+                new Vector2(0.5f, 0f),
+                new Vector2(0.5f, 0f),
+                Vector2.zero,
+                new Vector2(HealthBarWidth, HealthBarHeight));
 
-            return fill;
+            // The track is opaque, not a tint of whatever is behind it. A health
+            // bar has to be readable against a stage nobody has built yet.
+            Image trackImage = UiFactory.AddImage(track, sprites.Pill, MenuTheme.Surface);
+            trackImage.type = Image.Type.Sliced;
+
+            RectTransform fill = UiFactory.NewRect("Fill", track);
+            fill.anchorMin = Vector2.zero;
+            fill.anchorMax = Vector2.one;
+            fill.offsetMin = new Vector2(3f, 3f);
+            fill.offsetMax = new Vector2(-3f, -3f);
+
+            Image fillImage = UiFactory.AddImage(fill, sprites.Pill, MenuTheme.Positive);
+            fillImage.type = Image.Type.Sliced;
+
+            return fillImage;
         }
 
-        private static Image[] CreatePips(RectTransform row, int count, UiSpriteFactory.Sprites sprites)
+        private static Image BuildFlowMeter(RectTransform parent, UiSpriteFactory.Sprites sprites, TMP_FontAsset font)
         {
-            var pips = new Image[count];
+            RectTransform group = UiFactory.Place(
+                UiFactory.NewRect("Flow", parent),
+                Vector2.zero,
+                Vector2.zero,
+                new Vector2(SideMargin, 74f),
+                new Vector2(MeterWidth, MeterHeight));
 
+            TMP_Text label = UiFactory.AddLabel(group, "Label", "FLOW", 20f, MenuTheme.TextMuted, font, FontStyles.Bold, TextAlignmentOptions.MidlineLeft);
+            UiFactory.Place(label.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0f), new Vector2(70f, MeterHeight));
+
+            RectTransform track = UiFactory.Place(
+                UiFactory.NewRect("Track", group),
+                new Vector2(0f, 0.5f),
+                new Vector2(0f, 0.5f),
+                new Vector2(78f, 0f),
+                new Vector2(MeterWidth - 78f, MeterHeight));
+            UiFactory.AddImage(track, sprites.Pill, MenuTheme.Surface);
+
+            RectTransform fill = UiFactory.NewRect("Fill", track);
+            fill.anchorMin = Vector2.zero;
+            fill.anchorMax = Vector2.one;
+            fill.offsetMin = new Vector2(3f, 3f);
+            fill.offsetMax = new Vector2(-3f, -3f);
+
+            return UiFactory.AddImage(fill, sprites.Pill, MenuTheme.Accent);
+        }
+
+        private static Image[] BuildActionPoints(RectTransform parent, int count, UiSpriteFactory.Sprites sprites, TMP_FontAsset font)
+        {
+            RectTransform group = UiFactory.Place(
+                UiFactory.NewRect("Action Points", parent),
+                Vector2.zero,
+                Vector2.zero,
+                new Vector2(SideMargin, 34f),
+                new Vector2(MeterWidth, PipSize));
+
+            TMP_Text label = UiFactory.AddLabel(group, "Label", "AP", 20f, MenuTheme.TextMuted, font, FontStyles.Bold, TextAlignmentOptions.MidlineLeft);
+            UiFactory.Place(label.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(70f, PipSize));
+
+            var pips = new Image[count];
             for (int i = 0; i < count; i++)
             {
-                Image pip = CreateImage(row, $"Pip {i}", Color.white);
-                pip.sprite = sprites.Circle;
-                pip.type = Image.Type.Simple;
+                RectTransform pip = UiFactory.Place(
+                    UiFactory.NewRect($"Pip {i}", group),
+                    new Vector2(0f, 0.5f),
+                    new Vector2(0f, 0.5f),
+                    new Vector2(78f + (i * (PipSize + PipGap)), 0f),
+                    new Vector2(PipSize, PipSize));
 
-                RectTransform rect = pip.rectTransform;
-                rect.anchorMin = Vector2.zero;
-                rect.anchorMax = Vector2.zero;
-                rect.pivot = Vector2.zero;
-                rect.sizeDelta = new Vector2(PipSize, PipSize);
-                rect.anchoredPosition = new Vector2(i * (PipSize + 8f), 0f);
-
-                pips[i] = pip;
+                Image image = UiFactory.AddImage(pip, sprites.Circle, MenuTheme.Accent);
+                image.type = Image.Type.Simple;
+                pips[i] = image;
             }
 
             return pips;
         }
 
-        private static Image CreateImage(Transform parent, string name, Color colour)
+        /// <summary>
+        /// Hands the HUD's root to the split-screen layout, which anchors it to the
+        /// fighter's share of the window. Without this the top bars would span the
+        /// whole screen and run across the quiz.
+        /// </summary>
+        private static void RegisterWithSplitScreen(RectTransform viewport)
         {
-            var image = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image))
-                .GetComponent<Image>();
+            var layout = Object.FindAnyObjectByType<SplitScreenLayout>();
+            if (layout == null)
+            {
+                Debug.LogWarning("No SplitScreenLayout in the scene, so the HUD will span the whole window. Run Tools > Think Fast > Build Split Screen Fight.");
+                return;
+            }
 
-            image.transform.SetParent(parent, worldPositionStays: false);
-            image.color = colour;
+            var so = new SerializedObject(layout);
+            so.FindProperty("fighterHud").objectReferenceValue = viewport;
+            so.ApplyModifiedPropertiesWithoutUndo();
 
-            // No sprite: Unity draws a plain white quad, tinted by the colour.
-            // That is all a placeholder bar needs, and it keeps the HUD free of
-            // any art dependency.
-            image.sprite = null;
-            image.raycastTarget = false;
-
-            return image;
+            // Re-applied because the layout already ran once, before this HUD
+            // existed to be anchored. Without it the Game view shows the bars
+            // spanning the whole window until Play is pressed.
+            layout.Apply();
         }
 
-        private static void Stretch(RectTransform rect)
-        {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-        }
-
-        private static void Wire(FighterHud hud, Image healthFill, Image flowFill, Image[] pips)
+        private static void Wire(FighterHud hud, Image playerHealth, Image opponentHealth, Image flowFill, Image[] pips)
         {
             var so = new SerializedObject(hud);
 
-            so.FindProperty("healthFill").objectReferenceValue = healthFill.rectTransform;
-            so.FindProperty("healthFillImage").objectReferenceValue = healthFill;
+            so.FindProperty("healthFill").objectReferenceValue = playerHealth.rectTransform;
+            so.FindProperty("healthFillImage").objectReferenceValue = playerHealth;
+            so.FindProperty("opponentHealthFill").objectReferenceValue = opponentHealth.rectTransform;
+            so.FindProperty("opponentHealthFillImage").objectReferenceValue = opponentHealth;
             so.FindProperty("flowFill").objectReferenceValue = flowFill.rectTransform;
             so.FindProperty("flowFillImage").objectReferenceValue = flowFill;
 
@@ -241,9 +260,8 @@ namespace ThinkFast.UIEditor
             so.FindProperty("flowActiveColour").colorValue = MenuTheme.Flow;
             so.FindProperty("pipFilledColour").colorValue = MenuTheme.Accent;
 
-            // Empty pips stay a visible shape rather than fading out, so the
-            // player can see how many they are missing, not just how many they
-            // have.
+            // Empty pips stay a visible shape rather than fading out, so the player
+            // can see how many they are missing, not just how many they have.
             so.FindProperty("pipEmptyColour").colorValue = MenuTheme.Track;
 
             so.ApplyModifiedPropertiesWithoutUndo();

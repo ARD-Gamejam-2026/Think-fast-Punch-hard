@@ -37,6 +37,14 @@ namespace ThinkFast.UI
         [Tooltip("Health fraction below which the bar turns to the low colour.")]
         [SerializeField, Range(0f, 1f)] private float healthLowThreshold = 0.3f;
 
+        [Header("Opponent")]
+        [Tooltip("Left empty, the HUD finds the fighter that has health but no economy -- only the player has the economy, so that is the opponent.")]
+        [SerializeField] private Health opponentHealth;
+
+        [SerializeField] private RectTransform opponentHealthFill;
+
+        [SerializeField] private Image opponentHealthFillImage;
+
         [Header("Flow")]
         [SerializeField] private RectTransform flowFill;
 
@@ -77,17 +85,69 @@ namespace ThinkFast.UI
                     : FindAnyObjectByType<Health>();
             }
 
+            if (opponentHealth == null)
+            {
+                opponentHealth = FindOpponentHealth();
+            }
+
             if (flowFill != null)
             {
                 flowFillParent = flowFill.parent as RectTransform;
             }
         }
 
+        /// <summary>
+        /// Finds the opponent by elimination: both fighters have a
+        /// <see cref="Health"/>, but only the player has a
+        /// <see cref="FighterResources"/>, so the one without it is the opponent.
+        /// The same rule the HUD already uses to identify the player, read the
+        /// other way round.
+        /// </summary>
+        private Health FindOpponentHealth()
+        {
+            foreach (Health candidate in FindObjectsByType<Health>(FindObjectsInactive.Include))
+            {
+                if (candidate.GetComponent<FighterResources>() == null)
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
         private void LateUpdate()
         {
             UpdateHealth();
+            UpdateOpponentHealth();
             UpdateFlow();
             UpdateActionPoints();
+        }
+
+        /// <summary>
+        /// Drives the opponent's bar. It empties toward the middle of the screen
+        /// rather than toward the left, so the two bars drain toward each other
+        /// and a glance at the gap between them reads as who is winning.
+        /// </summary>
+        private void UpdateOpponentHealth()
+        {
+            if (opponentHealth == null || opponentHealthFill == null)
+            {
+                return;
+            }
+
+            SetFillFromRight(opponentHealthFill, opponentHealth.Normalised);
+
+            if (opponentHealthFillImage != null)
+            {
+                if (opponentHealth.Normalised <= healthLowThreshold)
+                {
+                    opponentHealthFillImage.color = healthLowColour;
+                    return;
+                }
+
+                opponentHealthFillImage.color = healthColour;
+            }
         }
 
         private void UpdateHealth()
@@ -157,6 +217,18 @@ namespace ThinkFast.UI
         /// because a filled Image needs a sprite assigned and these bars are
         /// deliberately sprite-less white quads.
         /// </summary>
+        /// <summary>
+        /// The mirror of <see cref="SetFill"/>: the bar keeps its right edge and
+        /// loses ground from the left, by moving the minimum anchor instead of the
+        /// maximum.
+        /// </summary>
+        private static void SetFillFromRight(RectTransform fill, float normalised)
+        {
+            Vector2 anchorMin = fill.anchorMin;
+            anchorMin.x = 1f - Mathf.Clamp01(normalised);
+            fill.anchorMin = anchorMin;
+        }
+
         private static void SetFill(RectTransform fill, float normalised)
         {
             Vector2 anchorMax = fill.anchorMax;
