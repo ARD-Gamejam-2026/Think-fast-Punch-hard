@@ -672,6 +672,18 @@ So the clip still fits and nothing looks rushed, but the hitbox opens early and 
 open across the whole visual strike. **A hitbox that leads the fist slightly is far
 less noticeable than an opponent that never lands a dive.**
 
+Two more values came back changed, and between them they were the *larger* half of why
+edge-camping stayed safe:
+
+| | as animated | now | why |
+|---|---|---|---|
+| `hitboxOffset.y` | −1 | **−0.1** | at −1 the 1.1-tall box spans −1.55 to −0.45: **entirely below the fighter**, so nothing at its own height could be hit — which is exactly where someone camping a ledge stands |
+| `moveControlScale` | 0.6 | **0.9** | a dive that brakes itself lands short of what it was aimed at, and the aiming already accounts for the braking |
+
+The `-1` reads like a dropped decimal from `-0.1`. Its effect was invisible on paper —
+the brain still reported the target in range via `attackVerticalRange` (1.3) and swung
+confidently — so the opponent looked like it was attacking and simply never connected.
+
 `Tools > Think Fast > Import Fighters From Art Scene` applies this, so re-importing
 cannot quietly put the whiffing version back. **Ground attacks are left exactly as
 animated** — a grounded fighter is rooted through its own startup, so a late hitbox

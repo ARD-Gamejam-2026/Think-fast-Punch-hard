@@ -3051,9 +3051,9 @@ MonoBehaviour:
     recoveryMoveControlScale: 0.7
   airAttack:
     displayName: Enemy Dive
-    startup: 0.18
-    active: 0.06
-    recovery: 0.12
+    startup: 0.1
+    active: 0.16
+    recovery: 0.1
     damage: 7
     knockback: {x: 7, y: 5}
     hitstun: 0.25
@@ -5184,9 +5184,9 @@ MonoBehaviour:
     recoveryMoveControlScale: 0.7
   airAttack:
     displayName: Air Kick
-    startup: 0.18
-    active: 0.06
-    recovery: 0.12
+    startup: 0.1
+    active: 0.16
+    recovery: 0.1
     damage: 7
     knockback: {x: 7, y: 5}
     hitstun: 0.25

@@ -52,6 +52,31 @@ namespace ThinkFast.PlayerEditor
 
         private const float AirRecovery = 0.10f;
 
+        /// <summary>
+        /// How far the air hitbox sits below the fighter's centre.
+        ///
+        /// The animated fighters came in at -1, against -0.1 before. With a hitbox
+        /// 1.1 tall, -1 puts it entirely underneath the fighter -- spanning -1.55
+        /// to -0.45 -- so nothing at the diving fighter's own height can be hit at
+        /// all, which is precisely where a player camping a platform edge stands.
+        /// The brain still reads them as in range (attackVerticalRange is 1.3) and
+        /// swings into empty air, and the fall during startup drops the box
+        /// further still.
+        ///
+        /// -0.1 keeps the box centred on the fighter, covering its own height.
+        /// </summary>
+        private const float AirHitboxOffsetY = -0.1f;
+
+        /// <summary>
+        /// How much of its own movement the fighter keeps during the swing.
+        ///
+        /// Also reverted by the retiming, 0.9 to 0.6. The README is explicit about
+        /// this one: a dive that brakes itself lands short of what it was aimed at,
+        /// and the aiming already accounts for the braking, so slowing the fighter
+        /// mid-swing makes it undershoot a target it had correctly predicted.
+        /// </summary>
+        private const float AirMoveControlScale = 0.9f;
+
         [MenuItem("Tools/Think Fast/Import Fighters From Art Scene")]
         public static void Import()
         {
@@ -90,7 +115,7 @@ namespace ThinkFast.PlayerEditor
             EditorSceneManager.MarkSceneDirty(fight);
             EditorSceneManager.SaveScene(fight);
 
-            Debug.Log($"Imported the animated fighters from the art scene, with the air swing rebalanced to {AirStartup}/{AirActive}/{AirRecovery} so dives still connect. Re-running 'Build PlayerController Test Scene' will replace them with the placeholder capsules again -- re-run this afterwards if you do.");
+            Debug.Log($"Imported the animated fighters from the art scene. Air swing rebalanced to {AirStartup}/{AirActive}/{AirRecovery}, hitbox re-centred at y {AirHitboxOffsetY} and move control back to {AirMoveControlScale}, so dives connect instead of passing under the target. Re-running 'Build PlayerController Test Scene' will replace them with the placeholder capsules again -- re-run this afterwards if you do.");
         }
 
         private static Transform FindRigRoot(Scene scene)
@@ -194,6 +219,15 @@ namespace ThinkFast.PlayerEditor
             air.FindPropertyRelative("startup").floatValue = AirStartup;
             air.FindPropertyRelative("active").floatValue = AirActive;
             air.FindPropertyRelative("recovery").floatValue = AirRecovery;
+            air.FindPropertyRelative("moveControlScale").floatValue = AirMoveControlScale;
+
+            // Only the vertical part is restored. The horizontal reach is a real
+            // reach decision and belongs to whoever animated the swing.
+            SerializedProperty offset = air.FindPropertyRelative("hitboxOffset");
+            Vector2 value = offset.vector2Value;
+            value.y = AirHitboxOffsetY;
+            offset.vector2Value = value;
+
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
