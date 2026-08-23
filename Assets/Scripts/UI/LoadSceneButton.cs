@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace ThinkFast.UI
@@ -32,14 +31,7 @@ namespace ThinkFast.UI
                 MenuSounds.Instance.PlayPress();
             }
 
-            if (ScreenFade.Instance != null)
-            {
-                ScreenFade.Instance.FadeToScene(sceneName);
-                return;
-            }
-
-            // No fade in this screen: still go, just without the wash.
-            SceneManager.LoadScene(sceneName);
+            SceneRouter.Go(sceneName);
         }
     }
 }

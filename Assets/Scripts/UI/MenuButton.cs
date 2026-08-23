@@ -39,6 +39,19 @@ namespace ThinkFast.UI
         [Tooltip("Icon or glyph above the label. Recoloured with the label. Optional.")]
         [SerializeField] private TMP_Text icon;
 
+        [Header("Colours")]
+        [Tooltip("Resting fill. Left at the surface white this is the quiet card every menu tile uses; set to an accent it becomes a filled call-to-action.")]
+        [SerializeField] private Color restColour = MenuTheme.Surface;
+
+        [Tooltip("Fill while hovered or focused.")]
+        [SerializeField] private Color highlightColour = MenuTheme.AccentWash;
+
+        [Tooltip("Label colour at rest. Must be readable on the resting fill -- nothing here checks that for you.")]
+        [SerializeField] private Color restTextColour = MenuTheme.TextPrimary;
+
+        [Tooltip("Label colour while hovered or focused.")]
+        [SerializeField] private Color highlightTextColour = MenuTheme.Accent;
+
         [Header("Sound")]
         [Tooltip("Off for a tile that is already loud, like a confirm inside a dialog that just opened.")]
         [SerializeField] private bool playSounds = true;
@@ -142,7 +155,7 @@ namespace ThinkFast.UI
 
             if (background != null)
             {
-                background.color = Color.Lerp(MenuTheme.Surface, MenuTheme.AccentWash, highlight);
+                background.color = Color.Lerp(restColour, highlightColour, highlight);
             }
 
             if (glow != null)
@@ -152,7 +165,7 @@ namespace ThinkFast.UI
                 glow.color = glowColour;
             }
 
-            Color textColour = Color.Lerp(MenuTheme.TextPrimary, MenuTheme.Accent, highlight);
+            Color textColour = Color.Lerp(restTextColour, highlightTextColour, highlight);
 
             if (label != null)
             {
