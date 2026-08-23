@@ -25,6 +25,13 @@ namespace ThinkFast.Quiz
         [Tooltip("Optional. Shown automatically on Start for quick play-mode testing.")]
         [SerializeField] private QuizQuestion startingQuestion;
 
+        [Header("Difficulty")]
+        [Tooltip("Timer multiplier at maximum difficulty. 0.5 = late-game questions get half their authored time. 1 disables the shrink.")]
+        [SerializeField, Range(0f, 1f)] private float timerScaleAtMaxDifficulty = 0.5f;
+
+        [Tooltip("Lower bound on the scaled time limit, in seconds, so late-game questions stay answerable. Never lengthens a shorter authored limit.")]
+        [SerializeField, Min(0.5f)] private float minTimerSeconds = 3f;
+
         /// <summary>
         /// Fires the instant a question resolves (click or timeout), before
         /// the feedback delay. The float is the session's
@@ -89,7 +96,12 @@ namespace ThinkFast.Quiz
             // Everything downstream of here -- clicks, feedback colours, the
             // session's CorrectIndex -- works in slot space, so the permutation
             // never has to be undone.
-            session = new QuizSession(correctSlot, question.timeLimitSeconds);
+            float timeLimit = DifficultyMath.ScaleTimeLimit(
+                question.timeLimitSeconds,
+                DifficultyRamp.Current01,
+                timerScaleAtMaxDifficulty,
+                minTimerSeconds);
+            session = new QuizSession(correctSlot, timeLimit);
             feedbackTimer = 0f;
             eventFired = false;
             view.ShowQuestion(question, order);
