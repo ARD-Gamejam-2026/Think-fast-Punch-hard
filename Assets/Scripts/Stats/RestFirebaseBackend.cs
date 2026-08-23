@@ -13,24 +13,37 @@ namespace ThinkFast.Stats
     public sealed class RestFirebaseBackend : IHighscoreBackend
     {
         private readonly string databaseUrl;
+        private readonly FirebaseAnonymousAuth auth;
 
-        /// <summary>Creates a backend that stores records at the given Realtime Database URL.</summary>
-        public RestFirebaseBackend(string databaseUrl)
+        /// <summary>
+        /// Creates a backend that stores records at the given Realtime Database
+        /// URL, authenticating each request with an anonymous ID token obtained
+        /// from the given Web API key.
+        /// </summary>
+        public RestFirebaseBackend(string databaseUrl, string webApiKey)
         {
             this.databaseUrl = databaseUrl;
+            this.auth = new FirebaseAnonymousAuth(webApiKey);
         }
 
         /// <summary>Posts the record under the highscores collection (push id).</summary>
         public async Task UploadAsync(MatchRecord record)
         {
-            string url = BuildCollectionUrl(databaseUrl);
+            string idToken = await auth.SignInAnonymouslyAsync();
+            if (string.IsNullOrEmpty(idToken))
+            {
+                Debug.LogWarning("Highscore upload skipped: anonymous sign-in returned no token.");
+                return;
+            }
+
+            string url = WithAuth(BuildCollectionUrl(databaseUrl), idToken);
             byte[] body = System.Text.Encoding.UTF8.GetBytes(SerializeRecord(record));
             using (var request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPOST))
             {
                 request.uploadHandler = new UploadHandlerRaw(body);
                 request.downloadHandler = new DownloadHandlerBuffer();
                 request.SetRequestHeader("Content-Type", "application/json");
-                await SendAsync(request);
+                await WebRequests.SendAsync(request);
                 if (request.result != UnityWebRequest.Result.Success)
                 {
                     Debug.LogWarning("Highscore upload failed: " + request.error);
@@ -41,10 +54,16 @@ namespace ThinkFast.Stats
         /// <summary>Gets the collection and returns the fastest records first.</summary>
         public async Task<IReadOnlyList<MatchRecord>> FetchTopAsync(int count)
         {
-            string url = BuildCollectionUrl(databaseUrl);
+            string idToken = await auth.SignInAnonymouslyAsync();
+            if (string.IsNullOrEmpty(idToken))
+            {
+                return new List<MatchRecord>();
+            }
+
+            string url = WithAuth(BuildCollectionUrl(databaseUrl), idToken);
             using (var request = UnityWebRequest.Get(url))
             {
-                await SendAsync(request);
+                await WebRequests.SendAsync(request);
                 if (request.result != UnityWebRequest.Result.Success)
                 {
                     return new List<MatchRecord>();
@@ -66,6 +85,12 @@ namespace ThinkFast.Stats
         {
             string trimmed = databaseUrl.TrimEnd('/');
             return trimmed + "/highscores.json";
+        }
+
+        /// <summary>Appends the ID token to the URL as the auth query parameter.</summary>
+        internal static string WithAuth(string url, string idToken)
+        {
+            return url + "?auth=" + idToken;
         }
 
         /// <summary>Serializes the record to the JSON body Firebase stores.</summary>
@@ -122,14 +147,6 @@ namespace ThinkFast.Stats
                     depth--;
                 }
             }
-        }
-
-        private static Task SendAsync(UnityWebRequest request)
-        {
-            var completion = new TaskCompletionSource<bool>();
-            UnityWebRequestAsyncOperation operation = request.SendWebRequest();
-            operation.completed += _ => { completion.SetResult(true); };
-            return completion.Task;
         }
     }
 }

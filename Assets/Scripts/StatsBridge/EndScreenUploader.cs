@@ -13,6 +13,9 @@ namespace ThinkFast.Stats
         [Tooltip("Realtime Database URL, e.g. https://<project>-default-rtdb.firebaseio.com. Empty uses an in-memory store.")]
         [SerializeField] private string databaseUrl = string.Empty;
 
+        [Tooltip("Firebase Web API key (Project settings > General). Public/embeddable; ships with the game. Used to sign in anonymously so uploads are authenticated. Empty uses an in-memory store.")]
+        [SerializeField] private string webApiKey = string.Empty;
+
         private void Start()
         {
             if (!MatchStats.HasFinished)
@@ -28,13 +31,13 @@ namespace ThinkFast.Stats
 
         private IHighscoreBackend CreateBackend()
         {
-            if (string.IsNullOrWhiteSpace(databaseUrl))
+            if (string.IsNullOrWhiteSpace(databaseUrl) || string.IsNullOrWhiteSpace(webApiKey))
             {
-                Debug.LogWarning("EndScreenUploader has no database URL, so the highscore is only kept in memory.", this);
+                Debug.LogWarning("EndScreenUploader is missing the database URL or Web API key, so the highscore is only kept in memory.", this);
                 return new MemoryBackend();
             }
 
-            return new RestFirebaseBackend(databaseUrl);
+            return new RestFirebaseBackend(databaseUrl, webApiKey);
         }
 
         private async void UploadAndForget(IHighscoreBackend backend, MatchRecord record)
