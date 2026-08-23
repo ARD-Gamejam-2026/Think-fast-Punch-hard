@@ -6,10 +6,10 @@ namespace ThinkFast.Stats
 {
     /// <summary>
     /// Uploads the finished round's record from the end screen. Reads the static
-    /// <see cref="MatchStats"/> (which survived the scene load) and the player
-    /// name, then sends it to Firebase, or to an in-memory store when no URL is
-    /// set. When no name was set on the menu, it first prompts for one and
-    /// uploads on confirm.
+    /// <see cref="MatchStats"/> (which survived the scene load), shows a name
+    /// field pre-filled with the current name so the player can review or change
+    /// it, and uploads to Firebase (or an in-memory store when no URL is set)
+    /// when they press the save button.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class EndScreenUploader : MonoBehaviour
@@ -20,8 +20,8 @@ namespace ThinkFast.Stats
         [Tooltip("Firebase Web API key (Project settings > General). Public/embeddable; ships with the game. Used to sign in anonymously so uploads are authenticated. Empty uses an in-memory store.")]
         [SerializeField] private string webApiKey = "AIzaSyDHZ-mRPzoeJyC87NnmP8UfV1IkxSaTEY4";
 
-        [Header("Name prompt (shown only when no name was set on the menu)")]
-        [Tooltip("Panel holding the name field and save button. Left hidden until needed.")]
+        [Header("Name prompt (shown on the end screen to review or change the name)")]
+        [Tooltip("Panel holding the name field and save button. Left hidden until the score is ready to submit.")]
         [SerializeField] private GameObject namePrompt;
 
         [Tooltip("The field the player types their name into on the end screen.")]
@@ -41,14 +41,6 @@ namespace ThinkFast.Stats
             }
 
             pendingRecord = MatchStats.Snapshot();
-
-            if (PlayerName.IsSet)
-            {
-                HidePrompt();
-                Submit(PlayerName.Value);
-                return;
-            }
-
             ShowPrompt();
         }
 
@@ -60,19 +52,28 @@ namespace ThinkFast.Stats
             }
         }
 
-        // Reveals the name prompt and waits for the save button. With no prompt
-        // wired it uploads under the default name so the score is not lost.
+        // Reveals the name prompt, pre-filled with the current name, and waits for
+        // the save button. With no prompt wired it uploads under the current name
+        // so the score is not lost.
         private void ShowPrompt()
         {
             if (namePrompt == null || nameField == null || saveButton == null)
             {
-                Debug.LogWarning("EndScreenUploader has no name prompt wired; uploading under the default name.", this);
+                Debug.LogWarning("EndScreenUploader has no name prompt wired; uploading under the current name.", this);
                 Submit(PlayerName.Value);
                 return;
             }
 
             namePrompt.SetActive(true);
-            nameField.text = string.Empty;
+            if (PlayerName.IsSet)
+            {
+                nameField.text = PlayerName.Value;
+            }
+            else
+            {
+                nameField.text = string.Empty;
+            }
+
             saveButton.onClick.AddListener(HandleSave);
         }
 
