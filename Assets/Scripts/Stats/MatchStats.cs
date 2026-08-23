@@ -84,6 +84,13 @@ namespace ThinkFast.Stats
         /// <summary>Records a correct answer, also counting it as solved.</summary>
         public static void RecordCorrect()
         {
+            // Once the round is finished the record is frozen at the knockout instant:
+            // stats that resolve during the scene-transition delay must not leak in.
+            if (HasFinished)
+            {
+                return;
+            }
+
             QuizzesSolved++;
             QuizzesRight++;
         }
@@ -91,6 +98,11 @@ namespace ThinkFast.Stats
         /// <summary>Records a wrong answer, also counting it as solved.</summary>
         public static void RecordWrong()
         {
+            if (HasFinished)
+            {
+                return;
+            }
+
             QuizzesSolved++;
             QuizzesWrong++;
         }
@@ -98,6 +110,11 @@ namespace ThinkFast.Stats
         /// <summary>Records a timed-out question, also counting it as solved.</summary>
         public static void RecordTimedOut()
         {
+            if (HasFinished)
+            {
+                return;
+            }
+
             QuizzesSolved++;
             QuizzesTimedOut++;
         }
@@ -117,6 +134,11 @@ namespace ThinkFast.Stats
         /// </summary>
         public static void SetPlayerHealth(int current)
         {
+            if (HasFinished)
+            {
+                return;
+            }
+
             if (hasPlayerBaseline && current < lastPlayerHealth)
             {
                 DamageTaken += lastPlayerHealth - current;
@@ -133,6 +155,11 @@ namespace ThinkFast.Stats
         /// </summary>
         public static void SetOpponentHealth(int current)
         {
+            if (HasFinished)
+            {
+                return;
+            }
+
             if (hasOpponentBaseline && current < lastOpponentHealth)
             {
                 DamageDealt += lastOpponentHealth - current;

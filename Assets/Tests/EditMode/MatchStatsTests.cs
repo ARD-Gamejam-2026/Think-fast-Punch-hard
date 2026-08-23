@@ -103,5 +103,25 @@ namespace ThinkFast.Stats.Tests
             Assert.IsTrue(record.playerWon);
             Assert.IsFalse(string.IsNullOrEmpty(record.finishedAt));
         }
+
+        [Test]
+        public void Updates_after_finish_are_ignored()
+        {
+            MatchStats.SetPlayerHealth(100);
+            MatchStats.RecordCorrect();
+            MatchStats.Finish(true);
+
+            MatchStats.RecordCorrect();
+            MatchStats.RecordWrong();
+            MatchStats.SetPlayerHealth(50);
+            MatchStats.SetOpponentHealth(10);
+
+            Assert.AreEqual(1, MatchStats.QuizzesSolved);
+            Assert.AreEqual(1, MatchStats.QuizzesRight);
+            Assert.AreEqual(0, MatchStats.QuizzesWrong);
+            Assert.AreEqual(100, MatchStats.EndHealth);
+            Assert.AreEqual(0, MatchStats.DamageTaken);
+            Assert.AreEqual(0, MatchStats.EndOpponentHealth);
+        }
     }
 }
