@@ -3,6 +3,7 @@
     "rootNamespace": "ThinkFast.Quiz.Tests",
     "references": [
         "Quiz",
+        "ThinkFast.Stats",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "UnityEngine.UI",
