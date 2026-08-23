@@ -4,8 +4,9 @@ using UnityEngine;
 namespace ThinkFast.Stats
 {
     /// <summary>
-    /// Binds a menu text field to <see cref="PlayerName"/>: shows the stored name
-    /// and saves whatever the player types for their highscore entries.
+    /// Binds a menu text field to <see cref="PlayerName"/>: saves whatever the
+    /// player types for their highscore entries. The field is left empty so its
+    /// placeholder shows rather than pre-selecting a stored name.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class PlayerNameField : MonoBehaviour
@@ -21,7 +22,8 @@ namespace ThinkFast.Stats
                 return;
             }
 
-            field.text = PlayerName.Value;
+            // Deliberately not prefilled from PlayerName: the field shows its
+            // "Your name" placeholder instead of pre-selecting a saved name.
             field.onValueChanged.AddListener(HandleValueChanged);
         }
 
