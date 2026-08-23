@@ -43,7 +43,7 @@ namespace ThinkFast.VFX
         public void PlayHitEffect(Vector3 position, bool strong = false)
         {
             transform.position = position;
-            
+
             if (strong)
             {
                 strongEffect?.Emit(1);

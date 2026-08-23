@@ -285,6 +285,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   characterAnimation: {fileID: 0}
+  swingClip: {fileID: 8300000, guid: b5454752eb167a047903c41c98ebbce9, type: 3}
 --- !u!114 &728373213451278488
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -448,6 +449,8 @@ MonoBehaviour:
   playerAttack: {fileID: 2441900845413240947}
   playerResources: {fileID: 3971702920632119115}
   enemyAttack: {fileID: 0}
+  defaultClip: {fileID: 8300000, guid: d443599b2e33cd44d835bb31f5b064b6, type: 3}
+  strongClip: {fileID: 8300000, guid: cb9136f5d349d204f8ef9d1a7dfecd5f, type: 3}
 --- !u!1001 &7247952145489210234
 PrefabInstance:
   m_ObjectHideFlags: 0

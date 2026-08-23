@@ -8,18 +8,28 @@ namespace ThinkFast.VFX
 {
     /// <summary>
     /// Listens for landed hits on either fighter and drives the scene
-    /// <see cref="HitEffect"/> singleton. Player hits use the strong burst while
-    /// <see cref="FighterResources.IsFlowActive"/> is true.
+    /// <see cref="HitEffect"/> singleton plus a one-shot impact sound. Player hits
+    /// use the strong burst while <see cref="FighterResources.IsFlowActive"/> is true.
     /// </summary>
     [DisallowMultipleComponent]
+    [RequireComponent(typeof(AudioSource))]
     public sealed class CombatHitVfx : MonoBehaviour
     {
         [SerializeField] private PlayerAttack playerAttack;
         [SerializeField] private FighterResources playerResources;
         [SerializeField] private EnemyAttack enemyAttack;
 
+        [Header("Audio")]
+        [SerializeField] private AudioClip defaultClip;
+        [SerializeField] private AudioClip strongClip;
+
+        private AudioSource audioSource;
+
         private void Awake()
         {
+            audioSource = GetComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+
             if (playerAttack == null)
             {
                 playerAttack = FindAnyObjectByType<PlayerAttack>();
@@ -73,15 +83,29 @@ namespace ThinkFast.VFX
             PlayEffect(point, enemyAttack.transform.position.z, false);
         }
 
-        private static void PlayEffect(Vector2 point, float depth, bool strong)
+        private void PlayEffect(Vector2 point, float depth, bool strong)
         {
-            if (HitEffect.Instance == null)
+            var position = new Vector3(point.x, point.y, depth);
+
+            if (HitEffect.Instance != null)
             {
-                return;
+                HitEffect.Instance.PlayHitEffect(position, strong);
             }
 
-            var position = new Vector3(point.x, point.y, depth);
-            HitEffect.Instance.PlayHitEffect(position, strong);
+            AudioClip clip;
+            if (strong)
+            {
+                clip = strongClip;
+            }
+            else
+            {
+                clip = defaultClip;
+            }
+
+            if (clip != null)
+            {
+                audioSource.PlayOneShot(clip);
+            }
         }
     }
 }

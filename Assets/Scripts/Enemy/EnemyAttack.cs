@@ -83,6 +83,10 @@ namespace ThinkFast.Enemy
         [Tooltip("Optional. Mesh Animator driver on a child object.")]
         [SerializeField] private CharacterAnimation characterAnimation;
 
+        [Header("Audio")]
+        public AudioClip swingClip;
+
+        private AudioSource audioSource;
         private EnemyMotor motor;
         private AttackRunner runner;
         private ICharacterAnimation animation;
@@ -125,7 +129,18 @@ namespace ThinkFast.Enemy
             bool airborne = !motor.IsGrounded;
             runner.Begin(airborne ? airAttack : groundAttack, motor.Facing);
             animation?.NotifyAttackStarted(airborne);
+            PlaySwingSound();
             return true;
+        }
+
+        private void PlaySwingSound()
+        {
+            if (swingClip == null || audioSource == null)
+            {
+                return;
+            }
+
+            audioSource.PlayOneShot(swingClip);
         }
 
         private void Awake()
@@ -138,6 +153,8 @@ namespace ThinkFast.Enemy
             }
 
             animation = characterAnimation;
+
+            audioSource = GetComponent<AudioSource>();
 
             runner = new AttackRunner(gameObject, hittableLayers);
             runner.Started += (attack, centre) => AttackStarted?.Invoke(attack, centre);
