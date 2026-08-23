@@ -1,0 +1,120 @@
+using System;
+using UnityEngine;
+
+namespace ThinkFast.Stats
+{
+    /// <summary>
+    /// The match-statistics counter: a static accumulator the quiz and fighters
+    /// write into during a round, snapshotted for upload when the round ends.
+    /// Same static hand-off shape as <c>RoundEvents</c> and <c>MatchResult</c> —
+    /// no scene wiring, and it survives the fight-to-end scene load so the end
+    /// screen can read it back.
+    /// </summary>
+    public static class MatchStats
+    {
+        /// <summary>Time source in seconds. Swapped by tests for a fixed clock.</summary>
+        public static Func<double> Clock = DefaultClock;
+
+        public static int QuizzesSolved { get; private set; }
+        public static int QuizzesRight { get; private set; }
+        public static int QuizzesWrong { get; private set; }
+        public static int QuizzesTimedOut { get; private set; }
+        public static int DamageDealt { get; private set; }
+        public static int DamageTaken { get; private set; }
+        public static int EndHealth { get; private set; }
+        public static int EndOpponentHealth { get; private set; }
+        public static bool PlayerWon { get; private set; }
+
+        /// <summary>Whether a round has finished and left a record to upload.</summary>
+        public static bool HasFinished { get; private set; }
+
+        /// <summary>Seconds from <see cref="Begin"/> to <see cref="Finish"/>.</summary>
+        public static double TimeToBeatOpponent
+        {
+            get { return endTime - startTime; }
+        }
+
+        private static double startTime;
+        private static double endTime;
+        private static bool hasPlayerBaseline;
+        private static bool hasOpponentBaseline;
+        private static int lastPlayerHealth;
+        private static int lastOpponentHealth;
+        private static string finishedAtIso = string.Empty;
+
+        /// <summary>Starts a fresh round: stamps the start time and zeros counters.</summary>
+        public static void Begin()
+        {
+            startTime = Clock();
+            endTime = startTime;
+            QuizzesSolved = 0;
+            QuizzesRight = 0;
+            QuizzesWrong = 0;
+            QuizzesTimedOut = 0;
+            DamageDealt = 0;
+            DamageTaken = 0;
+            EndHealth = 0;
+            EndOpponentHealth = 0;
+            PlayerWon = false;
+            HasFinished = false;
+            hasPlayerBaseline = false;
+            hasOpponentBaseline = false;
+            lastPlayerHealth = 0;
+            lastOpponentHealth = 0;
+            finishedAtIso = string.Empty;
+        }
+
+        /// <summary>Records a correct answer, also counting it as solved.</summary>
+        public static void RecordCorrect()
+        {
+            QuizzesSolved++;
+            QuizzesRight++;
+        }
+
+        /// <summary>Records a wrong answer, also counting it as solved.</summary>
+        public static void RecordWrong()
+        {
+            QuizzesSolved++;
+            QuizzesWrong++;
+        }
+
+        /// <summary>Records a timed-out question, also counting it as solved.</summary>
+        public static void RecordTimedOut()
+        {
+            QuizzesSolved++;
+            QuizzesTimedOut++;
+        }
+
+        /// <summary>Finishes the round: stamps the end time and win/loss.</summary>
+        public static void Finish(bool playerWon)
+        {
+            endTime = Clock();
+            PlayerWon = playerWon;
+            finishedAtIso = DateTime.UtcNow.ToString("o");
+            HasFinished = true;
+        }
+
+        // Health/damage and Snapshot are added in later tasks.
+
+        private static double DefaultClock()
+        {
+            return Time.realtimeSinceStartupAsDouble;
+        }
+
+        /// <summary>Resets all state and restores the default clock. For tests.</summary>
+        public static void ResetForTests()
+        {
+            Clock = DefaultClock;
+            Begin();
+        }
+
+        // Static state survives entering Play mode when domain reloading is off,
+        // which would carry last session's counters into a new fight.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetOnPlay()
+        {
+            Clock = DefaultClock;
+            Begin();
+        }
+    }
+}
