@@ -66,7 +66,12 @@ namespace ThinkFast.Stats.Tests
             List<MatchRecord> records = RestFirebaseBackend.ParseCollection(response);
 
             Assert.AreEqual(2, records.Count);
-            CollectionAssert.Contains(new[] { "a", "b" }, records[0].playerName);
+            MatchRecord a = records.Find(r => r.playerName == "a");
+            MatchRecord b = records.Find(r => r.playerName == "b");
+            Assert.IsNotNull(a);
+            Assert.IsNotNull(b);
+            Assert.AreEqual(20.0f, a.timeToBeatOpponent, 0.0001f);
+            Assert.AreEqual(5.0f, b.timeToBeatOpponent, 0.0001f);
         }
 
         [Test]

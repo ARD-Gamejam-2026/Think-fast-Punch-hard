@@ -14,6 +14,7 @@ namespace ThinkFast.Stats
     {
         private readonly string databaseUrl;
 
+        /// <summary>Creates a backend that stores records at the given Realtime Database URL.</summary>
         public RestFirebaseBackend(string databaseUrl)
         {
             this.databaseUrl = databaseUrl;
@@ -30,6 +31,10 @@ namespace ThinkFast.Stats
                 request.downloadHandler = new DownloadHandlerBuffer();
                 request.SetRequestHeader("Content-Type", "application/json");
                 await SendAsync(request);
+                if (request.result != UnityWebRequest.Result.Success)
+                {
+                    Debug.LogWarning("Highscore upload failed: " + request.error);
+                }
             }
         }
 

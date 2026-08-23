@@ -15,14 +15,31 @@ namespace ThinkFast.Stats
         /// <summary>Time source in seconds. Swapped by tests for a fixed clock.</summary>
         public static Func<double> Clock = DefaultClock;
 
+        /// <summary>Number of quiz questions solved this round (right, wrong and timed out).</summary>
         public static int QuizzesSolved { get; private set; }
+
+        /// <summary>Number of quiz questions answered right this round.</summary>
         public static int QuizzesRight { get; private set; }
+
+        /// <summary>Number of quiz questions answered wrong this round.</summary>
         public static int QuizzesWrong { get; private set; }
+
+        /// <summary>Number of quiz questions that timed out this round.</summary>
         public static int QuizzesTimedOut { get; private set; }
+
+        /// <summary>Total damage dealt to the opponent this round.</summary>
         public static int DamageDealt { get; private set; }
+
+        /// <summary>Total damage taken by the player this round.</summary>
         public static int DamageTaken { get; private set; }
+
+        /// <summary>The player's health at the end of the round.</summary>
         public static int EndHealth { get; private set; }
+
+        /// <summary>The opponent's health at the end of the round.</summary>
         public static int EndOpponentHealth { get; private set; }
+
+        /// <summary>Whether the player won the round.</summary>
         public static bool PlayerWon { get; private set; }
 
         /// <summary>Whether a round has finished and left a record to upload.</summary>
