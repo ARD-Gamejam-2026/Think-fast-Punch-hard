@@ -15,6 +15,12 @@ namespace ThinkFast.Stats
         private readonly string databaseUrl;
         private readonly FirebaseAnonymousAuth auth;
 
+        // Anonymous ID tokens live ~1 hour. Caching one per backend instance
+        // means a polling reader (the leaderboard) reuses it instead of creating
+        // a fresh anonymous account on every request. Cleared on any failed
+        // request so an expired token re-authenticates on the next call.
+        private string cachedIdToken;
+
         /// <summary>
         /// Creates a backend that stores records at the given Realtime Database
         /// URL, authenticating each request with an anonymous ID token obtained
@@ -26,10 +32,21 @@ namespace ThinkFast.Stats
             this.auth = new FirebaseAnonymousAuth(webApiKey);
         }
 
+        // Returns a cached ID token, signing in anonymously only when none is held.
+        private async Task<string> GetTokenAsync()
+        {
+            if (string.IsNullOrEmpty(cachedIdToken))
+            {
+                cachedIdToken = await auth.SignInAnonymouslyAsync();
+            }
+
+            return cachedIdToken;
+        }
+
         /// <summary>Posts the record under the highscores collection (push id).</summary>
         public async Task UploadAsync(MatchRecord record)
         {
-            string idToken = await auth.SignInAnonymouslyAsync();
+            string idToken = await GetTokenAsync();
             if (string.IsNullOrEmpty(idToken))
             {
                 Debug.LogWarning("Highscore upload skipped: anonymous sign-in returned no token.");
@@ -46,6 +63,7 @@ namespace ThinkFast.Stats
                 await WebRequests.SendAsync(request);
                 if (request.result != UnityWebRequest.Result.Success)
                 {
+                    cachedIdToken = null;
                     Debug.LogWarning("Highscore upload failed: " + request.error);
                 }
             }
@@ -54,7 +72,7 @@ namespace ThinkFast.Stats
         /// <summary>Gets the collection and returns the fastest records first.</summary>
         public async Task<IReadOnlyList<MatchRecord>> FetchTopAsync(int count)
         {
-            string idToken = await auth.SignInAnonymouslyAsync();
+            string idToken = await GetTokenAsync();
             if (string.IsNullOrEmpty(idToken))
             {
                 return new List<MatchRecord>();
@@ -66,6 +84,7 @@ namespace ThinkFast.Stats
                 await WebRequests.SendAsync(request);
                 if (request.result != UnityWebRequest.Result.Success)
                 {
+                    cachedIdToken = null;
                     return new List<MatchRecord>();
                 }
 
@@ -111,42 +130,12 @@ namespace ThinkFast.Stats
                 return records;
             }
 
-            foreach (string valueObject in ExtractValueObjects(json))
+            foreach (string valueObject in FirebaseCollectionReader.SplitValueObjects(json))
             {
                 records.Add(JsonUtility.FromJson<MatchRecord>(valueObject));
             }
 
             return records;
-        }
-
-        // Walks the outer object and yields each member's value object (the part
-        // after "pushid":), tracking brace depth so nested braces are not split.
-        private static IEnumerable<string> ExtractValueObjects(string json)
-        {
-            int depth = 0;
-            int valueStart = -1;
-            for (int i = 0; i < json.Length; i++)
-            {
-                char c = json[i];
-                if (c == '{')
-                {
-                    depth++;
-                    if (depth == 2)
-                    {
-                        valueStart = i;
-                    }
-                }
-                else if (c == '}')
-                {
-                    if (depth == 2 && valueStart >= 0)
-                    {
-                        yield return json.Substring(valueStart, i - valueStart + 1);
-                        valueStart = -1;
-                    }
-
-                    depth--;
-                }
-            }
         }
     }
 }

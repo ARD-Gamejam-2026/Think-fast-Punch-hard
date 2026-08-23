@@ -152,7 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33d632bd609d9064596a62da96469e3b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Combat.Health
-  maxHealth: 100
+  maxHealth: 300
   invulnerabilitySeconds: 0.15
 --- !u!114 &3219872818599440646
 MonoBehaviour:
@@ -407,7 +407,7 @@ MonoBehaviour:
   playerAttack: {fileID: 0}
   playerResources: {fileID: 0}
   enemyAttack: {fileID: 6426975135278837748}
-  defaultClip: {fileID: 8300000, guid: d443599b2e33cd44d835bb31f5b064b6, type: 3}
+  defaultClip: {fileID: 8300000, guid: 25f45eae5e2d39b4b9e3406275f2d49c, type: 3}
   strongClip: {fileID: 0}
 --- !u!1001 &2320322452451570350
 PrefabInstance:
