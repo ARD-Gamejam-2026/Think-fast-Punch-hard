@@ -23,7 +23,7 @@ GameObject:
   - component: {fileID: 2308957219588577953}
   - component: {fileID: 5509623364335428812}
   - component: {fileID: 5554807456129538914}
-  - component: {fileID: 2173627167959781609}
+  - component: {fileID: 6944787186540434520}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -177,6 +177,7 @@ MonoBehaviour:
   startingActionPoints: 2
   maxFlow: 100
   flowDrainPerSecond: 2.5
+  flowDrainGraceSeconds: 1.5
   flowStateDrainPerSecond: 20
   flowStateCostPerAttack: 10
   flowDamageMultiplier: 2
@@ -432,7 +433,7 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &2173627167959781609
+--- !u!114 &6944787186540434520
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -441,14 +442,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1415277231536159449}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ae7347b14c60bff46ac52528c01e0b3d, type: 3}
+  m_Script: {fileID: 11500000, guid: 26d3f0dfdb1d84f57accabe7bac8bbe9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Player.PlaceholderAttackFx
-  groundColour: {r: 1, g: 0.45, b: 0.1, a: 1}
-  airColour: {r: 0.3, g: 0.9, b: 1, a: 1}
-  impactColour: {r: 1, g: 0.95, b: 0.4, a: 1}
-  shapeLifetime: 0.16
-  volume: 0.5
+  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.VFX.CombatHitVfx
+  playerAttack: {fileID: 2441900845413240947}
+  playerResources: {fileID: 3971702920632119115}
+  enemyAttack: {fileID: 0}
 --- !u!1001 &7247952145489210234
 PrefabInstance:
   m_ObjectHideFlags: 0
