@@ -221,6 +221,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2948879542620442427}
+  - component: {fileID: 2242133347481745955}
   m_Layer: 0
   m_Name: Slot
   m_TagString: Untagged
@@ -248,6 +249,26 @@ RectTransform:
   m_AnchoredPosition: {x: -243, y: 0}
   m_SizeDelta: {x: 430, y: 320}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2242133347481745955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2199278264375045897}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
+  m_IgnoreLayout: 0
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: 430
+  m_PreferredHeight: 320
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: -1
+  m_LayoutPriority: 1
 --- !u!1 &4810236035996314822
 GameObject:
   m_ObjectHideFlags: 0
@@ -259,7 +280,6 @@ GameObject:
   - component: {fileID: 3442211313356576039}
   - component: {fileID: 7447269596999443916}
   - component: {fileID: 4463939012635129941}
-  - component: {fileID: 4382986393908831540}
   m_Layer: 0
   m_Name: Tile_FightAgain
   m_TagString: Untagged
@@ -349,19 +369,6 @@ MonoBehaviour:
   label: {fileID: 5658972106988441003}
   icon: {fileID: 0}
   playSounds: 1
---- !u!114 &4382986393908831540
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4810236035996314822}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6ae2c78dbd1442efb0df2c98e02ed08f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.UI.LoadSceneButton
-  sceneName: PlayerControllerTest
 --- !u!1 &5437281597714827257
 GameObject:
   m_ObjectHideFlags: 0
