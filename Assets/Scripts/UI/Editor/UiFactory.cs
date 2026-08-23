@@ -142,6 +142,120 @@ namespace ThinkFast.UIEditor
             return button;
         }
 
+        /// <summary>
+        /// How loudly a pill asks to be pressed.
+        ///
+        /// One screen should have exactly one <see cref="PillStyle.Primary"/>.
+        /// If everything is filled, nothing is emphasised and the screen is back
+        /// to being a row of identical rectangles.
+        /// </summary>
+        public enum PillStyle
+        {
+            /// <summary>White card, accent wash on hover. The menu's default voice.</summary>
+            Quiet,
+
+            /// <summary>Grey card. For a button that has to be present but not invited.</summary>
+            Subdued,
+
+            /// <summary>Filled accent with white type. The obvious next thing to press.</summary>
+            Primary,
+        }
+
+        /// <summary>
+        /// Builds a compact labelled button: a pill with a glow behind it.
+        ///
+        /// The card is the menu's shape for a destination and the circle is its
+        /// shape for dismissing something. This is the third case -- a small
+        /// action inside a panel that is neither -- which the tutorial needs
+        /// several of on one card.
+        /// </summary>
+        public static Button MakePill(
+            RectTransform parent,
+            string name,
+            string text,
+            Vector2 size,
+            UiSpriteFactory.Sprites sprites,
+            TMP_FontAsset font,
+            float labelSize,
+            PillStyle style,
+            out TMP_Text label)
+        {
+            RectTransform root = NewRect(name, parent);
+            root.sizeDelta = size;
+
+            RectTransform glowRect = Stretch(NewRect("Glow", root), -10f);
+            Image glow = AddImage(glowRect, sprites.CardGlow, new Color(0f, 0f, 0f, 0f));
+
+            ResolvePillColours(style, out Color rest, out Color hover, out Color restText, out Color hoverText);
+
+            RectTransform faceRect = Stretch(NewRect("Face", root));
+            Image face = AddImage(faceRect, sprites.Pill, rest, raycast: true);
+
+            label = AddLabel(faceRect, "Label", text, labelSize, restText, font, FontStyles.Bold);
+            Stretch(label.rectTransform);
+
+            var button = root.gameObject.AddComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            button.targetGraphic = face;
+
+            MenuButton menuButton = root.gameObject.AddComponent<MenuButton>();
+            WireMenuButton(menuButton, face, glow, label);
+            SetButtonColours(menuButton, rest, hover, restText, hoverText);
+            return button;
+        }
+
+        /// <summary>
+        /// The four colours a pill style resolves to. Kept in one place so a
+        /// style is a single decision rather than four that can disagree -- the
+        /// way a fill and a label colour usually end up disagreeing is that they
+        /// were chosen in different methods.
+        /// </summary>
+        private static void ResolvePillColours(
+            PillStyle style, out Color rest, out Color hover, out Color restText, out Color hoverText)
+        {
+            switch (style)
+            {
+                case PillStyle.Primary:
+                    rest = MenuTheme.AccentStrong;
+                    hover = MenuTheme.Accent;
+                    restText = MenuTheme.TextOnAccent;
+                    hoverText = MenuTheme.TextOnAccent;
+                    break;
+
+                case PillStyle.Subdued:
+                    rest = MenuTheme.Track;
+                    hover = MenuTheme.AccentWash;
+                    restText = MenuTheme.TextPrimary;
+                    hoverText = MenuTheme.AccentInk;
+                    break;
+
+                case PillStyle.Quiet:
+                    rest = MenuTheme.Surface;
+                    hover = MenuTheme.AccentWash;
+                    restText = MenuTheme.TextPrimary;
+                    hoverText = MenuTheme.AccentInk;
+                    break;
+
+                default:
+                    rest = MenuTheme.Surface;
+                    hover = MenuTheme.AccentWash;
+                    restText = MenuTheme.TextPrimary;
+                    hoverText = MenuTheme.AccentInk;
+                    break;
+            }
+        }
+
+        private static void SetButtonColours(
+            MenuButton menuButton, Color rest, Color hover, Color restText, Color hoverText)
+        {
+            var so = new SerializedObject(menuButton);
+            so.FindProperty("restColour").colorValue = rest;
+            so.FindProperty("highlightColour").colorValue = hover;
+            so.FindProperty("restTextColour").colorValue = restText;
+            so.FindProperty("highlightTextColour").colorValue = hoverText;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         /// <summary>Builds a small circular button, for closing a panel.</summary>
         public static Button MakeRound(
             RectTransform parent,

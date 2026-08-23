@@ -127,9 +127,21 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1201815384}
     m_Modifications:
+    - target: {fileID: 728373213451278488, guid: 481115359e410f243b3883deafcfb13a, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1415277231536159449, guid: 481115359e410f243b3883deafcfb13a, type: 3}
       propertyPath: m_Name
       value: Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 2308957219588577953, guid: 481115359e410f243b3883deafcfb13a, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2947111395512439811, guid: 481115359e410f243b3883deafcfb13a, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3486799017958812415, guid: 481115359e410f243b3883deafcfb13a, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2195,6 +2207,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1201815384}
     m_Modifications:
+    - target: {fileID: 1985446727022135885, guid: 14d2d0cd8e2c1e94aaa870a2ade7fa5b, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3727282481887296349, guid: 14d2d0cd8e2c1e94aaa870a2ade7fa5b, type: 3}
       propertyPath: m_Name
       value: Enemy
