@@ -120,7 +120,7 @@ the menu), so save any unsaved work first.
 
 If you'd rather place them yourself:
 
-**`Assets/Scenes/SampleScene.unity`** (the fight):
+**`Assets/Scenes/PlayerControllerTest.unity`** (the fight scene — `SampleScene` is a leftover debug scene, not used):
 
 1. Select the **player** fighter → *Add Component* → **Fighter Stats Reporter** →
    set **Role = Player**. Leave `health` empty if the `Health` component is on

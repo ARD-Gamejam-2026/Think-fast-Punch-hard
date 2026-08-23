@@ -20,7 +20,7 @@ namespace ThinkFast.StatsEditor
     /// </summary>
     public static class HighscoreStatsWiring
     {
-        private const string FightScene = "Assets/Scenes/SampleScene.unity";
+        private const string FightScene = "Assets/Scenes/PlayerControllerTest.unity";
         private const string EndScene = "Assets/Scenes/Scene_End.unity";
         private const string MenuScene = "Assets/Scenes/Scene_Menu.unity";
 
