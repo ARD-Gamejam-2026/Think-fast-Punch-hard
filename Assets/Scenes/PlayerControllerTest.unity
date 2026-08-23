@@ -186,13 +186,46 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1415277231536159449, guid: 481115359e410f243b3883deafcfb13a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 46613392}
   m_SourcePrefab: {fileID: 100100000, guid: 481115359e410f243b3883deafcfb13a, type: 3}
 --- !u!4 &46613389 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3486799017958812415, guid: 481115359e410f243b3883deafcfb13a, type: 3}
   m_PrefabInstance: {fileID: 46613388}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &46613390 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1415277231536159449, guid: 481115359e410f243b3883deafcfb13a, type: 3}
+  m_PrefabInstance: {fileID: 46613388}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &46613391 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1308721927341816756, guid: 481115359e410f243b3883deafcfb13a, type: 3}
+  m_PrefabInstance: {fileID: 46613388}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 46613390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33d632bd609d9064596a62da96469e3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Combat.Health
+--- !u!114 &46613392
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 46613390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ae8a9febe080438e92d30d4864c1e1e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Stats.FighterStatsReporter
+  role: 0
+  health: {fileID: 46613391}
 --- !u!1 &133965466
 GameObject:
   m_ObjectHideFlags: 0
@@ -2271,6 +2304,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3727282481887296349, guid: 14d2d0cd8e2c1e94aaa870a2ade7fa5b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 966111073}
+    - targetCorrespondingSourceObject: {fileID: 3727282481887296349, guid: 14d2d0cd8e2c1e94aaa870a2ade7fa5b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 966111075}
   m_SourcePrefab: {fileID: 100100000, guid: 14d2d0cd8e2c1e94aaa870a2ade7fa5b, type: 3}
 --- !u!4 &966111072 stripped
 Transform:
@@ -2292,6 +2328,31 @@ MonoBehaviour:
   motor: {fileID: 0}
   slowStartSpeed: 4.5
   fastCapSpeed: 8
+--- !u!114 &966111074 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 465808196859358974, guid: 14d2d0cd8e2c1e94aaa870a2ade7fa5b, type: 3}
+  m_PrefabInstance: {fileID: 966111071}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 404004567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33d632bd609d9064596a62da96469e3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Combat.Health
+--- !u!114 &966111075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 404004567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ae8a9febe080438e92d30d4864c1e1e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Stats.FighterStatsReporter
+  role: 1
+  health: {fileID: 966111074}
 --- !u!1 &969923341
 GameObject:
   m_ObjectHideFlags: 0
@@ -3409,6 +3470,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3578240022214496066, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1355784443}
+    - targetCorrespondingSourceObject: {fileID: 3578240022214496066, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1355784444}
   m_SourcePrefab: {fileID: 100100000, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
 --- !u!224 &1211212156 stripped
 RectTransform:
@@ -3598,6 +3662,19 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1355784444
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1355784442}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28b872b8f53b64223acd5f3edda48880, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Stats.MatchStatsCoordinator
+  quiz: {fileID: 0}
 --- !u!1 &1355969406
 GameObject:
   m_ObjectHideFlags: 0
