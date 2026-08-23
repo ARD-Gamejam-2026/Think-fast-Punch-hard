@@ -26,6 +26,12 @@ namespace ThinkFast.Stats
             }
         }
 
+        /// <summary>Whether a real player name has been set (not the anon fallback).</summary>
+        public static bool IsSet
+        {
+            get { return Value != Fallback; }
+        }
+
         /// <summary>Stores the player name, ignoring blank input.</summary>
         public static void Set(string name)
         {
