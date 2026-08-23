@@ -47,6 +47,24 @@ namespace ThinkFast.Stats.Tests
         }
 
         [Test]
+        public void Rank_wins_keeps_one_row_per_player_at_their_best_time()
+        {
+            var records = new List<MatchRecord>
+            {
+                new MatchRecord { playerName = "Marcel", startedAt = 0, finishedAt = 46800, endHealth = 10, endOpponentHealth = 0 },
+                new MatchRecord { playerName = "Marcel", startedAt = 0, finishedAt = 42000, endHealth = 10, endOpponentHealth = 0 },
+                new MatchRecord { playerName = "Hehe", startedAt = 0, finishedAt = 47200, endHealth = 10, endOpponentHealth = 0 },
+            };
+
+            IReadOnlyList<MatchRecord> ranked = Leaderboard.RankWins(records, 10);
+
+            Assert.AreEqual(2, ranked.Count);
+            Assert.AreEqual("Marcel", ranked[0].playerName);
+            Assert.AreEqual(42000, ranked[0].DurationMillis());
+            Assert.AreEqual("Hehe", ranked[1].playerName);
+        }
+
+        [Test]
         public void Rank_wins_handles_a_null_input()
         {
             Assert.AreEqual(0, Leaderboard.RankWins(null, 5).Count);

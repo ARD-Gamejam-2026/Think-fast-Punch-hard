@@ -373,16 +373,18 @@ namespace ThinkFast.UIEditor
                     new Vector2(BoardColumnCenter[i], 0f), new Vector2(BoardColumnWidth[i], 26f));
             }
 
+            // Below the column strip (top -116, height 26 -> bottom -142), not
+            // through it: at -132 the hairline cut straight across the headers.
             RectTransform divider = UiFactory.Place(
                 UiFactory.NewRect("Divider", panel),
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -132f), new Vector2(448f, 2f));
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -146f), new Vector2(448f, 2f));
             UiFactory.AddImage(divider, null, MenuTheme.Border);
 
             RectTransform rows = UiFactory.Place(
                 UiFactory.NewRect("Rows", panel),
                 new Vector2(0.5f, 1f),
                 new Vector2(0.5f, 1f),
-                new Vector2(0f, -150f),
+                new Vector2(0f, -156f),
                 new Vector2(448f, BoardRowCount * BoardRowHeight));
 
             RectTransform template = BuildBoardRowTemplate(rows, font);

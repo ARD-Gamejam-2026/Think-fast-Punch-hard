@@ -11,10 +11,11 @@ namespace ThinkFast.Stats
     public static class Leaderboard
     {
         /// <summary>
-        /// The winning records, fastest first, capped at <paramref name="topN"/>.
-        /// Losses (and null entries) are dropped, so pure duration ranking never
-        /// puts a quick loss above a real win. Order is by
-        /// <see cref="MatchRecord.DurationMillis"/> ascending.
+        /// The leaderboard: one row per player — their fastest winning run —
+        /// ordered by <see cref="MatchRecord.DurationMillis"/> ascending and
+        /// capped at <paramref name="topN"/>. Losses and null entries are dropped,
+        /// so pure duration ranking never puts a quick loss above a real win, and
+        /// a player never appears twice. Players are grouped by exact name.
         /// </summary>
         public static IReadOnlyList<MatchRecord> RankWins(IEnumerable<MatchRecord> records, int topN)
         {
@@ -25,6 +26,8 @@ namespace ThinkFast.Stats
 
             return records
                 .Where(record => record != null && record.PlayerWon())
+                .GroupBy(record => record.playerName ?? string.Empty)
+                .Select(group => group.OrderBy(record => record.DurationMillis()).First())
                 .OrderBy(record => record.DurationMillis())
                 .Take(Math.Max(0, topN))
                 .ToList();
