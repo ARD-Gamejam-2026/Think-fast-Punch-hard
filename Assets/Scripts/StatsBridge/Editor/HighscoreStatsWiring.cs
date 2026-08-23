@@ -124,7 +124,7 @@ namespace ThinkFast.StatsEditor
 
             EndScreenUploader uploader = EnsureComponent<EndScreenUploader>(endScreen.gameObject);
 
-            Canvas canvas = Object.FindAnyObjectByType<Canvas>(FindObjectsInactive.Include);
+            Canvas canvas = ContentCanvas();
             if (canvas == null)
             {
                 Debug.LogWarning("[HighscoreStatsWiring] No Canvas in the end scene; name field not built.");
@@ -209,7 +209,7 @@ namespace ThinkFast.StatsEditor
         // never binds to an unrelated field (e.g. the debug console input).
         private static void WireMenuScene()
         {
-            Canvas canvas = Object.FindAnyObjectByType<Canvas>(FindObjectsInactive.Include);
+            Canvas canvas = ContentCanvas();
             if (canvas == null)
             {
                 Debug.LogWarning("[HighscoreStatsWiring] No Canvas in the menu; name field not built.");
@@ -224,11 +224,29 @@ namespace ThinkFast.StatsEditor
             }
 
             DestroyExistingFields();
-            TMP_InputField field = BuildLabeledField(canvas.transform, 120f);
+            TMP_InputField field = BuildLabeledField(canvas.transform, 170f);
             PlayerNameField binder = field.gameObject.AddComponent<PlayerNameField>();
             var serialized = new SerializedObject(binder);
             serialized.FindProperty("field").objectReferenceValue = field;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // The canvas that holds the interactive buttons, so the field renders
+        // with them. A scene can have more than one canvas, and picking any one
+        // can land the field on a canvas drawn behind the content (invisible).
+        private static Canvas ContentCanvas()
+        {
+            LoadSceneButton button = Object.FindAnyObjectByType<LoadSceneButton>(FindObjectsInactive.Include);
+            if (button != null)
+            {
+                Canvas canvas = button.GetComponentInParent<Canvas>();
+                if (canvas != null)
+                {
+                    return canvas;
+                }
+            }
+
+            return Object.FindAnyObjectByType<Canvas>(FindObjectsInactive.Include);
         }
 
         private static bool HasInHierarchy<T>(Component from) where T : Component
