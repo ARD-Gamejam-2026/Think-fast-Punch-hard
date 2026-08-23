@@ -26,5 +26,14 @@ namespace ThinkFast.Stats
         {
             return finishedAt - startedAt;
         }
+
+        /// <summary>
+        /// Whether the player won, derived from the end healths (the loser is
+        /// knocked out to zero). Not stored, computed at display time.
+        /// </summary>
+        public bool PlayerWon()
+        {
+            return endHealth > endOpponentHealth;
+        }
     }
 }

@@ -449,8 +449,8 @@ MonoBehaviour:
   playerAttack: {fileID: 2441900845413240947}
   playerResources: {fileID: 3971702920632119115}
   enemyAttack: {fileID: 0}
-  defaultClip: {fileID: 8300000, guid: d443599b2e33cd44d835bb31f5b064b6, type: 3}
-  strongClip: {fileID: 8300000, guid: cb9136f5d349d204f8ef9d1a7dfecd5f, type: 3}
+  defaultClip: {fileID: 8300000, guid: 25f45eae5e2d39b4b9e3406275f2d49c, type: 3}
+  strongClip: {fileID: 8300000, guid: 1d8ea0cfb18116e4c804678242742d56, type: 3}
 --- !u!1001 &7247952145489210234
 PrefabInstance:
   m_ObjectHideFlags: 0

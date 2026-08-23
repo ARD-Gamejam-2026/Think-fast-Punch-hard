@@ -80,5 +80,30 @@ namespace ThinkFast.Stats.Tests
             Assert.AreEqual(0, RestFirebaseBackend.ParseCollection("null").Count);
             Assert.AreEqual(0, RestFirebaseBackend.ParseCollection("").Count);
         }
+
+        [Test]
+        public void Rest_backend_parses_a_player_name_containing_braces()
+        {
+            string response =
+                "{\"-Na\":{\"playerName\":\"a{b}c\",\"finishedAt\":5000}}";
+
+            List<MatchRecord> records = RestFirebaseBackend.ParseCollection(response);
+
+            Assert.AreEqual(1, records.Count);
+            Assert.AreEqual("a{b}c", records[0].playerName);
+            Assert.AreEqual(5000, records[0].finishedAt);
+        }
+
+        [Test]
+        public void Rest_backend_parses_a_player_name_with_an_escaped_quote()
+        {
+            string response =
+                "{\"-Na\":{\"playerName\":\"a\\\"b\",\"finishedAt\":1}}";
+
+            List<MatchRecord> records = RestFirebaseBackend.ParseCollection(response);
+
+            Assert.AreEqual(1, records.Count);
+            Assert.AreEqual("a\"b", records[0].playerName);
+        }
     }
 }

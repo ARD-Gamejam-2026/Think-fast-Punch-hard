@@ -1,5 +1,6 @@
 using ThinkFast.Menu;
 using ThinkFast.Rounds;
+using ThinkFast.Stats;
 using ThinkFast.UI;
 using TMPro;
 using UnityEditor;
@@ -43,6 +44,35 @@ namespace ThinkFast.UIEditor
         private static readonly Vector2 ReferenceResolution = new Vector2(1920f, 1080f);
         private static readonly Vector2 TileSize = new Vector2(430f, 320f);
 
+        /// <summary>
+        /// The start menu shrinks its tiles a touch and slides them left so the
+        /// leaderboard panel has the right of the screen to itself. The end screen
+        /// keeps <see cref="TileSize"/> and stays centred.
+        /// </summary>
+        private static readonly Vector2 MenuTileSize = new Vector2(400f, 300f);
+
+        /// <summary>Centre of the start menu's tile row, pushed left of the board.</summary>
+        private const float MenuTilesCenterX = -260f;
+
+        /// <summary>The leaderboard panel, anchored to the right edge.</summary>
+        private static readonly Vector2 BoardSize = new Vector2(480f, 650f);
+
+        /// <summary>How many leaderboard rows the panel has room for.</summary>
+        private const int BoardRowCount = 8;
+
+        /// <summary>Vertical step between leaderboard rows.</summary>
+        private const float BoardRowHeight = 56f;
+
+        /// <summary>Seconds between leaderboard refreshes.</summary>
+        private const float BoardRefreshSeconds = 5f;
+
+        // Column centres and widths inside a board row (row-local coordinates,
+        // width 448). Kept in one table so the header and the rows line up.
+        private static readonly float[] BoardColumnCenter = { -204f, -99f, 32f, 112f, 185f };
+        private static readonly float[] BoardColumnWidth = { 40f, 170f, 92f, 68f, 78f };
+        private static readonly string[] BoardColumnHeader = { "#", "NAME", "TIME", "QUIZ", "DMG" };
+        private static readonly string[] BoardColumnChild = { "Rank", "Name", "Time", "Quiz", "Dmg" };
+
         /// <summary>One volume slider: caption column plus bar.</summary>
         private static readonly Vector2 SliderSize = new Vector2(520f, 56f);
 
@@ -55,7 +85,9 @@ namespace ThinkFast.UIEditor
         [MenuItem("Tools/Think Fast/Build Menu UI")]
         public static void Build()
         {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            // The save prompt has no answer in batch mode and would hang a
+            // headless build, so it is only offered when the editor is open.
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             {
                 return;
             }
@@ -84,19 +116,23 @@ namespace ThinkFast.UIEditor
             AddBackdrop(canvas);
 
             AddTitle(canvas, font);
-            AddTileRow(canvas, 3, out RectTransform[] slots);
+            AddTileRow(canvas, 3, MenuTileSize, MenuTilesCenterX, out RectTransform[] slots);
 
-            Button start = UiFactory.MakeCard(slots[0], "Tile_Start", "START", TileSize, sprites, font, 40f, out RectTransform startPreview);
+            Button start = UiFactory.MakeCard(slots[0], "Tile_Start", "START", MenuTileSize, sprites, font, 38f, out RectTransform startPreview);
             SetSceneTarget(start, FightSceneName);
             SetTileIcon(startPreview, "TFPHIcon");
 
             // Between the fight and the reference card, because that is the
             // order a new player wants them in: play, be taught, look it up.
-            Button tutorial = UiFactory.MakeCard(slots[1], "Tile_Tutorial", "TUTORIAL", TileSize, sprites, font, 40f, out _);
+            Button tutorial = UiFactory.MakeCard(slots[1], "Tile_Tutorial", "TUTORIAL", MenuTileSize, sprites, font, 38f, out _);
             SetSceneTarget(tutorial, TutorialSceneName);
 
-            Button help = UiFactory.MakeCard(slots[2], "Tile_HowToPlay", "HOW TO PLAY", TileSize, sprites, font, 40f, out RectTransform helpPreview);
+            Button help = UiFactory.MakeCard(slots[2], "Tile_HowToPlay", "HOW TO PLAY", MenuTileSize, sprites, font, 38f, out RectTransform helpPreview);
             SetTileIcon(helpPreview, "HandbookIcon");
+
+            // The board is built before the settings bar and modal so those draw
+            // over it if they ever meet; it sits to the right of the tiles.
+            AddLeaderboardPanel(canvas, sprites, font);
 
             // The bar first, so the panel that has to cover it is created after
             // it: on a canvas, later siblings draw on top. A modal that the
@@ -128,7 +164,7 @@ namespace ThinkFast.UIEditor
             UiFactory.Place(
                 message.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -190f), new Vector2(1360f, 220f));
 
-            AddTileRow(canvas, 2, out RectTransform[] slots);
+            AddTileRow(canvas, 2, TileSize, 0f, out RectTransform[] slots);
 
             Button again = UiFactory.MakeCard(slots[0], "Tile_FightAgain", "FIGHT AGAIN", TileSize, sprites, font, 38f, out RectTransform againPreview);
             SetSceneTarget(again, FightSceneName);
@@ -207,7 +243,8 @@ namespace ThinkFast.UIEditor
         /// rect so it can be scaled on hover without a layout group fighting it
         /// for position.
         /// </summary>
-        private static RectTransform AddTileRow(RectTransform canvas, int count, out RectTransform[] slots)
+        private static RectTransform AddTileRow(
+            RectTransform canvas, int count, Vector2 tileSize, float centerX, out RectTransform[] slots)
         {
             const float Spacing = 56f;
 
@@ -215,11 +252,11 @@ namespace ThinkFast.UIEditor
                 UiFactory.NewRect("Tiles", canvas),
                 new Vector2(0.5f, 0.5f),
                 new Vector2(0.5f, 0.5f),
-                new Vector2(0f, -10f),
-                new Vector2((TileSize.x * count) + (Spacing * (count - 1)), TileSize.y));
+                new Vector2(centerX, -10f),
+                new Vector2((tileSize.x * count) + (Spacing * (count - 1)), tileSize.y));
 
             slots = new RectTransform[count];
-            float step = TileSize.x + Spacing;
+            float step = tileSize.x + Spacing;
             float first = -((step * (count - 1)) * 0.5f);
 
             for (int i = 0; i < count; i++)
@@ -229,7 +266,7 @@ namespace ThinkFast.UIEditor
                     new Vector2(0.5f, 0.5f),
                     new Vector2(0.5f, 0.5f),
                     new Vector2(first + (step * i), 0f),
-                    TileSize);
+                    tileSize);
             }
 
             return row;
@@ -294,6 +331,110 @@ namespace ThinkFast.UIEditor
             so.FindProperty("channel").enumValueIndex = (int)channel;
             so.FindProperty("audioManager").objectReferenceValue = manager;
             so.FindProperty("mixer").objectReferenceValue = mixer;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Builds the self-updating leaderboard on the right of the start menu: a
+        /// card with a header, a column strip, and a set of empty rows the
+        /// <see cref="HighscoreBoard"/> clones and fills at runtime. The rows are
+        /// generated here rather than at runtime so a menu rebuild carries the
+        /// whole board, the same rule every other generated piece follows.
+        /// </summary>
+        private static void AddLeaderboardPanel(RectTransform canvas, UiSpriteFactory.Sprites sprites, TMP_FontAsset font)
+        {
+            RectTransform panel = UiFactory.Place(
+                UiFactory.NewRect("Panel_Highscores", canvas),
+                new Vector2(1f, 0.5f),
+                new Vector2(1f, 0.5f),
+                new Vector2(-20f, -75f),
+                BoardSize);
+            UiFactory.AddImage(panel, sprites.Card, MenuTheme.Surface, raycast: true);
+
+            TMP_Text header = UiFactory.AddLabel(panel, "Header", "TOP TIMES", 34f, MenuTheme.TextPrimary, font, FontStyles.Bold);
+            UiFactory.Place(header.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -34f), new Vector2(BoardSize.x - 48f, 48f));
+
+            TMP_Text sub = UiFactory.AddLabel(panel, "Subhead", "Fastest wins", 20f, MenuTheme.TextMuted, font);
+            UiFactory.Place(sub.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -80f), new Vector2(BoardSize.x - 48f, 26f));
+
+            RectTransform columns = UiFactory.Place(
+                UiFactory.NewRect("Columns", panel),
+                new Vector2(0.5f, 1f),
+                new Vector2(0.5f, 1f),
+                new Vector2(0f, -116f),
+                new Vector2(448f, 26f));
+            for (int i = 0; i < BoardColumnHeader.Length; i++)
+            {
+                TMP_Text head = UiFactory.AddLabel(
+                    columns, BoardColumnHeader[i] == "#" ? "Col_Rank" : "Col_" + BoardColumnHeader[i],
+                    BoardColumnHeader[i], 18f, MenuTheme.TextMuted, font, FontStyles.Bold, ColumnAlignment(i));
+                UiFactory.Place(
+                    head.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    new Vector2(BoardColumnCenter[i], 0f), new Vector2(BoardColumnWidth[i], 26f));
+            }
+
+            // Below the column strip (top -116, height 26 -> bottom -142), not
+            // through it: at -132 the hairline cut straight across the headers.
+            RectTransform divider = UiFactory.Place(
+                UiFactory.NewRect("Divider", panel),
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -146f), new Vector2(448f, 2f));
+            UiFactory.AddImage(divider, null, MenuTheme.Border);
+
+            RectTransform rows = UiFactory.Place(
+                UiFactory.NewRect("Rows", panel),
+                new Vector2(0.5f, 1f),
+                new Vector2(0.5f, 1f),
+                new Vector2(0f, -156f),
+                new Vector2(448f, BoardRowCount * BoardRowHeight));
+
+            RectTransform template = BuildBoardRowTemplate(rows, font);
+
+            TMP_Text status = UiFactory.AddLabel(rows, "Status", "Loading…", 24f, MenuTheme.TextMuted, font);
+            UiFactory.Place(status.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(430f, 40f));
+
+            WireHighscoreBoard(panel.gameObject, template, rows, status);
+        }
+
+        // One empty row, laid out with the shared column table, kept inactive so
+        // the board can clone it. The child names match HighscoreBoard's columns.
+        private static RectTransform BuildBoardRowTemplate(RectTransform rows, TMP_FontAsset font)
+        {
+            RectTransform template = UiFactory.Place(
+                UiFactory.NewRect("RowTemplate", rows),
+                new Vector2(0.5f, 1f),
+                new Vector2(0.5f, 1f),
+                Vector2.zero,
+                new Vector2(448f, BoardRowHeight));
+
+            for (int i = 0; i < BoardColumnChild.Length; i++)
+            {
+                TMP_Text cell = UiFactory.AddLabel(
+                    template, BoardColumnChild[i], string.Empty, 22f, MenuTheme.TextPrimary, font, FontStyles.Normal, ColumnAlignment(i));
+                UiFactory.Place(
+                    cell.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    new Vector2(BoardColumnCenter[i], 0f), new Vector2(BoardColumnWidth[i], 40f));
+            }
+
+            template.gameObject.SetActive(false);
+            return template;
+        }
+
+        // The name column reads left-aligned; the numeric columns centre.
+        private static TextAlignmentOptions ColumnAlignment(int column)
+        {
+            return column == 1 ? TextAlignmentOptions.MidlineLeft : TextAlignmentOptions.Center;
+        }
+
+        private static void WireHighscoreBoard(GameObject panel, RectTransform template, RectTransform rows, TMP_Text status)
+        {
+            var board = panel.AddComponent<HighscoreBoard>();
+            var so = new SerializedObject(board);
+            so.FindProperty("rowTemplate").objectReferenceValue = template;
+            so.FindProperty("rowContainer").objectReferenceValue = rows;
+            so.FindProperty("statusLabel").objectReferenceValue = status;
+            so.FindProperty("maxRows").intValue = BoardRowCount;
+            so.FindProperty("rowHeight").floatValue = BoardRowHeight;
+            so.FindProperty("refreshSeconds").floatValue = BoardRefreshSeconds;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
