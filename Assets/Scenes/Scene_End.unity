@@ -188,6 +188,10 @@ MonoBehaviour:
   glow: {fileID: 379392459}
   label: {fileID: 1722679796}
   icon: {fileID: 0}
+  restColour: {r: 1, g: 1, b: 1, a: 1}
+  highlightColour: {r: 0.91764706, g: 0.96862745, b: 0.99215686, a: 1}
+  restTextColour: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
+  highlightTextColour: {r: 0.078431375, g: 0.64705884, b: 0.8627451, a: 1}
   playSounds: 1
 --- !u!114 &2761597
 MonoBehaviour:
@@ -318,6 +322,7 @@ GameObject:
   m_Component:
   - component: {fileID: 182248573}
   - component: {fileID: 182248572}
+  - component: {fileID: 182248574}
   m_Layer: 0
   m_Name: --- End Screen (generated) ---
   m_TagString: Untagged
@@ -357,6 +362,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &182248574
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 182248571}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a353d73718e704eccb354321121f9283, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Stats.EndScreenUploader
+  databaseUrl: https://think-fast-punch-fast-default-rtdb.europe-west1.firebasedatabase.app
+  webApiKey: AIzaSyDHZ-mRPzoeJyC87NnmP8UfV1IkxSaTEY4
 --- !u!1 &379392457
 GameObject:
   m_ObjectHideFlags: 0
@@ -1833,6 +1852,10 @@ MonoBehaviour:
   glow: {fileID: 482459248}
   label: {fileID: 397285712}
   icon: {fileID: 0}
+  restColour: {r: 1, g: 1, b: 1, a: 1}
+  highlightColour: {r: 0.91764706, g: 0.96862745, b: 0.99215686, a: 1}
+  restTextColour: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
+  highlightTextColour: {r: 0.078431375, g: 0.64705884, b: 0.8627451, a: 1}
   playSounds: 1
 --- !u!114 &2076352725
 MonoBehaviour:
