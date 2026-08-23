@@ -26,10 +26,10 @@ namespace ThinkFast.StatsEditor
         private const string FightScene = "Assets/Scenes/PlayerControllerTest.unity";
         private const string EndScene = "Assets/Scenes/Scene_End.unity";
         private const string MenuScene = "Assets/Scenes/Scene_Menu.unity";
-        private const string PromptName = "Highscore Name Prompt";
-        private const string MenuFieldName = "Highscore Name Field";
+        private const string FieldName = "Highscore Name Field";
+        private const string OldPromptName = "Highscore Name Prompt";
 
-        private static readonly Vector2 Center = new Vector2(0.5f, 0.5f);
+        private static readonly Vector2 BottomCenter = new Vector2(0.5f, 0f);
         private static readonly Vector2 TopCenter = new Vector2(0.5f, 1f);
 
         /// <summary>Wires every scene the highscore stats need.</summary>
@@ -109,9 +109,9 @@ namespace ThinkFast.StatsEditor
             EnsureComponent<MatchStatsCoordinator>(quiz.gameObject);
         }
 
-        // The uploader on the end screen plus the name prompt it shows for the
-        // player to review or change their name. Its database URL and key are
-        // component defaults, so nothing else needs setting here.
+        // The uploader on the end screen plus an inline name field below the
+        // content, which the player reviews or edits; leaving the screen (Fight
+        // Again / Menu) confirms and uploads. URL and key are component defaults.
         private static void WireEndScene()
         {
             EndScreen endScreen = Object.FindAnyObjectByType<EndScreen>(FindObjectsInactive.Include);
@@ -126,48 +126,47 @@ namespace ThinkFast.StatsEditor
             Canvas canvas = Object.FindAnyObjectByType<Canvas>(FindObjectsInactive.Include);
             if (canvas == null)
             {
-                Debug.LogWarning("[HighscoreStatsWiring] No Canvas in the end scene; name prompt not built.");
+                Debug.LogWarning("[HighscoreStatsWiring] No Canvas in the end scene; name field not built.");
                 return;
             }
 
-            BuildNamePrompt(canvas.transform, out GameObject panel, out TMP_InputField field, out Button save);
-            AssignPrompt(uploader, panel, field, save);
+            RemoveOldPrompt(canvas.transform);
+            TMP_InputField field = BuildLabeledField(canvas.transform, 90f);
+            var serialized = new SerializedObject(uploader);
+            serialized.FindProperty("nameField").objectReferenceValue = field;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        // Builds the hidden name-prompt card (title + input + save button) under
-        // the end-screen canvas, rebuilding any earlier one so re-runs are clean.
-        private static void BuildNamePrompt(Transform canvas, out GameObject panel, out TMP_InputField field, out Button save)
+        // Removes the earlier modal prompt card (a previous layout) if present.
+        private static void RemoveOldPrompt(Transform canvas)
         {
-            Transform existing = canvas.Find(PromptName);
+            Transform old = canvas.Find(OldPromptName);
+            if (old != null)
+            {
+                Object.DestroyImmediate(old.gameObject);
+            }
+        }
+
+        // Builds a labelled "Name" field anchored to the bottom-centre of the
+        // canvas, below the screen's content. Rebuilds any earlier one.
+        private static TMP_InputField BuildLabeledField(Transform canvas, float bottomOffset)
+        {
+            Transform existing = canvas.Find(FieldName);
             if (existing != null)
             {
                 Object.DestroyImmediate(existing.gameObject);
             }
 
-            RectTransform root = UiFactory.NewRect(PromptName, canvas);
-            UiFactory.Place(root, Center, Center, Vector2.zero, new Vector2(720f, 400f));
-            UiFactory.AddImage(root, null, new Color(0f, 0f, 0f, 0.6f), raycast: true);
-
-            RectTransform card = UiFactory.NewRect("Card", root);
-            UiFactory.Place(card, Center, Center, Vector2.zero, new Vector2(560f, 280f));
-            UiFactory.AddImage(card, null, MenuTheme.Surface, raycast: true);
+            RectTransform root = UiFactory.NewRect(FieldName, canvas);
+            UiFactory.Place(root, BottomCenter, BottomCenter, new Vector2(0f, bottomOffset), new Vector2(560f, 150f));
 
             TMP_FontAsset font = TMP_Settings.defaultFontAsset;
-            TMP_Text title = UiFactory.AddLabel(card, "Title", "Enter your name", 40f, MenuTheme.TextPrimary, font, FontStyles.Bold);
-            UiFactory.Place(title.rectTransform, Center, Center, new Vector2(0f, 90f), new Vector2(500f, 60f));
+            TMP_Text label = UiFactory.AddLabel(root, "Label", "Name", 30f, MenuTheme.TextPrimary, font, FontStyles.Bold);
+            UiFactory.Place(label.rectTransform, TopCenter, TopCenter, new Vector2(0f, 0f), new Vector2(560f, 36f));
 
-            field = BuildField(card);
-            save = BuildSaveButton(card, font);
-
-            panel = root.gameObject;
-            panel.SetActive(false);
-        }
-
-        private static TMP_InputField BuildField(Transform card)
-        {
-            TMP_InputField input = CreateInput(card, "Name Field", "Your name");
-            UiFactory.Place(input.GetComponent<RectTransform>(), Center, Center, new Vector2(0f, 0f), new Vector2(460f, 70f));
-            return input;
+            TMP_InputField field = CreateInput(root, "Field", "Your name");
+            UiFactory.Place(field.GetComponent<RectTransform>(), TopCenter, TopCenter, new Vector2(0f, -46f), new Vector2(480f, 88f));
+            return field;
         }
 
         // Creates a TMP input field with a placeholder, parented and named. Uses
@@ -180,35 +179,21 @@ namespace ThinkFast.StatsEditor
 
             TMP_InputField input = go.GetComponent<TMP_InputField>();
             input.text = string.Empty;
+            input.pointSize = 40f;
+            if (input.textComponent != null)
+            {
+                input.textComponent.fontSize = 40f;
+                input.textComponent.alignment = TextAlignmentOptions.Center;
+            }
+
             if (input.placeholder is TMP_Text placeholderText)
             {
                 placeholderText.text = placeholder;
+                placeholderText.fontSize = 40f;
+                placeholderText.alignment = TextAlignmentOptions.Center;
             }
 
             return input;
-        }
-
-        private static Button BuildSaveButton(Transform card, TMP_FontAsset font)
-        {
-            RectTransform rect = UiFactory.NewRect("Save Button", card);
-            UiFactory.Place(rect, Center, Center, new Vector2(0f, -95f), new Vector2(260f, 70f));
-            Image image = UiFactory.AddImage(rect, null, MenuTheme.Accent, raycast: true);
-
-            Button button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-
-            TMP_Text label = UiFactory.AddLabel(rect, "Label", "Save score", 30f, Color.white, font, FontStyles.Bold);
-            UiFactory.Stretch(label.rectTransform);
-            return button;
-        }
-
-        private static void AssignPrompt(EndScreenUploader uploader, GameObject panel, TMP_InputField field, Button save)
-        {
-            var serialized = new SerializedObject(uploader);
-            serialized.FindProperty("namePrompt").objectReferenceValue = panel;
-            serialized.FindProperty("nameField").objectReferenceValue = field;
-            serialized.FindProperty("saveButton").objectReferenceValue = save;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // A dedicated name field on the menu, bound to PlayerName. It is built
@@ -229,33 +214,11 @@ namespace ThinkFast.StatsEditor
                 Object.DestroyImmediate(stale);
             }
 
-            TMP_InputField field = BuildMenuNameField(canvas.transform);
+            TMP_InputField field = BuildLabeledField(canvas.transform, 120f);
             PlayerNameField binder = field.gameObject.AddComponent<PlayerNameField>();
             var serialized = new SerializedObject(binder);
             serialized.FindProperty("field").objectReferenceValue = field;
             serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        // Builds a labelled name field near the top of the menu, rebuilding any
-        // earlier one so re-runs are clean.
-        private static TMP_InputField BuildMenuNameField(Transform canvas)
-        {
-            Transform existing = canvas.Find(MenuFieldName);
-            if (existing != null)
-            {
-                Object.DestroyImmediate(existing.gameObject);
-            }
-
-            RectTransform root = UiFactory.NewRect(MenuFieldName, canvas);
-            UiFactory.Place(root, TopCenter, TopCenter, new Vector2(0f, -40f), new Vector2(520f, 100f));
-
-            TMP_FontAsset font = TMP_Settings.defaultFontAsset;
-            TMP_Text label = UiFactory.AddLabel(root, "Label", "Name", 28f, MenuTheme.TextPrimary, font, FontStyles.Bold);
-            UiFactory.Place(label.rectTransform, TopCenter, TopCenter, new Vector2(0f, 0f), new Vector2(520f, 32f));
-
-            TMP_InputField field = CreateInput(root, "Field", "Your name");
-            UiFactory.Place(field.GetComponent<RectTransform>(), TopCenter, TopCenter, new Vector2(0f, -40f), new Vector2(460f, 56f));
-            return field;
         }
 
         private static bool HasInHierarchy<T>(Component from) where T : Component

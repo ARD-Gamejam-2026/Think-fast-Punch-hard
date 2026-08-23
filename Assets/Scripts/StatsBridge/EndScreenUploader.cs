@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using ThinkFast.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,9 +9,9 @@ namespace ThinkFast.Stats
     /// <summary>
     /// Uploads the finished round's record from the end screen. Reads the static
     /// <see cref="MatchStats"/> (which survived the scene load), shows a name
-    /// field pre-filled with the current name so the player can review or change
-    /// it, and uploads to Firebase (or an in-memory store when no URL is set)
-    /// when they press the save button.
+    /// field pre-filled with the current name, and uploads to Firebase (or an
+    /// in-memory store when no URL is set) when the player leaves the end screen
+    /// via a scene button (Fight Again / Menu) — those double as the confirm.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class EndScreenUploader : MonoBehaviour
@@ -20,18 +22,13 @@ namespace ThinkFast.Stats
         [Tooltip("Firebase Web API key (Project settings > General). Public/embeddable; ships with the game. Used to sign in anonymously so uploads are authenticated. Empty uses an in-memory store.")]
         [SerializeField] private string webApiKey = "AIzaSyDHZ-mRPzoeJyC87NnmP8UfV1IkxSaTEY4";
 
-        [Header("Name prompt (shown on the end screen to review or change the name)")]
-        [Tooltip("Panel holding the name field and save button. Left hidden until the score is ready to submit.")]
-        [SerializeField] private GameObject namePrompt;
-
-        [Tooltip("The field the player types their name into on the end screen.")]
+        [Header("Name")]
+        [Tooltip("The end-screen field the player reviews or edits their name in.")]
         [SerializeField] private TMP_InputField nameField;
-
-        [Tooltip("The button that confirms the name and uploads the score.")]
-        [SerializeField] private Button saveButton;
 
         private MatchRecord pendingRecord;
         private bool uploaded;
+        private readonly List<Button> leaveButtons = new List<Button>();
 
         private void Start()
         {
@@ -41,30 +38,37 @@ namespace ThinkFast.Stats
             }
 
             pendingRecord = MatchStats.Snapshot();
-            ShowPrompt();
+            PrefillField();
+            HookLeaveButtons();
         }
 
         private void OnDisable()
         {
-            if (saveButton != null)
+            if (nameField != null)
             {
-                saveButton.onClick.RemoveListener(HandleSave);
+                nameField.onValueChanged.RemoveListener(PlayerName.Set);
             }
+
+            foreach (Button button in leaveButtons)
+            {
+                if (button != null)
+                {
+                    button.onClick.RemoveListener(Confirm);
+                }
+            }
+
+            leaveButtons.Clear();
         }
 
-        // Reveals the name prompt, pre-filled with the current name, and waits for
-        // the save button. With no prompt wired it uploads under the current name
-        // so the score is not lost.
-        private void ShowPrompt()
+        // Shows the current name in the field and keeps PlayerName in step with
+        // edits, so leaving the screen uploads whatever is shown.
+        private void PrefillField()
         {
-            if (namePrompt == null || nameField == null || saveButton == null)
+            if (nameField == null)
             {
-                Debug.LogWarning("EndScreenUploader has no name prompt wired; uploading under the current name.", this);
-                Submit(PlayerName.Value);
                 return;
             }
 
-            namePrompt.SetActive(true);
             if (PlayerName.IsSet)
             {
                 nameField.text = PlayerName.Value;
@@ -74,26 +78,32 @@ namespace ThinkFast.Stats
                 nameField.text = string.Empty;
             }
 
-            saveButton.onClick.AddListener(HandleSave);
+            nameField.onValueChanged.AddListener(PlayerName.Set);
         }
 
-        private void HidePrompt()
+        // Makes the scene buttons (Fight Again / Menu) the confirm: leaving the
+        // end screen uploads. With no such button it uploads right away.
+        private void HookLeaveButtons()
         {
-            if (namePrompt != null)
+            foreach (LoadSceneButton leave in FindObjectsByType<LoadSceneButton>(FindObjectsInactive.Include))
             {
-                namePrompt.SetActive(false);
+                Button button = leave.GetComponent<Button>();
+                if (button != null)
+                {
+                    button.onClick.AddListener(Confirm);
+                    leaveButtons.Add(button);
+                }
+            }
+
+            if (leaveButtons.Count == 0)
+            {
+                Debug.LogWarning("EndScreenUploader found no scene buttons to confirm on; uploading now.", this);
+                Confirm();
             }
         }
 
-        private void HandleSave()
-        {
-            PlayerName.Set(nameField.text);
-            HidePrompt();
-            Submit(PlayerName.Value);
-        }
-
-        // Stamps the name onto the record and uploads it once.
-        private void Submit(string playerName)
+        // Stamps the shown name onto the record and uploads it once.
+        private void Confirm()
         {
             if (uploaded)
             {
@@ -101,9 +111,13 @@ namespace ThinkFast.Stats
             }
 
             uploaded = true;
-            pendingRecord.playerName = playerName;
-            IHighscoreBackend backend = CreateBackend();
-            UploadAndForget(backend, pendingRecord);
+            if (nameField != null)
+            {
+                PlayerName.Set(nameField.text);
+            }
+
+            pendingRecord.playerName = PlayerName.Value;
+            UploadAndForget(CreateBackend(), pendingRecord);
         }
 
         private IHighscoreBackend CreateBackend()
