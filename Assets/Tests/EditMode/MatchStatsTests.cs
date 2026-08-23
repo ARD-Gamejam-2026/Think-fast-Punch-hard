@@ -53,5 +53,55 @@ namespace ThinkFast.Stats.Tests
 
             Assert.AreEqual(32.5, MatchStats.TimeToBeatOpponent, 0.0001);
         }
+
+        [Test]
+        public void Player_health_decrease_accrues_damage_taken_but_a_heal_does_not()
+        {
+            MatchStats.SetPlayerHealth(100); // baseline, no damage
+            MatchStats.SetPlayerHealth(80);  // -20 taken
+            MatchStats.SetPlayerHealth(90);  // heal, ignored
+            MatchStats.SetPlayerHealth(70);  // -20 taken
+
+            Assert.AreEqual(40, MatchStats.DamageTaken);
+            Assert.AreEqual(70, MatchStats.EndHealth);
+        }
+
+        [Test]
+        public void Opponent_health_decrease_accrues_damage_dealt()
+        {
+            MatchStats.SetOpponentHealth(100);
+            MatchStats.SetOpponentHealth(55);
+
+            Assert.AreEqual(45, MatchStats.DamageDealt);
+            Assert.AreEqual(55, MatchStats.EndOpponentHealth);
+        }
+
+        [Test]
+        public void Snapshot_reflects_the_accumulated_state()
+        {
+            MatchStats.Clock = () => 5.0;
+            MatchStats.Begin();
+            MatchStats.RecordCorrect();
+            MatchStats.RecordTimedOut();
+            MatchStats.SetPlayerHealth(100);
+            MatchStats.SetPlayerHealth(60);
+            MatchStats.SetOpponentHealth(100);
+            MatchStats.SetOpponentHealth(0);
+            MatchStats.Clock = () => 12.0;
+            MatchStats.Finish(true);
+
+            MatchRecord record = MatchStats.Snapshot();
+
+            Assert.AreEqual(7.0f, record.timeToBeatOpponent, 0.0001f);
+            Assert.AreEqual(2, record.quizzesSolved);
+            Assert.AreEqual(1, record.quizzesRight);
+            Assert.AreEqual(1, record.quizzesTimedOut);
+            Assert.AreEqual(40, record.damageTaken);
+            Assert.AreEqual(100, record.damageDealt);
+            Assert.AreEqual(60, record.endHealth);
+            Assert.AreEqual(0, record.endOpponentHealth);
+            Assert.IsTrue(record.playerWon);
+            Assert.IsFalse(string.IsNullOrEmpty(record.finishedAt));
+        }
     }
 }

@@ -94,7 +94,57 @@ namespace ThinkFast.Stats
             HasFinished = true;
         }
 
-        // Health/damage and Snapshot are added in later tasks.
+        /// <summary>
+        /// Reports the player's current health. A drop since the last report is
+        /// added to damage taken; a rise (a future heal) is not counted.
+        /// </summary>
+        public static void SetPlayerHealth(int current)
+        {
+            if (hasPlayerBaseline && current < lastPlayerHealth)
+            {
+                DamageTaken += lastPlayerHealth - current;
+            }
+
+            lastPlayerHealth = current;
+            hasPlayerBaseline = true;
+            EndHealth = current;
+        }
+
+        /// <summary>
+        /// Reports the opponent's current health. A drop since the last report is
+        /// added to damage dealt by the player.
+        /// </summary>
+        public static void SetOpponentHealth(int current)
+        {
+            if (hasOpponentBaseline && current < lastOpponentHealth)
+            {
+                DamageDealt += lastOpponentHealth - current;
+            }
+
+            lastOpponentHealth = current;
+            hasOpponentBaseline = true;
+            EndOpponentHealth = current;
+        }
+
+        /// <summary>Copies the current state into an uploadable record.</summary>
+        public static MatchRecord Snapshot()
+        {
+            return new MatchRecord
+            {
+                timeToBeatOpponent = (float)TimeToBeatOpponent,
+                quizzesSolved = QuizzesSolved,
+                quizzesRight = QuizzesRight,
+                quizzesWrong = QuizzesWrong,
+                quizzesTimedOut = QuizzesTimedOut,
+                damageDealt = DamageDealt,
+                damageTaken = DamageTaken,
+                endHealth = EndHealth,
+                endOpponentHealth = EndOpponentHealth,
+                playerWon = PlayerWon,
+                playerName = string.Empty,
+                finishedAt = finishedAtIso,
+            };
+        }
 
         private static double DefaultClock()
         {
