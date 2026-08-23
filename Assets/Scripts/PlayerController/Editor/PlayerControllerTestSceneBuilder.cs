@@ -32,6 +32,14 @@ namespace ThinkFast.PlayerEditor
         /// <summary>Root object name. Everything generated lives under it, so cleanup is one delete.</summary>
         private const string RigRootName = "--- Test Rig (generated) ---";
 
+        private const string PlatformPrefabPath = "Assets/Prefabs/Platform.prefab";
+
+        /// <summary>Width of one platform art tile, as modelled.</summary>
+        private const float PlatformArtWidth = 2f;
+
+        /// <summary>Thickness of the platform art, which is thinner than the collider it sits in.</summary>
+        private const float PlatformArtThickness = 0.25f;
+
         [MenuItem("Tools/Think Fast/Build PlayerController Test Scene")]
         public static void Build()
         {
@@ -50,12 +58,28 @@ namespace ThinkFast.PlayerEditor
             PhysicsMaterial2D frictionless = GetOrCreateFrictionlessMaterial();
 
             BuildStage(root.transform, frictionless);
-            GameObject player = BuildPlayer(root.transform, frictionless);
-
             // On the floor and clear of the step, far enough away that the fight
             // opens with the opponent walking at you rather than already inside
             // your guard on frame one.
-            BuildEnemy(root.transform, frictionless, new Vector3(3f, 1.2f, 0f), player.transform);
+            var playerSpawn = new Vector3(-4f, 1.2f, 0f);
+            var enemySpawn = new Vector3(3f, 1.2f, 0f);
+
+            // Prefabs first, so a rebuild of the stage keeps the animated fighters
+            // and their tuning. Generating them is the fallback for a project that
+            // has not saved them yet -- see FighterPrefabs.
+            GameObject player = Spawn(FighterPrefabs.PlayerPath, root.transform, playerSpawn)
+                ?? BuildPlayer(root.transform, frictionless);
+
+            GameObject enemy = Spawn(FighterPrefabs.EnemyPath, root.transform, enemySpawn)
+                ?? BuildEnemy(root.transform, frictionless, enemySpawn, player.transform);
+
+            // A spawned prefab has no idea what it is fighting: the target is a
+            // scene object, so it cannot be stored in the asset.
+            var brain = enemy.GetComponent<ThinkFast.Enemy.EnemyBrain>();
+            if (brain != null)
+            {
+                AssignObjectField(brain, "target", player.transform);
+            }
             BuildRoundDebug(root.transform);
             FrameCamera(scene, player.transform);
 
@@ -118,6 +142,12 @@ namespace ThinkFast.PlayerEditor
         /// </summary>
         private static GameObject CreatePlatform(Transform parent, string name, Vector3 position, Vector3 scale, PhysicsMaterial2D frictionless, Material material)
         {
+            GameObject artPlatform = CreateArtPlatform(parent, name, position, scale, frictionless);
+            if (artPlatform != null)
+            {
+                return artPlatform;
+            }
+
             GameObject platform = CreateBlock(parent, name, position, scale, frictionless);
 
             var effector = platform.AddComponent<PlatformEffector2D>();
@@ -135,6 +165,82 @@ namespace ThinkFast.PlayerEditor
             }
 
             return platform;
+        }
+
+        /// <summary>
+        /// Builds a platform out of the art model, tiled across the span, with the
+        /// collider still authored here.
+        ///
+        /// **The collider is deliberately not the model's.** The stage's spans are
+        /// what the opponent's climbing routes are computed against, and the
+        /// margins are thin -- the High Mid hop clears its gap by about half a
+        /// unit. Laying whole 2-unit tiles end to end would round every platform's
+        /// width to the nearest 2 and move its edges by up to a quarter of a unit,
+        /// which is enough to put that hop out of reach. So the width stays
+        /// exactly as authored and the art is stretched to fit it, never the other
+        /// way round.
+        ///
+        /// The model also carries a solid two-way collider of its own, a metre
+        /// tall, which would make the platform impossible to jump up through.
+        /// Every collider on the art is switched off for that reason.
+        ///
+        /// Returns null when the art has not been imported, so the generated
+        /// blocks remain the fallback.
+        /// </summary>
+        private static GameObject CreateArtPlatform(Transform parent, string name, Vector3 position, Vector3 scale, PhysicsMaterial2D frictionless)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlatformPrefabPath);
+            if (prefab == null)
+            {
+                return null;
+            }
+
+            var platform = new GameObject(name);
+            platform.transform.SetParent(parent, worldPositionStays: false);
+            platform.transform.localPosition = position;
+
+            var box = platform.AddComponent<BoxCollider2D>();
+            box.size = new Vector2(scale.x, scale.y);
+            box.sharedMaterial = frictionless;
+            box.usedByEffector = true;
+
+            var effector = platform.AddComponent<PlatformEffector2D>();
+            effector.useOneWay = true;
+            effector.surfaceArc = 170f;
+
+            TileArt(platform.transform, prefab, scale);
+            return platform;
+        }
+
+        /// <summary>
+        /// Lays the art across the platform's width. Tile count is chosen to keep
+        /// each one closest to its natural size, then they are stretched by the
+        /// remainder -- at these widths that is under an eighth, which does not
+        /// read on a slab.
+        /// </summary>
+        private static void TileArt(Transform platform, GameObject prefab, Vector3 scale)
+        {
+            int count = Mathf.Max(1, Mathf.RoundToInt(scale.x / PlatformArtWidth));
+            float tileWidth = scale.x / count;
+            float left = -scale.x * 0.5f;
+
+            // The art is thinner than the collider. Aligning their tops rather
+            // than stretching to match means the fighter stands on the surface it
+            // can see, and the extra collider hangs below where nothing looks.
+            float top = (scale.y * 0.5f) - (PlatformArtThickness * 0.5f);
+
+            for (int i = 0; i < count; i++)
+            {
+                var tile = (GameObject)PrefabUtility.InstantiatePrefab(prefab, platform);
+                tile.name = $"Art {i}";
+                tile.transform.localPosition = new Vector3(left + (tileWidth * (i + 0.5f)), top, 0f);
+                tile.transform.localScale = new Vector3(tileWidth / PlatformArtWidth, 1f, 1f);
+
+                foreach (Collider2D collider in tile.GetComponentsInChildren<Collider2D>(includeInactive: true))
+                {
+                    collider.enabled = false;
+                }
+            }
         }
 
         /// <summary>
@@ -156,6 +262,23 @@ namespace ThinkFast.PlayerEditor
             collider.sharedMaterial = frictionless;
 
             return block;
+        }
+
+        /// <summary>
+        /// Instantiates a saved fighter prefab into the rig, or returns null when
+        /// none has been saved so the caller can generate one instead.
+        /// </summary>
+        private static GameObject Spawn(string prefabPath, Transform parent, Vector3 position)
+        {
+            GameObject prefab = FighterPrefabs.Load(prefabPath);
+            if (prefab == null)
+            {
+                return null;
+            }
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+            instance.transform.localPosition = position;
+            return instance;
         }
 
         private static GameObject BuildPlayer(Transform parent, PhysicsMaterial2D frictionless)

@@ -44,6 +44,49 @@ namespace ThinkFast.UI
         /// <summary>The wash a screen fades in from and out to.</summary>
         public static readonly Color FadeSheet = new Color32(0xFF, 0xFF, 0xFF, 0xFF);
 
+        /// <summary>
+        /// The empty part of any bar -- health, Flow, the quiz timer. Light
+        /// enough to read as "not filled yet" rather than as a second colour.
+        /// </summary>
+        public static readonly Color Track = new Color32(0xE4, 0xEA, 0xF0, 0xFF);
+
+        /// <summary>Health, and a correct answer. Dark enough to hold its own against white.</summary>
+        public static readonly Color Positive = new Color32(0x35, 0xB3, 0x6C, 0xFF);
+
+        /// <summary>Low health, a wrong answer, and the last second on the clock.</summary>
+        public static readonly Color Negative = new Color32(0xE0, 0x50, 0x3F, 0xFF);
+
+        /// <summary>The middle of the timer, and the revealed right answer.</summary>
+        public static readonly Color Caution = new Color32(0xF0, 0xA5, 0x2B, 0xFF);
+
+        /// <summary>Flow state: the one moment the interface is allowed to shout.</summary>
+        public static readonly Color Flow = new Color32(0xF5, 0xB9, 0x3C, 0xFF);
+
+        /// <summary>
+        /// Feedback fills for the answer buttons.
+        ///
+        /// Tints rather than solid colour, and that is a contrast decision, not a
+        /// stylistic one: the button's label colour is fixed at build time and
+        /// only its background changes state, so a saturated fill would leave dark
+        /// grey type on a strong green or red. A tint keeps the label at better
+        /// than 8:1 against every state while still reading instantly as
+        /// right or wrong.
+        /// </summary>
+        public static readonly Color PositiveTint = new Color32(0xC2, 0xEC, 0xD1, 0xFF);
+
+        /// <summary>Wrong answer fill. See <see cref="PositiveTint"/> for why it is a tint.</summary>
+        public static readonly Color NegativeTint = new Color32(0xFA, 0xCB, 0xC6, 0xFF);
+
+        /// <summary>The right answer, revealed after a wrong pick or a timeout.</summary>
+        public static readonly Color CautionTint = new Color32(0xFD, 0xE5, 0xB4, 0xFF);
+
+        /// <summary>
+        /// Backing for UI drawn over the fight. The HUD sits on this rather than
+        /// straight on the stage, so its bars keep their contrast whatever colour
+        /// the level behind them turns out to be.
+        /// </summary>
+        public static readonly Color HudCard = new Color32(0xFF, 0xFF, 0xFF, 0xF0);
+
         /// <summary>Scale a tile grows to when the pointer is over it.</summary>
         public const float HoverScale = 1.04f;
 

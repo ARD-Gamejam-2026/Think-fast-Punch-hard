@@ -5,14 +5,13 @@ using UnityEngine;
 namespace ThinkFast.UIEditor
 {
     /// <summary>
-    /// Generates the menu's sprites as PNG assets: a rounded card, its halo, a
-    /// pill for slider tracks, and a circle.
+    /// Generates the interface's sprites as PNG assets: a rounded card, its halo,
+    /// a pill, a circle and a plain block.
     ///
-    /// Four shapes cover every surface in the menu, because each is tinted at
-    /// runtime rather than baked in a colour -- the slider track and its fill are
-    /// the same pill in two colours. Fewer shapes means the rounding stays
-    /// consistent everywhere, which is most of what makes this style read as one
-    /// interface rather than a pile of widgets.
+    /// Five shapes cover every surface in the game, because each is tinted at
+    /// runtime rather than baked in a colour. Fewer shapes means the rounding
+    /// stays consistent everywhere, which is most of what makes this style read as
+    /// one interface rather than a pile of widgets.
     ///
     /// They are generated rather than drawn for the same reason the rest of the
     /// project is: re-runnable, reviewable as code, and no binary nobody can edit.
@@ -27,6 +26,7 @@ namespace ThinkFast.UIEditor
         private const string CardGlowPath = Folder + "/CardGlow.png";
         private const string PillPath = Folder + "/Pill.png";
         private const string CirclePath = Folder + "/Circle.png";
+        private const string BlockPath = Folder + "/Block.png";
 
         /// <summary>The four sprites the menu is built from.</summary>
         public readonly struct Sprites
@@ -36,15 +36,19 @@ namespace ThinkFast.UIEditor
             public readonly Sprite Pill;
             public readonly Sprite Circle;
 
-            public Sprites(Sprite card, Sprite cardGlow, Sprite pill, Sprite circle)
+            /// <summary>A plain rectangle. Needed wherever an Image is set to Filled, which will not draw without a sprite.</summary>
+            public readonly Sprite Block;
+
+            public Sprites(Sprite card, Sprite cardGlow, Sprite pill, Sprite circle, Sprite block)
             {
                 Card = card;
                 CardGlow = cardGlow;
                 Pill = pill;
                 Circle = circle;
+                Block = block;
             }
 
-            public bool IsComplete => Card != null && CardGlow != null && Pill != null && Circle != null;
+            public bool IsComplete => Card != null && CardGlow != null && Pill != null && Circle != null && Block != null;
         }
 
         /// <summary>
@@ -66,13 +70,40 @@ namespace ThinkFast.UIEditor
 
             Write(CirclePath, RoundedRect(96, 96, 48f, 3f, Color.white, new Color32(0xD5, 0xDD, 0xE4, 0xFF)), 0f);
 
+            // No rounding and no border: a square of solid white, for bars that
+            // are clipped by fillAmount rather than resized.
+            Write(BlockPath, RoundedRect(16, 16, 0f, 0f, Color.white, Color.clear), 0f);
+
             AssetDatabase.Refresh();
 
             return new Sprites(
                 AssetDatabase.LoadAssetAtPath<Sprite>(CardPath),
                 AssetDatabase.LoadAssetAtPath<Sprite>(CardGlowPath),
                 AssetDatabase.LoadAssetAtPath<Sprite>(PillPath),
-                AssetDatabase.LoadAssetAtPath<Sprite>(CirclePath));
+                AssetDatabase.LoadAssetAtPath<Sprite>(CirclePath),
+                AssetDatabase.LoadAssetAtPath<Sprite>(BlockPath));
+        }
+
+        /// <summary>
+        /// Returns the sprites without redrawing them, generating them only if
+        /// they are missing. For callers that want to use the shapes rather than
+        /// decide what they look like.
+        /// </summary>
+        public static Sprites Load()
+        {
+            var loaded = new Sprites(
+                AssetDatabase.LoadAssetAtPath<Sprite>(CardPath),
+                AssetDatabase.LoadAssetAtPath<Sprite>(CardGlowPath),
+                AssetDatabase.LoadAssetAtPath<Sprite>(PillPath),
+                AssetDatabase.LoadAssetAtPath<Sprite>(CirclePath),
+                AssetDatabase.LoadAssetAtPath<Sprite>(BlockPath));
+
+            if (loaded.IsComplete)
+            {
+                return loaded;
+            }
+
+            return BuildAll();
         }
 
         private static void EnsureFolder()

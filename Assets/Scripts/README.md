@@ -51,7 +51,7 @@ quiz → fighter by us subscribing to their events.
 | `DebugRiddleDriver` | `ThinkFast.Economy` | Throwaway stand-in for the quiz. Switched off once the real one is wired. |
 | `PlaceholderFlowStateVisual` | `ThinkFast.Economy` | Throwaway gold tint + orbiting motes. |
 | `FollowCamera` | `ThinkFast.CameraRig` | Dead zone + smoothing + look-ahead + bounds. Derives the bounds and the dead zone width from how wide its viewport actually is. |
-| `FighterHud` | `ThinkFast.UI` | Real uGUI HUD: health, AP pips, Flow bar. |
+| `FighterHud` | `ThinkFast.UI` | Real uGUI HUD: both fighters' health, AP pips, Flow meter. |
 | `SplitScreenLayout` | `ThinkFast.UI` | Owns the split: fighter viewport left, quiz scaled into what is left, backdrop over the side no camera clears. |
 | `SplitScreenTodoAttribute` | `ThinkFast.Common` | Marks settings that split screen will invalidate. Nothing carries it now — see **Split screen** below. |
 | `PlaceholderFxKit` / `PlaceholderFxShape` | `ThinkFast.Common` | Throwaway. Runtime-synthesised clips, unlit materials, self-animating primitives. Shared by both FX components. |
@@ -63,19 +63,81 @@ delete once the real thing exists.
 
 ## Scene setup
 
-Nothing is hand-placed. Four generators under **Tools > Think Fast**:
+Nothing is hand-placed. Everything is generated from **Tools > Think Fast**:
 
 | Menu item | Builds |
 |---|---|
 | `Build PlayerController Test Scene` | Stage, one-way platforms, player, opponent, round banner, camera — into `Assets/Scenes/PlayerControllerTest.unity` |
-| `Build Fighter HUD` | The uGUI canvas, wired to find the player at runtime |
+| `Save Fighters As Prefabs` | The two fighters in the open scene → `Assets/Prefabs/Player.prefab` and `Enemy.prefab` |
+| `Import Fighters From Art Scene` | Moves the animated fighters out of `Art.unity`, and corrects the air swing |
+| `Build Fighter HUD` | Both fighters' health across the top of the fight view, Flow and AP in the corner |
 | `Build Split Screen Fight` | The quiz panel, its endless flow, the reward bridge, the backdrop and the split itself — into the same scene |
 | `Build Round Flow` | The end-of-round transition, plus the component that tells the end screen which ending it was — into the fight scene **and** `Scene_End` |
+| `Build Menu UI` | The start and end screens, and the sprites and font they need |
+| `Restyle Quiz Panel` | Repaints `QuizPanel.prefab` in the game's palette |
+| **`Build In-Game UI`** | Runs the quiz restyle, the split screen and the HUD **in dependency order**. The one to reach for after changing anything in-game. |
 
-All four are idempotent, and each owns its own root, so one can be rebuilt without
+All are idempotent, and each owns its own root, so one can be rebuilt without
 disturbing the others. The test-scene builder destroys and rebuilds everything under
-its root, so **re-running it resets any Inspector tuning** — but it leaves the HUD,
-the quiz and the round flow alone.
+its root, so **re-running it resets the stage's Inspector tuning** — but it leaves the
+HUD, the quiz and the round flow alone.
+
+### The fighters are prefabs
+
+`Assets/Prefabs/Player.prefab` and `Enemy.prefab` are the fighters. The scene builder
+instantiates them and only positions them and tells the opponent who to chase; it
+generates capsules **only when the prefabs are missing**, so a fresh clone still builds
+something playable.
+
+That is what ended the rebuild dance. The fighters used to be generated from code, so
+rebuilding the stage threw away the models and the animation-matched tuning and put
+grey capsules back — the art had to be re-imported every single time. Now rebuilding
+the stage does not touch the fighters at all.
+
+The flow when new fighter art arrives:
+
+```
+Akbar edits Art.unity
+   └─► Import Fighters From Art Scene   (brings them in, corrects the air swing)
+          └─► Save Fighters As Prefabs  (makes it stick, everywhere)
+```
+
+Change tuning by editing the prefab, not the scene instance — a scene override looks
+identical in the Inspector and silently applies to that one scene only.
+
+### The platforms use the art, but not its collider
+
+`Assets/Prefabs/Platform.prefab` is tiled across each platform's span as the visual.
+**The collider is still authored by the builder**, at exactly the widths below, and the
+art is stretched to fit it — never the other way round.
+
+That is not fussiness. The opponent's climbing routes are computed against these spans
+and the margins are thin: the High Mid hop clears its gap by about half a unit. Laying
+whole 2-unit tiles end to end rounds every width to the nearest 2 and moves the edges by
+up to a quarter of a unit — enough on its own to widen that gap from 2.75 to 3.00
+against a reach of 3.25, and halve a margin that was already the tightest in the stage.
+
+| platform | width | tiles | stretch |
+|---|---|---|---|
+| Low Left | 4.5 | 2 | +12.5% |
+| High Mid | 4.0 | 2 | none |
+| Low Right | 4.0 | 2 | none |
+| Top Right | 3.5 | 2 | −12.5% |
+
+**Every collider on the art is switched off.** The model carries a solid two-way box a
+metre tall, which would make the platform impossible to jump up through and would not
+respond to drop-through at all — it is not marked as used by the effector. Anything else
+instantiating that prefab directly inherits that problem.
+
+The art is thinner than the collider (0.25 against 0.4), so the two are aligned at the
+**top**: the fighter stands on the surface it can see, and the extra collider hangs below
+where nothing looks.
+
+The order inside `Build In-Game UI` is load-bearing: the split-screen builder
+instantiates the quiz panel prefab, so the prefab has to be restyled *before* it, and
+the HUD is built last because it goes into whichever scene the split-screen builder
+opened. Running the pieces by hand in a different order gets you a fight scene with a
+stale quiz panel.
 
 `Build Round Flow` is the only one that touches a scene it did not create. It adds
 nothing to `Scene_End`'s layout — it wires a component to the label already there, so
@@ -642,6 +704,48 @@ becomes unreadable again.
   falls and takes knockback, then `RoundEvents.ReportRoundEnded(PlayerWon)` fires
   after a short delay.
 
+### The air swing, after animation
+
+The animated fighters arrived with the attacks retimed to the clips, and the air attack
+came back with its hitbox opening **halfway through the swing**, where the fist visually
+extends. That is correct for a punch thrown standing still and wrong for a dive: the
+fighter travels through its whole startup, so the hitbox opened after it had already
+arced past what it aimed at, and air attacks stopped connecting.
+
+The swing length was never the problem — animated and original totals agree at ~0.36s.
+Only the distribution changed:
+
+| Air attack | startup | active | recovery | total |
+|---|---|---|---|---|
+| original, tuned for the fight | 0.09 | 0.10 | 0.18 | 0.37 |
+| as animated | 0.18 | 0.06 | 0.12 | 0.36 |
+| **now** | **0.10** | **0.16** | **0.10** | **0.36** |
+
+So the clip still fits and nothing looks rushed, but the hitbox opens early and stays
+open across the whole visual strike. **A hitbox that leads the fist slightly is far
+less noticeable than an opponent that never lands a dive.**
+
+Two more values came back changed, and between them they were the *larger* half of why
+edge-camping stayed safe:
+
+| | as animated | now | why |
+|---|---|---|---|
+| `hitboxOffset.y` | −1 | **−0.1** | at −1 the 1.1-tall box spans −1.55 to −0.45: **entirely below the fighter**, so nothing at its own height could be hit — which is exactly where someone camping a ledge stands |
+| `moveControlScale` | 0.6 | **0.9** | a dive that brakes itself lands short of what it was aimed at, and the aiming already accounts for the braking |
+
+The `-1` reads like a dropped decimal from `-0.1`. Its effect was invisible on paper —
+the brain still reported the target in range via `attackVerticalRange` (1.3) and swung
+confidently — so the opponent looked like it was attacking and simply never connected.
+
+`Tools > Think Fast > Import Fighters From Art Scene` applies this, so re-importing
+cannot quietly put the whiffing version back. **Ground attacks are left exactly as
+animated** — a grounded fighter is rooted through its own startup, so a late hitbox
+still lands where it was aimed, and the longer wind-up is the telegraph.
+
+One thing that did change and has not been ruled on: both fighters now share a 0.25
+ground startup, where the opponent's used to be 0.20 against the player's 0.15. That
+gap was the fairness dial described below.
+
 ### The dials that matter
 
 Four numbers decide whether it feels fair, and none of them is damage:
@@ -751,9 +855,9 @@ setting that needs the same treatment.
   logic now and would test well, but test assemblies cannot reference
   `Assembly-CSharp` — testing them requires moving this code into an asmdef first
   (which is exactly why the quiz has one).
-- **No text in the HUD.** Bars and pips only. TextMeshPro essentials *are* in the
-  project now (they arrived with the menu), so the blocker is gone — nobody has
-  added the numbers yet.
+- **No portraits, and no numbers, in the HUD.** The bars are labelled but carry no
+  figures, and there is nowhere showing *who* is fighting. Both want the character
+  art that does not exist yet (issue #10).
 
 ## The quiz half, wired (`QuizRewardBridge`)
 
@@ -802,6 +906,7 @@ the same weights and prompts the sample scene uses:
 |---|---|---|
 | Authored | 1 | every `QuizQuestion` in `Assets/Quiz/Questions` |
 | Generated maths | 1 | always available, 5 s limit |
+| Sequences | 1 | numbers and shapes, 8 s limit |
 | Wikipedia places | 2 | `Landmarks.asset`, "Which place is this?" |
 | Wikipedia animals | 2 | `Animals.asset`, "Which animal is this?" |
 

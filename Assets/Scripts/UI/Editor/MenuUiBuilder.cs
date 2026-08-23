@@ -349,12 +349,31 @@ namespace ThinkFast.UIEditor
 
             var so = new SerializedObject(sounds);
             so.FindProperty("output").objectReferenceValue = group;
+
+            // Kenney's CC0 interface sounds. Left unassigned the component falls
+            // back to its own synthesised tones, so a missing file costs the
+            // recording rather than the sound.
+            so.FindProperty("hoverSound").objectReferenceValue = LoadClip("rollover2");
+            so.FindProperty("pressSound").objectReferenceValue = LoadClip("click1");
+            so.FindProperty("backSound").objectReferenceValue = LoadClip("click5");
+
             so.ApplyModifiedPropertiesWithoutUndo();
 
             if (group == null)
             {
                 Debug.LogWarning("No SFX mixer group found, so menu sounds will play outside the volume slider's control.");
             }
+        }
+
+        private static AudioClip LoadClip(string fileName)
+        {
+            var clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"Assets/Audio/Kenney/{fileName}.ogg");
+            if (clip == null)
+            {
+                Debug.LogWarning($"No interface sound at Assets/Audio/Kenney/{fileName}.ogg; the synthesised tone will be used instead.");
+            }
+
+            return clip;
         }
 
         private static AudioMixerGroup FindSfxGroup()
