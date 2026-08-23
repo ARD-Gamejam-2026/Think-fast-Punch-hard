@@ -1,5 +1,14 @@
 # Firebase setup — highscores
 
+> ✅ **The Firebase project is already set up** (Realtime Database created,
+> Anonymous auth enabled, rules published) and its database URL + public Web API
+> key are **baked into the game** as `EndScreenUploader` defaults. **The only
+> thing left is wiring the components into the scenes — jump to
+> [step 7](#7-wire-the-components-into-the-scenes-unity-editor).**
+>
+> Steps 1–6 below are reference: how the project was set up, and what to change
+> if you ever point the game at a *different* Firebase project.
+
 The highscores backend stores one record per finished round in a Firebase
 **Realtime Database** and authenticates each write with an anonymous ID token,
 so **players set up nothing** — the game ships a public Web API key and signs in
