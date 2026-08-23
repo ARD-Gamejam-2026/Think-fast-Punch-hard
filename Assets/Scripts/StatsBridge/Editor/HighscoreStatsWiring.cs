@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ThinkFast.Combat;
 using ThinkFast.Enemy;
 using ThinkFast.Player;
@@ -130,33 +131,40 @@ namespace ThinkFast.StatsEditor
                 return;
             }
 
-            RemoveOldPrompt(canvas.transform);
+            DestroyExistingFields();
             TMP_InputField field = BuildLabeledField(canvas.transform, 90f);
             var serialized = new SerializedObject(uploader);
             serialized.FindProperty("nameField").objectReferenceValue = field;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        // Removes the earlier modal prompt card (a previous layout) if present.
-        private static void RemoveOldPrompt(Transform canvas)
+        // Removes every earlier name field and the old modal prompt anywhere in
+        // the scene, not just under one canvas -- these screens have more than
+        // one canvas, so a per-canvas search left duplicates behind.
+        private static void DestroyExistingFields()
         {
-            Transform old = canvas.Find(OldPromptName);
-            if (old != null)
+            var doomed = new List<GameObject>();
+            foreach (Transform transform in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
             {
-                Object.DestroyImmediate(old.gameObject);
+                if (transform != null && (transform.name == FieldName || transform.name == OldPromptName))
+                {
+                    doomed.Add(transform.gameObject);
+                }
+            }
+
+            foreach (GameObject go in doomed)
+            {
+                if (go != null)
+                {
+                    Object.DestroyImmediate(go);
+                }
             }
         }
 
         // Builds a labelled "Name" field anchored to the bottom-centre of the
-        // canvas, below the screen's content. Rebuilds any earlier one.
+        // canvas, below the screen's content.
         private static TMP_InputField BuildLabeledField(Transform canvas, float bottomOffset)
         {
-            Transform existing = canvas.Find(FieldName);
-            if (existing != null)
-            {
-                Object.DestroyImmediate(existing.gameObject);
-            }
-
             RectTransform root = UiFactory.NewRect(FieldName, canvas);
             UiFactory.Place(root, BottomCenter, BottomCenter, new Vector2(0f, bottomOffset), new Vector2(560f, 150f));
 
@@ -208,12 +216,14 @@ namespace ThinkFast.StatsEditor
                 return;
             }
 
-            // Drop any earlier binding (including a stray one on the debug field).
+            // Drop any earlier binding (including a stray one on the debug field)
+            // and every earlier field, so re-runs never accumulate duplicates.
             foreach (PlayerNameField stale in Object.FindObjectsByType<PlayerNameField>(FindObjectsInactive.Include))
             {
                 Object.DestroyImmediate(stale);
             }
 
+            DestroyExistingFields();
             TMP_InputField field = BuildLabeledField(canvas.transform, 120f);
             PlayerNameField binder = field.gameObject.AddComponent<PlayerNameField>();
             var serialized = new SerializedObject(binder);
