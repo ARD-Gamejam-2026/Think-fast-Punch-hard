@@ -812,6 +812,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 367665502}
   m_CullTransparentMesh: 1
+--- !u!1 &404004567 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3727282481887296349, guid: 14d2d0cd8e2c1e94aaa870a2ade7fa5b, type: 3}
+  m_PrefabInstance: {fileID: 966111071}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -2246,13 +2251,31 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3727282481887296349, guid: 14d2d0cd8e2c1e94aaa870a2ade7fa5b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 966111073}
   m_SourcePrefab: {fileID: 100100000, guid: 14d2d0cd8e2c1e94aaa870a2ade7fa5b, type: 3}
 --- !u!4 &966111072 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4665930824037213642, guid: 14d2d0cd8e2c1e94aaa870a2ade7fa5b, type: 3}
   m_PrefabInstance: {fileID: 966111071}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &966111073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 404004567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a04e42f647f44bba8a061b04ea96b4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Enemy.EnemyDifficultySpeed
+  motor: {fileID: 0}
+  slowStartSpeed: 4.5
+  fastCapSpeed: 8
 --- !u!1 &969923341
 GameObject:
   m_ObjectHideFlags: 0
@@ -3366,7 +3389,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3578240022214496066, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1355784443}
   m_SourcePrefab: {fileID: 100100000, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
 --- !u!224 &1211212156 stripped
 RectTransform:
@@ -3383,7 +3409,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5586909221496668179, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
   m_PrefabInstance: {fileID: 1211212155}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1355784442}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6404eca9e1fe6436babe89dddc1cd4fd, type: 3}
@@ -3394,7 +3420,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6571786248370712487, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
   m_PrefabInstance: {fileID: 1211212155}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1355784442}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eae2ae59fc0034854b61027a97ab27b3, type: 3}
@@ -3513,6 +3539,49 @@ MonoBehaviour:
     weight: 2
   - source: {fileID: 1246648172}
     weight: 2
+--- !u!1 &1355784442 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3578240022214496066, guid: 19a48e0bd11a74843a94147aa5bbd459, type: 3}
+  m_PrefabInstance: {fileID: 1211212155}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1355784443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1355784442}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24443dcc43d5a4a01936c260b23e51a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Quiz::ThinkFast.Quiz.DifficultyRamp
+  quiz: {fileID: 0}
+  correctAnswersToMax: 10
+  rampCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 1
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &1355969406
 GameObject:
   m_ObjectHideFlags: 0
