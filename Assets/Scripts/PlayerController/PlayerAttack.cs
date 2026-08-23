@@ -66,6 +66,10 @@ namespace ThinkFast.Player
         [Tooltip("Optional. Mesh Animator driver on a child object.")]
         [SerializeField] private CharacterAnimation characterAnimation;
 
+        [Header("Audio")]
+        public AudioClip swingClip;
+
+        private AudioSource audioSource;
         private PlayerController controller;
         private PlayerInputReader input;
         private AttackRunner runner;
@@ -111,6 +115,7 @@ namespace ThinkFast.Player
             controller = GetComponent<PlayerController>();
             input = GetComponent<PlayerInputReader>();
             resources = GetComponent<FighterResources>();
+            audioSource = GetComponent<AudioSource>();
 
             if (characterAnimation == null)
             {
@@ -196,6 +201,17 @@ namespace ThinkFast.Player
             bool airborne = !controller.IsGrounded;
             runner.Begin(airborne ? airAttack : groundAttack, controller.Facing);
             animation?.NotifyAttackStarted(airborne);
+            PlaySwingSound();
+        }
+
+        private void PlaySwingSound()
+        {
+            if (swingClip == null || audioSource == null)
+            {
+                return;
+            }
+
+            audioSource.PlayOneShot(swingClip);
         }
 
         private void OnDrawGizmos()

@@ -53,7 +53,9 @@ namespace ThinkFast.UIEditor
         [MenuItem("Tools/Think Fast/Build Split Screen Fight")]
         public static void Build()
         {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            // Skipped in batch mode, where there is nobody to ask and the prompt
+            // is what a headless run would hang on.
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             {
                 return;
             }

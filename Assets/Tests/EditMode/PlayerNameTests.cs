@@ -32,5 +32,25 @@ namespace ThinkFast.Stats.Tests
             PlayerName.Set("   ");
             Assert.AreEqual("anon", PlayerName.Value);
         }
+
+        [Test]
+        public void Is_set_is_false_when_unset_blank_or_anon()
+        {
+            PlayerPrefs.DeleteKey("thinkfast.playerName");
+            Assert.IsFalse(PlayerName.IsSet);
+
+            PlayerName.Set("   ");
+            Assert.IsFalse(PlayerName.IsSet);
+
+            PlayerName.Set("anon");
+            Assert.IsFalse(PlayerName.IsSet);
+        }
+
+        [Test]
+        public void Is_set_is_true_after_a_real_name()
+        {
+            PlayerName.Set("Marcel");
+            Assert.IsTrue(PlayerName.IsSet);
+        }
     }
 }

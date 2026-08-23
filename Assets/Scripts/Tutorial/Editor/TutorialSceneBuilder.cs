@@ -63,12 +63,17 @@ namespace ThinkFast.TutorialEditor
         /// <summary>
         /// Gap between the top of the fight's viewport and the card.
         ///
-        /// Load-bearing, with the card height: together they put the card's
-        /// bottom edge at roughly 64% of the view, and the camera holds the
+        /// Measured off the HUD rather than typed, because the card has to clear
+        /// the player's readout: the coach is a later sibling in the same canvas,
+        /// so anything it overlaps it simply covers -- and the readout is the
+        /// thing several of these steps are teaching the player to read.
+        ///
+        /// Still load-bearing with the card height: together they put the card's
+        /// bottom edge in the top half of the view, and the camera holds the
         /// fighter's head below that. Growing the card downward is what starts
         /// covering the fight.
         /// </summary>
-        private const float TopMargin = 92f;
+        private const float TopMargin = FighterHudBuilder.PlayerCardBottom + 18f;
 
         /// <summary>Inner margin of the card. Generous on purpose -- crowding is what made it read as a debug panel.</summary>
         private const float Pad = 44f;
