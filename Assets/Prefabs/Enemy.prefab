@@ -20,7 +20,7 @@ GameObject:
   - component: {fileID: 1985446727022135885}
   - component: {fileID: 7284536655537090071}
   - component: {fileID: 5487758751268936680}
-  - component: {fileID: 2115232173421509854}
+  - component: {fileID: 3203581926840328040}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Untagged
@@ -227,6 +227,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   characterAnimation: {fileID: 0}
+  swingClip: {fileID: 8300000, guid: b5454752eb167a047903c41c98ebbce9, type: 3}
 --- !u!114 &5880014680670508135
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -391,7 +392,7 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &2115232173421509854
+--- !u!114 &3203581926840328040
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -400,16 +401,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 3727282481887296349}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3043e8529ea191e6bb3711d87f8f135f, type: 3}
+  m_Script: {fileID: 11500000, guid: 26d3f0dfdb1d84f57accabe7bac8bbe9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Enemy.PlaceholderEnemyAttackFx
-  windUpColour: {r: 0.72, g: 0.25, b: 0.95, a: 1}
-  windUpStartScale: 0.2
-  groundColour: {r: 0.85, g: 0.15, b: 0.75, a: 1}
-  airColour: {r: 0.55, g: 0.35, b: 1, a: 1}
-  impactColour: {r: 1, g: 0.55, b: 0.85, a: 1}
-  shapeLifetime: 0.16
-  volume: 0.4
+  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.VFX.CombatHitVfx
+  playerAttack: {fileID: 0}
+  playerResources: {fileID: 0}
+  enemyAttack: {fileID: 6426975135278837748}
+  defaultClip: {fileID: 8300000, guid: 25f45eae5e2d39b4b9e3406275f2d49c, type: 3}
+  strongClip: {fileID: 0}
 --- !u!1001 &2320322452451570350
 PrefabInstance:
   m_ObjectHideFlags: 0

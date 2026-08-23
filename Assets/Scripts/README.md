@@ -51,7 +51,7 @@ quiz → fighter by us subscribing to their events.
 | `DebugRiddleDriver` | `ThinkFast.Economy` | Throwaway stand-in for the quiz. Switched off once the real one is wired. |
 | `PlaceholderFlowStateVisual` | `ThinkFast.Economy` | Throwaway gold tint + orbiting motes. |
 | `FollowCamera` | `ThinkFast.CameraRig` | Dead zone + smoothing + look-ahead + bounds. Derives the bounds and the dead zone width from how wide its viewport actually is. |
-| `FighterHud` | `ThinkFast.UI` | Real uGUI HUD: both fighters' health, AP pips, Flow meter. |
+| `FighterHud` | `ThinkFast.UI` | Real uGUI HUD: both fighters' health, AP pips, Flow meter, and the Flow caption's live/idle colour. |
 | `SplitScreenLayout` | `ThinkFast.UI` | Owns the split: fighter viewport left, quiz scaled into what is left, backdrop over the side no camera clears. |
 | `SplitScreenTodoAttribute` | `ThinkFast.Common` | Marks settings that split screen will invalidate. Nothing carries it now — see **Split screen** below. |
 | `PlaceholderFxKit` / `PlaceholderFxShape` | `ThinkFast.Common` | Throwaway. Runtime-synthesised clips, unlit materials, self-animating primitives. Shared by both FX components. |
@@ -70,7 +70,7 @@ Nothing is hand-placed. Everything is generated from **Tools > Think Fast**:
 | `Build PlayerController Test Scene` | Stage, one-way platforms, player, opponent, round banner, camera — into `Assets/Scenes/PlayerControllerTest.unity` |
 | `Save Fighters As Prefabs` | The two fighters in the open scene → `Assets/Prefabs/Player.prefab` and `Enemy.prefab` |
 | `Import Fighters From Art Scene` | Moves the animated fighters out of `Art.unity`, and corrects the air swing |
-| `Build Fighter HUD` | Both fighters' health across the top of the fight view, Flow and AP in the corner |
+| `Build Fighter HUD` | A card per fighter across the top of the fight view: glove badge, health bar, and — on the player's — Flow and AP under it |
 | `Build Split Screen Fight` | The quiz panel, its endless flow, the reward bridge, the backdrop and the split itself — into the same scene |
 | `Build Round Flow` | The end-of-round transition, plus the component that tells the end screen which ending it was — into the fight scene **and** `Scene_End` |
 | `Build Menu UI` | The start and end screens, and the sprites and font they need |
@@ -855,9 +855,11 @@ setting that needs the same treatment.
   logic now and would test well, but test assemblies cannot reference
   `Assembly-CSharp` — testing them requires moving this code into an asmdef first
   (which is exactly why the quiz has one).
-- **No portraits, and no numbers, in the HUD.** The bars are labelled but carry no
-  figures, and there is nowhere showing *who* is fighting. Both want the character
-  art that does not exist yet (issue #10).
+- **No numbers in the HUD, and the badges are not portraits.** The bars are
+  labelled but carry no figures. Each fighter now has a badge overlapping the end
+  of their bar, but it holds a generated boxing glove — mirrored for the opponent —
+  standing in for the character art that does not exist yet (issue #10). Swapping
+  the glyph for a real portrait is one sprite in `FighterHudBuilder.BuildBadge`.
 
 ## The quiz half, wired (`QuizRewardBridge`)
 
