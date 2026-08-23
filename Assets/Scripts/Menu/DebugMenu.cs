@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 namespace ThinkFast.Menu
 {
@@ -35,7 +34,7 @@ namespace ThinkFast.Menu
         void Update()
         {
             Keyboard keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+            if (keyboard != null && keyboard.tabKey.wasPressedThisFrame)
             {
                 ToggleVisible();
             }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-"Think fast, Punch hard" — a game for the ARD Game Jam 2026, built with **Unity 6000.5.9f1** using the **Universal Render Pipeline (URP)** and the **new Input System** (`com.unity.inputsystem`). The fighter half (movement, attacks, AP/Flow economy, health, HUD, and an autonomous AI opponent) and the quiz half are both implemented, and are now **wired together**: split screen (fight left, quiz right) with solves paying into the fighter's economy. The game loop is closed — menu → fight → end screen → menu. See **Documentation** below before exploring the code.
+"Think fast, Punch hard" — a game for the ARD Game Jam 2026, built with **Unity 6000.5.9f1** using the **Universal Render Pipeline (URP)** and the **new Input System** (`com.unity.inputsystem`). The fighter half (movement, attacks, AP/Flow economy, health, HUD, and an autonomous AI opponent) and the quiz half are both implemented — see **Documentation** below before exploring the code.
 
 Links:
 - Design board: https://miro.com/app/board/uXjVHv0lDhg=/
@@ -20,9 +20,6 @@ and which seams to build against:
   health, HUD, the AI opponent (chasing, platform climbing, attacking), the
   `IDamageable`/`HitInfo` and `IFighterMotor` contracts, the `RiddleRewards` seam to
   the quiz and the `RoundEvents` seam to match flow, debug keys, and tuning defaults.
-  Its **"The quiz half, wired"**, **"Round flow"** and **"Split screen"** sections cover
-  the reward rule (fast solves pay Flow, slow ones only pay AP), the menu → fight → end
-  loop, and the viewport layout.
   **Read its "Retuning the fighters" section before changing jump height, run speed or
   gravity** — the opponent's platform routes depend on those and nothing enforces it.
 - `Assets/Quiz/README.md` — **quiz half**: questions, sessions, the endless `QuizFlow`
@@ -67,40 +64,7 @@ There is no lint step; C# compilation errors surface in the Unity log / `Logs/`.
 - `Assets/Settings/` — URP render pipeline assets: separate `PC_RPAsset`/`PC_Renderer` and `Mobile_RPAsset`/`Mobile_Renderer` quality tiers, plus the default volume profile.
 - `Assets/InputSystem_Actions.inputactions` — input action map (Player + UI action maps from the template). Use the Input System package for all input, not the legacy `Input` class.
 - `Assets/TutorialInfo/` — Unity template readme scaffolding; safe to delete when the project gets real content.
-- The quiz uses asmdefs (`Quiz`, `Quiz.Editor`, `Quiz.EditModeTests` — required by the Unity Test Framework); everything else compiles into `Assembly-CSharp`. Unity only allows `Assembly-CSharp` to reference an asmdef, never the reverse, so fighter code can call quiz code but not vice versa.
-
-## Code Style (enforced by Teamscale on PRs)
-
-The project is analyzed by Teamscale (`.teamscale.toml`; fetch/fix findings
-via the teamscale plugin skills). Write new code so it passes the profile:
-
-- **Always use braces**, even for single-statement `if`/`else`/loop bodies.
-- **Document the public runtime API** with XML `<summary>` comments; word
-  them to share vocabulary with the member name (Teamscale flags comments
-  as "unrelated" when they have no word overlap with the identifier).
-  Test methods need no comments — descriptive names suffice.
-- **No ternary operators** (the profile flags them) — use `if`/`else`.
-- `switch` statements need a `default` case; tuple element names are
-  PascalCase.
-- Keep methods under ~30 source lines where reasonable; extract helpers
-  (e.g. a try/catch or a repeated request pattern) instead of nesting
-  deeper than 3 levels.
-- Static analyzers cannot see through weight/flag gating: when an invariant
-  guarantees non-null (e.g. "this branch is only reachable when X != null"),
-  make it explicit with a pattern guard or null check instead of relying on
-  the invariant.
-
-Known Unity false-positive patterns (flag in Teamscale, do NOT "fix"):
-- Unity lifecycle methods (`Awake`, `Start`, `Update`, `OnEnable`, …) are
-  engine-invoked — never remove them as "unused".
-- **Never rename serialized/JSON-mapped public fields** to PascalCase
-  (`questionText`, `thumbnail.source`, …): JsonUtility parsing and existing
-  `.asset`/prefab/scene data depend on the exact names.
-- `Action<>`-based events are the Unity idiom; do not convert to
-  `EventHandler<T>` (and the quiz event signatures are a cross-team
-  contract).
-- `while (true)` + `yield` coroutines are the standard prefetch/loop
-  pattern, not "infinite loops".
+- The quiz uses asmdefs (`Quiz`, `Quiz.EditModeTests`); everything else compiles into `Assembly-CSharp`. Unity only allows `Assembly-CSharp` to reference an asmdef, never the reverse, so fighter code can call quiz code but not vice versa.
 
 Unity-specific rules that matter here:
 - Every asset and folder under `Assets/` has a paired `.meta` file — always move/rename/delete them together, and commit `.meta` files with their assets.
