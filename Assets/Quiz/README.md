@@ -143,27 +143,17 @@ still counts as fast (top 40 % of the time limit — the Flow-building
 zone), yellow after that, and red in the last second. Zone colors and
 thresholds are inspector fields on `QuizView`.
 
-### The answer lockout
+### Answer pacing
 
-A freshly shown question refuses answers for **Answer Lockout Seconds**
-(0.35 s, on `QuizController`). The buttons are visibly faded during the
-window, and a click that lands inside it is not merely ignored — it
-**restarts the window**. Sustained mashing therefore never reaches an
-answerable question at all: the countdown runs out underneath it and the
-question resolves as `TimedOut`, which pays nothing.
+A question is answerable the instant it is shown — there is no opening
+lockout. The pacing lever is the delay *between* questions on
+`QuizController`: after a resolution the question stays on screen so the
+player can read the result, then the next one loads. A correct answer and
+a timeout use `feedbackDelaySeconds` (0.5 s); a **wrong** answer uses the
+longer `missFeedbackDelaySeconds` (1.5 s), so a wrong guess is what costs
+real time.
 
-That re-arming is the point, and it is why the buttons stay *interactable*
-while they are faded. A disabled Unity `Button` swallows the click
-entirely, so the session would never see the mash it needs in order to
-push the window back. One stray early click from a genuinely fast reader
-costs a single extra window and nothing else.
-
-The rule lives in `QuizSession` (plain C#, so it is covered by
-`QuizSessionTests`) rather than in the reward sink: a mashed question
-should never resolve in the first place, not resolve and then be refused
-payment.
-
-Answers are also **shuffled into a random slot each time a question is
+Answers are **shuffled into a random slot each time a question is
 shown** (`AnswerOrder`, applied by `QuizController`). Math and sequence
 questions already randomized where the correct answer landed; the shuffle
 extends that to authored `QuizQuestion` assets, so no fixed click position

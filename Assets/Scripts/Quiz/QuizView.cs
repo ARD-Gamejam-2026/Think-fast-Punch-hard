@@ -101,30 +101,6 @@ namespace ThinkFast.Quiz
         }
 
         /// <summary>
-        /// Dims the answer buttons while the opening lockout is running, and
-        /// restores them when it ends.
-        ///
-        /// The buttons stay interactable on purpose: a disabled Unity Button
-        /// swallows the click entirely, and the session needs to SEE a click
-        /// during the lockout in order to push the window back. Dimming is the
-        /// signal that a click will not count yet.
-        /// </summary>
-        public void SetAnswersLocked(bool locked)
-        {
-            foreach (var answerButton in answerButtons)
-            {
-                if (locked)
-                {
-                    answerButton.SetVisualState(AnswerButton.VisualState.Locked);
-                }
-                else
-                {
-                    answerButton.SetVisualState(AnswerButton.VisualState.Normal);
-                }
-            }
-        }
-
-        /// <summary>
         /// Updates the timer bar: fill amount plus the answer-speed zone color
         /// (fast/mid/last-second).
         /// </summary>

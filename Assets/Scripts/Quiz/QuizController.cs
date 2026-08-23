@@ -13,15 +13,11 @@ namespace ThinkFast.Quiz
     {
         [SerializeField] private QuizView view;
 
-        [Tooltip("Feedback shown after a correct answer, before the next question is requested.")]
+        [Tooltip("Feedback shown before the next question is requested, after a correct answer or a timeout. Lets the player see the result before the next question loads.")]
         [SerializeField, Min(0f)] private float feedbackDelaySeconds = 0.5f;
 
-        [Tooltip("Feedback shown after a wrong answer or a timeout. Longer than the correct-answer delay on purpose: three of every four blind guesses are wrong, so this is what makes guessing cost real time.")]
-        [SerializeField, Min(0f)] private float missFeedbackDelaySeconds = 1.2f;
-
-        [Header("Answer lockout")]
-        [Tooltip("How long a freshly shown question refuses answers. A click inside the window is ignored AND restarts it, so mashing one slot never resolves a question -- it times out instead. Set to 0 to accept answers immediately.")]
-        [SerializeField, Min(0f)] private float answerLockoutSeconds = 0.35f;
+        [Tooltip("Feedback shown before the next question is requested, after a WRONG answer. Longer than the correct/timeout delay on purpose: it is the penalty for guessing wrong -- the next question takes longer to arrive.")]
+        [SerializeField, Min(0f)] private float missFeedbackDelaySeconds = 1.5f;
 
         [Tooltip("Shuffles which slot each answer is shown in. Generated questions already randomize this; the shuffle extends it to authored ones so no fixed click position can be pre-committed.")]
         [SerializeField] private bool shuffleAnswerOrder = true;
@@ -48,7 +44,6 @@ namespace ThinkFast.Quiz
         private QuizSession session;
         private float feedbackTimer;
         private bool eventFired;
-        private bool answersLocked;
         private System.Random shuffleRandom;
 
         private void OnEnable()
@@ -91,16 +86,13 @@ namespace ThinkFast.Quiz
                 correctSlot = Mathf.Clamp(question.correctIndex, 0, QuizQuestion.AnswerCount - 1);
             }
 
-            session = new QuizSession(correctSlot, question.timeLimitSeconds, answerLockoutSeconds);
-            feedbackTimer = 0f;
-            eventFired = false;
-            view.ShowQuestion(question, order);
-
             // Everything downstream of here -- clicks, feedback colours, the
             // session's CorrectIndex -- works in slot space, so the permutation
             // never has to be undone.
-            answersLocked = !session.IsAnswerable;
-            view.SetAnswersLocked(answersLocked);
+            session = new QuizSession(correctSlot, question.timeLimitSeconds);
+            feedbackTimer = 0f;
+            eventFired = false;
+            view.ShowQuestion(question, order);
         }
 
         /// <summary>
@@ -132,7 +124,6 @@ namespace ThinkFast.Quiz
             {
                 session.Tick(Time.deltaTime);
                 view.SetTimerFill(session.NormalizedTimeRemaining, session.RemainingTime);
-                RefreshLockedVisual();
                 if (session.IsResolved)
                 {
                     ShowResolution();
@@ -150,33 +141,18 @@ namespace ThinkFast.Quiz
         }
 
         /// <summary>
-        /// Repaints the answer buttons when the lockout opens or is pushed back
-        /// by a click, so the dimming always matches whether a click would count.
-        /// </summary>
-        private void RefreshLockedVisual()
-        {
-            bool locked = !session.IsAnswerable;
-            if (locked == answersLocked)
-            {
-                return;
-            }
-
-            answersLocked = locked;
-            view.SetAnswersLocked(locked);
-        }
-
-        /// <summary>
-        /// How long the feedback for the given result stays on screen. Misses
-        /// linger longer than correct answers, which is what stops a guesser
-        /// cycling questions as fast as a solver.
+        /// How long the resolved question stays on screen before the next one
+        /// loads. Only a wrong answer lingers longer; a correct answer and a
+        /// timeout both use the short delay, which is what makes a wrong guess
+        /// cost real time while an honest solver keeps pace.
         /// </summary>
         private float FeedbackDelayFor(QuizResult result)
         {
-            if (result == QuizResult.Correct)
+            if (result == QuizResult.Wrong)
             {
-                return feedbackDelaySeconds;
+                return missFeedbackDelaySeconds;
             }
-            return missFeedbackDelaySeconds;
+            return feedbackDelaySeconds;
         }
 
         private void OnAnswerClicked(int index)
