@@ -65,8 +65,10 @@ namespace ThinkFast.Stats
 
         private void HandleRoundEnded(RoundOutcome outcome)
         {
-            bool playerWon = outcome == RoundOutcome.PlayerWon;
-            MatchStats.Finish(playerWon);
+            // The outcome is not stored: win/loss is derived from the end healths
+            // at display time (the loser is knocked out to zero). The parameter is
+            // required by the RoundEnded event signature.
+            MatchStats.Finish();
         }
     }
 }

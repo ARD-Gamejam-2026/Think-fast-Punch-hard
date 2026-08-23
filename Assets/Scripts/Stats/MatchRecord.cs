@@ -19,7 +19,6 @@ namespace ThinkFast.Stats
         public int damageTaken;
         public int endHealth;
         public int endOpponentHealth;
-        public bool playerWon;
         public string playerName;
         public string finishedAt;
     }

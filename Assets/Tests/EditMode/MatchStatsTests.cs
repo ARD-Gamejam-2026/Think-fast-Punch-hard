@@ -49,7 +49,7 @@ namespace ThinkFast.Stats.Tests
             MatchStats.Clock = () => now;
             MatchStats.Begin();
             now = 42.5;
-            MatchStats.Finish(true);
+            MatchStats.Finish();
 
             Assert.AreEqual(32.5, MatchStats.TimeToBeatOpponent, 0.0001);
         }
@@ -88,7 +88,7 @@ namespace ThinkFast.Stats.Tests
             MatchStats.SetOpponentHealth(100);
             MatchStats.SetOpponentHealth(0);
             MatchStats.Clock = () => 12.0;
-            MatchStats.Finish(true);
+            MatchStats.Finish();
 
             MatchRecord record = MatchStats.Snapshot();
 
@@ -100,7 +100,6 @@ namespace ThinkFast.Stats.Tests
             Assert.AreEqual(100, record.damageDealt);
             Assert.AreEqual(60, record.endHealth);
             Assert.AreEqual(0, record.endOpponentHealth);
-            Assert.IsTrue(record.playerWon);
             Assert.IsFalse(string.IsNullOrEmpty(record.finishedAt));
         }
 
@@ -109,7 +108,7 @@ namespace ThinkFast.Stats.Tests
         {
             MatchStats.SetPlayerHealth(100);
             MatchStats.RecordCorrect();
-            MatchStats.Finish(true);
+            MatchStats.Finish();
 
             MatchStats.RecordCorrect();
             MatchStats.RecordWrong();

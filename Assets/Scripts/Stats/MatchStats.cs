@@ -39,9 +39,6 @@ namespace ThinkFast.Stats
         /// <summary>The opponent's health at the end of the round.</summary>
         public static int EndOpponentHealth { get; private set; }
 
-        /// <summary>Whether the player won the round.</summary>
-        public static bool PlayerWon { get; private set; }
-
         /// <summary>Whether a round has finished and left a record to upload.</summary>
         public static bool HasFinished { get; private set; }
 
@@ -72,7 +69,6 @@ namespace ThinkFast.Stats
             DamageTaken = 0;
             EndHealth = 0;
             EndOpponentHealth = 0;
-            PlayerWon = false;
             HasFinished = false;
             hasPlayerBaseline = false;
             hasOpponentBaseline = false;
@@ -119,11 +115,10 @@ namespace ThinkFast.Stats
             QuizzesTimedOut++;
         }
 
-        /// <summary>Finishes the round: stamps the end time and win/loss.</summary>
-        public static void Finish(bool playerWon)
+        /// <summary>Finishes the round: stamps the end time and marks it finished.</summary>
+        public static void Finish()
         {
             endTime = Clock();
-            PlayerWon = playerWon;
             finishedAtIso = DateTime.UtcNow.ToString("o");
             HasFinished = true;
         }
@@ -184,7 +179,6 @@ namespace ThinkFast.Stats
                 damageTaken = DamageTaken,
                 endHealth = EndHealth,
                 endOpponentHealth = EndOpponentHealth,
-                playerWon = PlayerWon,
                 playerName = string.Empty,
                 finishedAt = finishedAtIso,
             };

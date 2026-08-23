@@ -49,11 +49,11 @@ namespace ThinkFast.Stats.Tests
         public void Rest_backend_serializes_the_record_fields()
         {
             string json = RestFirebaseBackend.SerializeRecord(
-                new MatchRecord { playerName = "p", damageDealt = 42, playerWon = true });
+                new MatchRecord { playerName = "p", damageDealt = 42, endHealth = 30 });
 
             StringAssert.Contains("\"playerName\":\"p\"", json);
             StringAssert.Contains("\"damageDealt\":42", json);
-            StringAssert.Contains("\"playerWon\":true", json);
+            StringAssert.Contains("\"endHealth\":30", json);
         }
 
         [Test]
