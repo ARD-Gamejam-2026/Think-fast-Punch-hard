@@ -12,11 +12,8 @@ namespace ThinkFast.Stats
     /// </summary>
     public static class MatchStats
     {
-        /// <summary>Time source in seconds. Swapped by tests for a fixed clock.</summary>
-        public static Func<double> Clock = DefaultClock;
-
-        /// <summary>Number of quiz questions solved this round (right, wrong and timed out).</summary>
-        public static int QuizzesSolved { get; private set; }
+        /// <summary>Clock in Unix milliseconds. Swapped by tests for a fixed clock.</summary>
+        public static Func<long> Clock = DefaultClock;
 
         /// <summary>Number of quiz questions answered right this round.</summary>
         public static int QuizzesRight { get; private set; }
@@ -42,26 +39,18 @@ namespace ThinkFast.Stats
         /// <summary>Whether a round has finished and left a record to upload.</summary>
         public static bool HasFinished { get; private set; }
 
-        /// <summary>Seconds from <see cref="Begin"/> to <see cref="Finish"/>.</summary>
-        public static double TimeToBeatOpponent
-        {
-            get { return endTime - startTime; }
-        }
-
-        private static double startTime;
-        private static double endTime;
+        private static long startedAtMillis;
+        private static long finishedAtMillis;
         private static bool hasPlayerBaseline;
         private static bool hasOpponentBaseline;
         private static int lastPlayerHealth;
         private static int lastOpponentHealth;
-        private static string finishedAtIso = string.Empty;
 
         /// <summary>Starts a fresh round: stamps the start time and zeros counters.</summary>
         public static void Begin()
         {
-            startTime = Clock();
-            endTime = startTime;
-            QuizzesSolved = 0;
+            startedAtMillis = Clock();
+            finishedAtMillis = startedAtMillis;
             QuizzesRight = 0;
             QuizzesWrong = 0;
             QuizzesTimedOut = 0;
@@ -74,10 +63,9 @@ namespace ThinkFast.Stats
             hasOpponentBaseline = false;
             lastPlayerHealth = 0;
             lastOpponentHealth = 0;
-            finishedAtIso = string.Empty;
         }
 
-        /// <summary>Records a correct answer, also counting it as solved.</summary>
+        /// <summary>Records a correct answer this round.</summary>
         public static void RecordCorrect()
         {
             // Once the round is finished the record is frozen at the knockout instant:
@@ -87,11 +75,10 @@ namespace ThinkFast.Stats
                 return;
             }
 
-            QuizzesSolved++;
             QuizzesRight++;
         }
 
-        /// <summary>Records a wrong answer, also counting it as solved.</summary>
+        /// <summary>Records a wrong answer this round.</summary>
         public static void RecordWrong()
         {
             if (HasFinished)
@@ -99,11 +86,10 @@ namespace ThinkFast.Stats
                 return;
             }
 
-            QuizzesSolved++;
             QuizzesWrong++;
         }
 
-        /// <summary>Records a timed-out question, also counting it as solved.</summary>
+        /// <summary>Records a timed-out question this round.</summary>
         public static void RecordTimedOut()
         {
             if (HasFinished)
@@ -111,15 +97,13 @@ namespace ThinkFast.Stats
                 return;
             }
 
-            QuizzesSolved++;
             QuizzesTimedOut++;
         }
 
-        /// <summary>Finishes the round: stamps the end time and marks it finished.</summary>
+        /// <summary>Finishes the round: stamps the finish time and marks it finished.</summary>
         public static void Finish()
         {
-            endTime = Clock();
-            finishedAtIso = DateTime.UtcNow.ToString("o");
+            finishedAtMillis = Clock();
             HasFinished = true;
         }
 
@@ -170,8 +154,8 @@ namespace ThinkFast.Stats
         {
             return new MatchRecord
             {
-                timeToBeatOpponent = (float)TimeToBeatOpponent,
-                quizzesSolved = QuizzesSolved,
+                startedAt = startedAtMillis,
+                finishedAt = finishedAtMillis,
                 quizzesRight = QuizzesRight,
                 quizzesWrong = QuizzesWrong,
                 quizzesTimedOut = QuizzesTimedOut,
@@ -180,13 +164,12 @@ namespace ThinkFast.Stats
                 endHealth = EndHealth,
                 endOpponentHealth = EndOpponentHealth,
                 playerName = string.Empty,
-                finishedAt = finishedAtIso,
             };
         }
 
-        private static double DefaultClock()
+        private static long DefaultClock()
         {
-            return Time.realtimeSinceStartupAsDouble;
+            return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         }
 
         /// <summary>Resets all state and restores the default clock. For tests.</summary>

@@ -1,4 +1,3 @@
-using System;
 using NUnit.Framework;
 using ThinkFast.Stats;
 
@@ -9,7 +8,7 @@ namespace ThinkFast.Stats.Tests
         [SetUp]
         public void Reset()
         {
-            MatchStats.Clock = () => 0.0;
+            MatchStats.Clock = () => 0L;
             MatchStats.Begin();
         }
 
@@ -22,36 +21,37 @@ namespace ThinkFast.Stats.Tests
         [Test]
         public void Begin_zeros_the_quiz_counters()
         {
-            Assert.AreEqual(0, MatchStats.QuizzesSolved);
             Assert.AreEqual(0, MatchStats.QuizzesRight);
             Assert.AreEqual(0, MatchStats.QuizzesWrong);
             Assert.AreEqual(0, MatchStats.QuizzesTimedOut);
         }
 
         [Test]
-        public void Recording_results_bumps_the_matching_counter_and_solved()
+        public void Recording_results_bumps_the_matching_counter()
         {
             MatchStats.RecordCorrect();
             MatchStats.RecordCorrect();
             MatchStats.RecordWrong();
             MatchStats.RecordTimedOut();
 
-            Assert.AreEqual(4, MatchStats.QuizzesSolved);
             Assert.AreEqual(2, MatchStats.QuizzesRight);
             Assert.AreEqual(1, MatchStats.QuizzesWrong);
             Assert.AreEqual(1, MatchStats.QuizzesTimedOut);
         }
 
         [Test]
-        public void Time_to_beat_opponent_is_end_minus_start()
+        public void Duration_is_finish_minus_start()
         {
-            double now = 10.0;
+            long now = 10000;
             MatchStats.Clock = () => now;
             MatchStats.Begin();
-            now = 42.5;
+            now = 42500;
             MatchStats.Finish();
 
-            Assert.AreEqual(32.5, MatchStats.TimeToBeatOpponent, 0.0001);
+            MatchRecord record = MatchStats.Snapshot();
+            Assert.AreEqual(10000, record.startedAt);
+            Assert.AreEqual(42500, record.finishedAt);
+            Assert.AreEqual(32500, record.DurationMillis());
         }
 
         [Test]
@@ -79,7 +79,7 @@ namespace ThinkFast.Stats.Tests
         [Test]
         public void Snapshot_reflects_the_accumulated_state()
         {
-            MatchStats.Clock = () => 5.0;
+            MatchStats.Clock = () => 5000L;
             MatchStats.Begin();
             MatchStats.RecordCorrect();
             MatchStats.RecordTimedOut();
@@ -87,20 +87,20 @@ namespace ThinkFast.Stats.Tests
             MatchStats.SetPlayerHealth(60);
             MatchStats.SetOpponentHealth(100);
             MatchStats.SetOpponentHealth(0);
-            MatchStats.Clock = () => 12.0;
+            MatchStats.Clock = () => 12000L;
             MatchStats.Finish();
 
             MatchRecord record = MatchStats.Snapshot();
 
-            Assert.AreEqual(7.0f, record.timeToBeatOpponent, 0.0001f);
-            Assert.AreEqual(2, record.quizzesSolved);
+            Assert.AreEqual(5000, record.startedAt);
+            Assert.AreEqual(12000, record.finishedAt);
+            Assert.AreEqual(7000, record.DurationMillis());
             Assert.AreEqual(1, record.quizzesRight);
             Assert.AreEqual(1, record.quizzesTimedOut);
             Assert.AreEqual(40, record.damageTaken);
             Assert.AreEqual(100, record.damageDealt);
             Assert.AreEqual(60, record.endHealth);
             Assert.AreEqual(0, record.endOpponentHealth);
-            Assert.IsFalse(string.IsNullOrEmpty(record.finishedAt));
         }
 
         [Test]
@@ -115,7 +115,6 @@ namespace ThinkFast.Stats.Tests
             MatchStats.SetPlayerHealth(50);
             MatchStats.SetOpponentHealth(10);
 
-            Assert.AreEqual(1, MatchStats.QuizzesSolved);
             Assert.AreEqual(1, MatchStats.QuizzesRight);
             Assert.AreEqual(0, MatchStats.QuizzesWrong);
             Assert.AreEqual(100, MatchStats.EndHealth);

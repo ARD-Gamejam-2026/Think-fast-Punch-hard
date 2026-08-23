@@ -23,7 +23,7 @@ namespace ThinkFast.Stats
         public Task<IReadOnlyList<MatchRecord>> FetchTopAsync(int count)
         {
             IReadOnlyList<MatchRecord> top = records
-                .OrderBy(record => record.timeToBeatOpponent)
+                .OrderBy(record => record.DurationMillis())
                 .Take(count)
                 .ToList();
             return Task.FromResult(top);

@@ -10,8 +10,8 @@ namespace ThinkFast.Stats
     [Serializable]
     public class MatchRecord
     {
-        public float timeToBeatOpponent;
-        public int quizzesSolved;
+        public long startedAt;
+        public long finishedAt;
         public int quizzesRight;
         public int quizzesWrong;
         public int quizzesTimedOut;
@@ -20,6 +20,11 @@ namespace ThinkFast.Stats
         public int endHealth;
         public int endOpponentHealth;
         public string playerName;
-        public string finishedAt;
+
+        /// <summary>Round duration in milliseconds, derived from the timestamps.</summary>
+        public long DurationMillis()
+        {
+            return finishedAt - startedAt;
+        }
     }
 }

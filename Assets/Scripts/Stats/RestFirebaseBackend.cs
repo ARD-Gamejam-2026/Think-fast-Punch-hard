@@ -70,7 +70,7 @@ namespace ThinkFast.Stats
                 }
 
                 List<MatchRecord> all = ParseCollection(request.downloadHandler.text);
-                all.Sort((a, b) => a.timeToBeatOpponent.CompareTo(b.timeToBeatOpponent));
+                all.Sort((a, b) => a.DurationMillis().CompareTo(b.DurationMillis()));
                 if (all.Count > count)
                 {
                     all.RemoveRange(count, all.Count - count);

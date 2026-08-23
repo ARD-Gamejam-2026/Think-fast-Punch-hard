@@ -11,8 +11,8 @@ namespace ThinkFast.Stats.Tests
         public async Task Memory_backend_returns_uploaded_records_fastest_first()
         {
             var backend = new MemoryBackend();
-            await backend.UploadAsync(new MatchRecord { playerName = "slow", timeToBeatOpponent = 30f });
-            await backend.UploadAsync(new MatchRecord { playerName = "fast", timeToBeatOpponent = 10f });
+            await backend.UploadAsync(new MatchRecord { playerName = "slow", startedAt = 0, finishedAt = 30000 });
+            await backend.UploadAsync(new MatchRecord { playerName = "fast", startedAt = 0, finishedAt = 10000 });
 
             IReadOnlyList<MatchRecord> top = await backend.FetchTopAsync(10);
 
@@ -25,9 +25,9 @@ namespace ThinkFast.Stats.Tests
         public async Task Memory_backend_fetch_top_limits_the_count()
         {
             var backend = new MemoryBackend();
-            await backend.UploadAsync(new MatchRecord { timeToBeatOpponent = 1f });
-            await backend.UploadAsync(new MatchRecord { timeToBeatOpponent = 2f });
-            await backend.UploadAsync(new MatchRecord { timeToBeatOpponent = 3f });
+            await backend.UploadAsync(new MatchRecord { startedAt = 0, finishedAt = 1000 });
+            await backend.UploadAsync(new MatchRecord { startedAt = 0, finishedAt = 2000 });
+            await backend.UploadAsync(new MatchRecord { startedAt = 0, finishedAt = 3000 });
 
             IReadOnlyList<MatchRecord> top = await backend.FetchTopAsync(2);
 
@@ -60,8 +60,8 @@ namespace ThinkFast.Stats.Tests
         public void Rest_backend_parses_a_realtime_database_collection_response()
         {
             string response =
-                "{\"-Na\":{\"playerName\":\"a\",\"timeToBeatOpponent\":20.0}," +
-                "\"-Nb\":{\"playerName\":\"b\",\"timeToBeatOpponent\":5.0}}";
+                "{\"-Na\":{\"playerName\":\"a\",\"finishedAt\":20000}," +
+                "\"-Nb\":{\"playerName\":\"b\",\"finishedAt\":5000}}";
 
             List<MatchRecord> records = RestFirebaseBackend.ParseCollection(response);
 
@@ -70,8 +70,8 @@ namespace ThinkFast.Stats.Tests
             MatchRecord b = records.Find(r => r.playerName == "b");
             Assert.IsNotNull(a);
             Assert.IsNotNull(b);
-            Assert.AreEqual(20.0f, a.timeToBeatOpponent, 0.0001f);
-            Assert.AreEqual(5.0f, b.timeToBeatOpponent, 0.0001f);
+            Assert.AreEqual(20000, a.finishedAt);
+            Assert.AreEqual(5000, b.finishedAt);
         }
 
         [Test]
