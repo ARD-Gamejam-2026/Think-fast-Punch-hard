@@ -176,7 +176,7 @@ MonoBehaviour:
   maxActionPoints: 5
   startingActionPoints: 2
   maxFlow: 100
-  flowDrainPerSecond: 6
+  flowDrainPerSecond: 2.5
   flowStateDrainPerSecond: 20
   flowStateCostPerAttack: 10
   flowDamageMultiplier: 2

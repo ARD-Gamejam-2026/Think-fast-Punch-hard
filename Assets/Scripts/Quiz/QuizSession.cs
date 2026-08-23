@@ -29,7 +29,10 @@ namespace ThinkFast.Quiz
         public float RemainingTime => Math.Max(0f, timeLimitSeconds - elapsedSeconds);
         public float NormalizedTimeRemaining => RemainingTime / timeLimitSeconds;
 
-        /// <summary>Creates a session for one question with the given correct index and time limit.</summary>
+        /// <summary>
+        /// Creates a session for one question with the given correct index and
+        /// time limit. Answers are accepted immediately.
+        /// </summary>
         public QuizSession(int correctIndex, float timeLimitSeconds)
         {
             if (correctIndex < 0 || correctIndex >= AnswerCount)
@@ -57,7 +60,14 @@ namespace ThinkFast.Quiz
             }
 
             SelectedIndex = index;
-            Resolve(index == CorrectIndex ? QuizResult.Correct : QuizResult.Wrong);
+            if (index == CorrectIndex)
+            {
+                Resolve(QuizResult.Correct);
+            }
+            else
+            {
+                Resolve(QuizResult.Wrong);
+            }
         }
 
         /// <summary>

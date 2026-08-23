@@ -133,14 +133,35 @@ timed out**):
   instant gameplay rewards here (Flow meter, action points, damage
   windows) so they land the moment the player earns them.
 - **`QuestionAnswered(QuizResult, float)`** — fires after the feedback
-  colors have been on screen for the controller's **Feedback Delay
-  Seconds** (default 0.5 s). `QuizFlow` uses this one to advance, so the
-  result stays visible between questions.
+  colors have been on screen. `QuizFlow` uses this one to advance, so the
+  result stays visible between questions. How long it waits depends on the
+  outcome: **Feedback Delay Seconds** (0.5 s) after a correct answer,
+  **Miss Feedback Delay Seconds** (1.2 s) after a wrong one or a timeout.
 
 The timer bar doubles as a speed indicator: it is green while a solve
 still counts as fast (top 40 % of the time limit — the Flow-building
 zone), yellow after that, and red in the last second. Zone colors and
 thresholds are inspector fields on `QuizView`.
+
+### Answer pacing
+
+A question is answerable the instant it is shown — there is no opening
+lockout. The pacing lever is the delay *between* questions on
+`QuizController`: after a resolution the question stays on screen so the
+player can read the result, then the next one loads. A correct answer and
+a timeout use `feedbackDelaySeconds` (0.5 s); a **wrong** answer uses the
+longer `missFeedbackDelaySeconds` (1.5 s), so a wrong guess is what costs
+real time.
+
+Answers are **shuffled into a random slot each time a question is
+shown** (`AnswerOrder`, applied by `QuizController`). Math and sequence
+questions already randomized where the correct answer landed; the shuffle
+extends that to authored `QuizQuestion` assets, so no fixed click position
+can be pre-committed. It is a display-time permutation on purpose —
+shuffling the arrays in place would rewrite the ScriptableObject on disk.
+Everything downstream of `ShowQuestion` (clicks, feedback colors, the
+session's `CorrectIndex`) works in slot space, so the permutation never
+has to be undone.
 
 ## Feeding the fighter
 
