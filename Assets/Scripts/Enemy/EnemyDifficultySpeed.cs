@@ -11,6 +11,12 @@ namespace ThinkFast.Enemy
     ///
     /// Deletable: remove it and the motor keeps its serialized maxRunSpeed, so the
     /// fighter still runs standalone.
+    ///
+    /// Needs a <see cref="DifficultyRamp"/> in the scene to do anything but slow the
+    /// opponent down: with no ramp, <see cref="DifficultyRamp.Current01"/> stays 0 and
+    /// this pins the top speed at <c>slowStartSpeed</c> forever -- below the motor's own
+    /// serialized default. If you want the ramp, add a DifficultyRamp; if you do not,
+    /// remove this component rather than leaving it to hold the opponent slow.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(EnemyMotor))]

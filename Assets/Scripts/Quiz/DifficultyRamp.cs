@@ -30,6 +30,11 @@ namespace ThinkFast.Quiz
 
         private static int correctCount;
 
+        // The one instance expected to be driving the static value. Difficulty is a
+        // single global here (a static seam), so a second ramp would count the same
+        // QuestionResolved twice and ramp at double speed -- tracked only to warn.
+        private static DifficultyRamp active;
+
         /// <summary>Normalized match difficulty, 0 at round start rising to 1. Defaults to 0.</summary>
         public static float Current01 { get; private set; }
 
@@ -49,11 +54,21 @@ namespace ThinkFast.Quiz
         private static void ResetOnPlay()
         {
             ResetRamp();
+            active = null;
         }
 
         private void Awake()
         {
             ResetRamp();
+
+            if (active != null && active != this)
+            {
+                Debug.LogWarning(
+                    "A second DifficultyRamp is active. They share one global difficulty value, "
+                    + "so each correct answer is counted twice and difficulty ramps at double speed. "
+                    + "Keep exactly one DifficultyRamp per scene.", this);
+            }
+            active = this;
 
             if (quiz == null)
             {
@@ -80,6 +95,14 @@ namespace ThinkFast.Quiz
             if (quiz != null)
             {
                 quiz.QuestionResolved -= HandleResolved;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (active == this)
+            {
+                active = null;
             }
         }
 
