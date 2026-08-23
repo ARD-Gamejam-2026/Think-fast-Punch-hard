@@ -22,6 +22,10 @@ namespace ThinkFast.RoundsEditor
     /// auto-referenced Quiz assembly. The Quiz.Editor asmdef could not, because it
     /// cannot reference Assembly-CSharp.
     ///
+    /// Run it with the main gameplay scene (PlayerControllerTest) open. It
+    /// operates on whatever scene is active, so any scene that has the fight and
+    /// quiz works.
+    ///
     /// Idempotent: run it twice and the second run adds nothing. It marks the
     /// active scene dirty but does not save it, so the wiring can be reviewed
     /// before it is committed.
