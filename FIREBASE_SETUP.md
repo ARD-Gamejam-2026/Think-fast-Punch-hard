@@ -147,9 +147,11 @@ Press Play, and win a fight. Then:
 
 - Open *Realtime Database → Data* in the console — a `highscores` node should
   appear with a child holding all the record fields (`playerName`,
-  `timeToBeatOpponent`, quiz counts, `damageDealt`/`damageTaken`, both end
-  healths, `finishedAt`). Win/loss is not stored — it is derived from the end
-  healths (the loser is knocked out to zero).
+  `startedAt`/`finishedAt` as Unix-millisecond timestamps, the quiz counts
+  `quizzesRight`/`quizzesWrong`/`quizzesTimedOut`, `damageDealt`/`damageTaken`,
+  and both end healths). The match duration is `finishedAt - startedAt`, and
+  win/loss is derived from the end healths (the loser is knocked out to zero) —
+  neither is stored.
 - If nothing appears, check the Unity Console:
   - `"anonymous sign-in returned no token"` → the Anonymous provider (step 3)
     or the Web API key (step 5) is wrong.
