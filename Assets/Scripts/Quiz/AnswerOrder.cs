@@ -41,7 +41,7 @@ namespace ThinkFast.Quiz
             return order;
         }
 
-        /// <summary>Builds the unshuffled order, where every slot shows its own answer index.</summary>
+        /// <summary>Builds the identity order (no shuffle), where every slot shows its own answer index.</summary>
         public static int[] Identity(int count)
         {
             if (count <= 0)
