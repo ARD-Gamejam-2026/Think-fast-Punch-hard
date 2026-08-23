@@ -168,6 +168,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Enemy.EnemyKnockout
   roundEndDelay: 1.2
   characterAnimation: {fileID: 0}
+  knockoutClip: {fileID: 8300000, guid: 1fcffd32eb465ee47ba6c5562dd71ddd, type: 3}
 --- !u!114 &7447018175306317336
 MonoBehaviour:
   m_ObjectHideFlags: 0

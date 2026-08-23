@@ -27,12 +27,16 @@ namespace ThinkFast.Player
         [Tooltip("Optional. Mesh Animator driver on a child object.")]
         [SerializeField] private CharacterAnimation characterAnimation;
 
+        [Header("Audio")]
+        public AudioClip knockoutClip;
+
         private Health health;
         private PlayerController controller;
         private PlayerAttack attack;
         private PlayerInputReader input;
         private Rigidbody2D body;
         private ICharacterAnimation animation;
+        private AudioSource audioSource;
 
         private Vector2 spawnPosition;
         private float roundEndTimer;
@@ -59,6 +63,7 @@ namespace ThinkFast.Player
             }
 
             animation = characterAnimation;
+            audioSource = GetComponent<AudioSource>();
             spawnPosition = transform.position;
         }
 
@@ -82,9 +87,20 @@ namespace ThinkFast.Player
             IsKnockedOut = true;
             SetFightingComponents(false);
             animation?.NotifyKnockout();
+            PlayKnockoutSound();
             KnockedOut?.Invoke();
 
             roundEndTimer = roundEndDelay;
+        }
+
+        private void PlayKnockoutSound()
+        {
+            if (knockoutClip == null || audioSource == null)
+            {
+                return;
+            }
+
+            audioSource.PlayOneShot(knockoutClip);
         }
 
         private void Update()
