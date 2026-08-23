@@ -99,6 +99,27 @@ uploads nothing (a warning is logged). Both must be set to go live.
 
 The scripts are in the project but must be attached to scene objects.
 
+### Option A — one click (recommended)
+
+Run **`Tools ▸ Think Fast ▸ Wire Highscore Stats`**. It opens and saves each
+scene, adding:
+
+- a `FighterStatsReporter` on each fighter's `Health` (role chosen automatically:
+  `PlayerController` → Player, `EnemyMotor` → Opponent),
+- a `MatchStatsCoordinator` on the `QuizController` object,
+- an `EndScreenUploader` on the `EndScreen` object (URL + key already default-filled),
+- a `PlayerNameField` on the menu **only if** it finds a `TMP_InputField` to bind
+  (otherwise it skips and logs; names default to `"anon"`).
+
+It is idempotent — re-running updates rather than duplicates. Watch the Console
+for `[HighscoreStatsWiring]` log lines; it warns if it cannot find a
+`QuizController` or `EndScreen`. Note it switches the open scene (it leaves you on
+the menu), so save any unsaved work first.
+
+### Option B — by hand
+
+If you'd rather place them yourself:
+
 **`Assets/Scenes/SampleScene.unity`** (the fight):
 
 1. Select the **player** fighter → *Add Component* → **Fighter Stats Reporter** →
