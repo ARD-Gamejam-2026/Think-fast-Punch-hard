@@ -52,10 +52,10 @@ namespace ThinkFast.Enemy
         private EnemyAttack attack;
         private AudioSource audioSource;
 
-        private AudioClip windUpClip;
-        private AudioClip groundSwingClip;
-        private AudioClip airSwingClip;
-        private AudioClip impactClip;
+        [SerializeField] private AudioClip windUpClip;
+        [SerializeField] private AudioClip groundSwingClip;
+        [SerializeField] private AudioClip airSwingClip;
+        [SerializeField] private AudioClip impactClip;
 
         private Material windUpMaterial;
         private Material groundMaterial;

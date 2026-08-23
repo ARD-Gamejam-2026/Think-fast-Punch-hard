@@ -244,6 +244,10 @@ MonoBehaviour:
   glow: {fileID: 18425397}
   label: {fileID: 48591973}
   icon: {fileID: 0}
+  restColour: {r: 1, g: 1, b: 1, a: 1}
+  highlightColour: {r: 0.91764706, g: 0.96862745, b: 0.99215686, a: 1}
+  restTextColour: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
+  highlightTextColour: {r: 0.078431375, g: 0.64705884, b: 0.8627451, a: 1}
   playSounds: 1
 --- !u!114 &19575660
 MonoBehaviour:
@@ -1433,6 +1437,10 @@ MonoBehaviour:
   glow: {fileID: 911001058}
   label: {fileID: 1364792115}
   icon: {fileID: 0}
+  restColour: {r: 1, g: 1, b: 1, a: 1}
+  highlightColour: {r: 0.91764706, g: 0.96862745, b: 0.99215686, a: 1}
+  restTextColour: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
+  highlightTextColour: {r: 0.078431375, g: 0.64705884, b: 0.8627451, a: 1}
   playSounds: 1
 --- !u!114 &410250193
 MonoBehaviour:
@@ -1547,6 +1555,10 @@ MonoBehaviour:
   glow: {fileID: 2145952303}
   label: {fileID: 1305826421}
   icon: {fileID: 0}
+  restColour: {r: 1, g: 1, b: 1, a: 1}
+  highlightColour: {r: 0.91764706, g: 0.96862745, b: 0.99215686, a: 1}
+  restTextColour: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
+  highlightTextColour: {r: 0.078431375, g: 0.64705884, b: 0.8627451, a: 1}
   playSounds: 1
 --- !u!114 &410584947
 MonoBehaviour:
@@ -2846,6 +2858,10 @@ MonoBehaviour:
   glow: {fileID: 477857417}
   label: {fileID: 272204242}
   icon: {fileID: 0}
+  restColour: {r: 1, g: 1, b: 1, a: 1}
+  highlightColour: {r: 0.91764706, g: 0.96862745, b: 0.99215686, a: 1}
+  restTextColour: {r: 0.23529412, g: 0.27450982, b: 0.3137255, a: 1}
+  highlightTextColour: {r: 0.078431375, g: 0.64705884, b: 0.8627451, a: 1}
   playSounds: 1
 --- !u!114 &1074836445
 MonoBehaviour:
@@ -4902,6 +4918,7 @@ GameObject:
   - component: {fileID: 1780489269}
   - component: {fileID: 1780489268}
   - component: {fileID: 1780489267}
+  - component: {fileID: 1780489270}
   m_Layer: 0
   m_Name: InputField_DebugUI
   m_TagString: Untagged
@@ -5080,6 +5097,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1780489265}
   m_CullTransparentMesh: 1
+--- !u!114 &1780489270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1780489265}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d2df2c75b0734753b7b60d4107e34d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ThinkFast.Stats.PlayerNameField
+  field: {fileID: 1780489267}
 --- !u!1 &1885974852
 GameObject:
   m_ObjectHideFlags: 0
