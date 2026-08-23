@@ -6,9 +6,9 @@ namespace ThinkFast.UIEditor
 {
     /// <summary>
     /// Generates the interface's sprites as PNG assets: a rounded card, its halo,
-    /// a pill, a circle and a plain block.
+    /// a pill, a circle, a plain block and a boxing glove.
     ///
-    /// Five shapes cover every surface in the game, because each is tinted at
+    /// Six shapes cover every surface in the game, because each is tinted at
     /// runtime rather than baked in a colour. Fewer shapes means the rounding
     /// stays consistent everywhere, which is most of what makes this style read as
     /// one interface rather than a pile of widgets.
@@ -27,8 +27,9 @@ namespace ThinkFast.UIEditor
         private const string PillPath = Folder + "/Pill.png";
         private const string CirclePath = Folder + "/Circle.png";
         private const string BlockPath = Folder + "/Block.png";
+        private const string GlovePath = Folder + "/Glove.png";
 
-        /// <summary>The four sprites the menu is built from.</summary>
+        /// <summary>The sprites the interface is built from.</summary>
         public readonly struct Sprites
         {
             public readonly Sprite Card;
@@ -39,16 +40,25 @@ namespace ThinkFast.UIEditor
             /// <summary>A plain rectangle. Needed wherever an Image is set to Filled, which will not draw without a sprite.</summary>
             public readonly Sprite Block;
 
-            public Sprites(Sprite card, Sprite cardGlow, Sprite pill, Sprite circle, Sprite block)
+            /// <summary>
+            /// A right-facing boxing glove, for the fighter badges on the HUD.
+            /// The opponent's is the same sprite mirrored, so the two gloves face
+            /// each other across the top of the fight.
+            /// </summary>
+            public readonly Sprite Glove;
+
+            public Sprites(Sprite card, Sprite cardGlow, Sprite pill, Sprite circle, Sprite block, Sprite glove)
             {
                 Card = card;
                 CardGlow = cardGlow;
                 Pill = pill;
                 Circle = circle;
                 Block = block;
+                Glove = glove;
             }
 
-            public bool IsComplete => Card != null && CardGlow != null && Pill != null && Circle != null && Block != null;
+            public bool IsComplete =>
+                Card != null && CardGlow != null && Pill != null && Circle != null && Block != null && Glove != null;
         }
 
         /// <summary>
@@ -74,6 +84,10 @@ namespace ThinkFast.UIEditor
             // are clipped by fillAmount rather than resized.
             Write(BlockPath, RoundedRect(16, 16, 0f, 0f, Color.white, Color.clear), 0f);
 
+            // A silhouette, so it can be tinted to whatever reads on the disc
+            // behind it. No border and no rounding to preserve: drawn Simple.
+            Write(GlovePath, Glove(128), 0f);
+
             AssetDatabase.Refresh();
 
             return new Sprites(
@@ -81,7 +95,8 @@ namespace ThinkFast.UIEditor
                 AssetDatabase.LoadAssetAtPath<Sprite>(CardGlowPath),
                 AssetDatabase.LoadAssetAtPath<Sprite>(PillPath),
                 AssetDatabase.LoadAssetAtPath<Sprite>(CirclePath),
-                AssetDatabase.LoadAssetAtPath<Sprite>(BlockPath));
+                AssetDatabase.LoadAssetAtPath<Sprite>(BlockPath),
+                AssetDatabase.LoadAssetAtPath<Sprite>(GlovePath));
         }
 
         /// <summary>
@@ -96,7 +111,8 @@ namespace ThinkFast.UIEditor
                 AssetDatabase.LoadAssetAtPath<Sprite>(CardGlowPath),
                 AssetDatabase.LoadAssetAtPath<Sprite>(PillPath),
                 AssetDatabase.LoadAssetAtPath<Sprite>(CirclePath),
-                AssetDatabase.LoadAssetAtPath<Sprite>(BlockPath));
+                AssetDatabase.LoadAssetAtPath<Sprite>(BlockPath),
+                AssetDatabase.LoadAssetAtPath<Sprite>(GlovePath));
 
             if (loaded.IsComplete)
             {
@@ -226,6 +242,54 @@ namespace ThinkFast.UIEditor
                     }
 
                     pixels[(y * width) + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+
+            texture.SetPixels(pixels);
+            texture.Apply();
+            return texture;
+        }
+
+        /// <summary>
+        /// A boxing glove facing right, built the same way as everything else
+        /// here: rounded boxes combined by signed distance rather than pixels
+        /// pushed around.
+        ///
+        /// Three shapes make the silhouette -- the knuckle mass, the thumb and
+        /// the cuff -- unioned by taking the nearest of them, and then a thin
+        /// slot is cut where the cuff meets the fist so the glove still reads as
+        /// a glove at badge size instead of as a blob.
+        /// </summary>
+        private static Texture2D Glove(int size)
+        {
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var pixels = new Color[size * size];
+
+            // Authored against a 128 grid and scaled, so the proportions survive
+            // a change of resolution.
+            float s = size / 128f;
+
+            Vector2 P(float x, float y) => new Vector2(x * s, y * s);
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float px = x + 0.5f;
+                    float py = y + 0.5f;
+
+                    float fist = SignedDistance(px, py, P(32f, 30f), 28f * s, P(68f, 78f));
+                    float thumb = SignedDistance(px, py, P(12f, 13f), 12f * s, P(30f, 64f));
+                    float cuff = SignedDistance(px, py, P(26f, 14f), 10f * s, P(64f, 30f));
+
+                    float shape = Mathf.Min(fist, Mathf.Min(thumb, cuff));
+                    float alpha = Mathf.Clamp01(0.5f - shape);
+
+                    // The wrist slot, cut back out of the union.
+                    float slot = SignedDistance(px, py, P(30f, 2.5f), 2.5f * s, P(64f, 46f));
+                    alpha *= Mathf.Clamp01(0.5f + slot);
+
+                    pixels[(y * size) + x] = new Color(1f, 1f, 1f, alpha);
                 }
             }
 

@@ -1,5 +1,6 @@
 using ThinkFast.Combat;
 using ThinkFast.Economy;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,10 +11,9 @@ namespace ThinkFast.UI
     /// objects in the scene rather than IMGUI debug text. Restyle it in the
     /// editor -- nothing here hard-codes an appearance beyond the colours.
     ///
-    /// Bars and pips only, no text. TextMeshPro's essential resources are not in
-    /// the project yet (they arrive with the menu branch), and importing a second
-    /// copy would collide with it. Numbers can be added on top later; the shapes
-    /// are the part you actually read mid-fight anyway.
+    /// Shapes rather than numbers: a bar's length and a row of pips are what you
+    /// can actually read mid-fight, and the only text is the standing labels the
+    /// builder puts next to them.
     ///
     /// Polls rather than subscribing: values change most frames regardless, and
     /// polling cannot get out of sync if a target is swapped at runtime.
@@ -51,6 +51,12 @@ namespace ThinkFast.UI
         [SerializeField] private Image flowFillImage;
         [SerializeField] private Color flowColour = new Color(0.45f, 0.60f, 1f);
         [SerializeField] private Color flowActiveColour = new Color(1f, 0.80f, 0.15f);
+
+        [Tooltip("The standing FLOW caption. Optional -- it is darkened while Flow state is live, so the word carries the state as well as the bar does.")]
+        [SerializeField] private TMP_Text flowLabel;
+
+        [SerializeField] private Color flowLabelColour = new Color(0.36f, 0.41f, 0.45f);
+        [SerializeField] private Color flowLabelActiveColour = new Color(0.24f, 0.27f, 0.31f);
 
         [Header("Action Points")]
         [SerializeField] private Image[] actionPointPips;
@@ -179,6 +185,11 @@ namespace ThinkFast.UI
             if (flowFillImage != null)
             {
                 flowFillImage.color = resources.IsFlowActive ? flowActiveColour : flowColour;
+            }
+
+            if (flowLabel != null)
+            {
+                flowLabel.color = resources.IsFlowActive ? flowLabelActiveColour : flowLabelColour;
             }
 
             // Pulse the whole bar during Flow state so it reads as "active" even
