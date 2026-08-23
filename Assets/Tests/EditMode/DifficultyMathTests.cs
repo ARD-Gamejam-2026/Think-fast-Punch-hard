@@ -44,28 +44,28 @@ namespace ThinkFast.Quiz.Tests
         }
 
         [Test]
-        public void ScaleTimeLimit_ZeroDifficulty_ReturnsAuthored()
+        public void TimeLimitFor_ZeroDifficulty_ReturnsStart()
         {
-            Assert.That(DifficultyMath.ScaleTimeLimit(10f, 0f, 0.5f, 3f), Is.EqualTo(10f).Within(1e-4f));
+            Assert.That(DifficultyMath.TimeLimitFor(10f, 5f, 0f), Is.EqualTo(10f).Within(1e-4f));
         }
 
         [Test]
-        public void ScaleTimeLimit_MaxDifficulty_AppliesScale()
+        public void TimeLimitFor_MaxDifficulty_ReturnsEnd()
         {
-            Assert.That(DifficultyMath.ScaleTimeLimit(10f, 1f, 0.5f, 3f), Is.EqualTo(5f).Within(1e-4f));
+            Assert.That(DifficultyMath.TimeLimitFor(10f, 5f, 1f), Is.EqualTo(5f).Within(1e-4f));
         }
 
         [Test]
-        public void ScaleTimeLimit_Halfway_InterpolatesScale()
+        public void TimeLimitFor_Halfway_InterpolatesBetween()
         {
-            Assert.That(DifficultyMath.ScaleTimeLimit(10f, 0.5f, 0.5f, 3f), Is.EqualTo(7.5f).Within(1e-4f));
+            Assert.That(DifficultyMath.TimeLimitFor(10f, 5f, 0.5f), Is.EqualTo(7.5f).Within(1e-4f));
         }
 
         [Test]
-        public void ScaleTimeLimit_BelowFloor_ClampsToFloor()
+        public void TimeLimitFor_DifficultyBeyondRange_ClampsToEnds()
         {
-            // 5 * 0.5 = 2.5, floored to 3.
-            Assert.That(DifficultyMath.ScaleTimeLimit(5f, 1f, 0.5f, 3f), Is.EqualTo(3f).Within(1e-4f));
+            Assert.That(DifficultyMath.TimeLimitFor(10f, 5f, 2f), Is.EqualTo(5f).Within(1e-4f));
+            Assert.That(DifficultyMath.TimeLimitFor(10f, 5f, -1f), Is.EqualTo(10f).Within(1e-4f));
         }
     }
 }

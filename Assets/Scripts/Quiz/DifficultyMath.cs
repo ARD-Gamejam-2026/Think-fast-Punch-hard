@@ -31,14 +31,13 @@ namespace ThinkFast.Quiz
         }
 
         /// <summary>
-        /// Scales an authored time limit by the current difficulty: full time at
-        /// difficulty 0, <paramref name="scaleAtMaxDifficulty"/> of it at difficulty
-        /// 1, never below <paramref name="minSeconds"/>.
+        /// The question time limit at the current difficulty: <paramref name="startSeconds"/>
+        /// at difficulty 0, easing to <paramref name="endSeconds"/> at difficulty 1.
+        /// The same absolute range for every question, regardless of its authored limit.
         /// </summary>
-        public static float ScaleTimeLimit(float authoredSeconds, float difficulty01, float scaleAtMaxDifficulty, float minSeconds)
+        public static float TimeLimitFor(float startSeconds, float endSeconds, float difficulty01)
         {
-            float scale = Mathf.Lerp(1f, scaleAtMaxDifficulty, Mathf.Clamp01(difficulty01));
-            return Mathf.Max(minSeconds, authoredSeconds * scale);
+            return Mathf.Lerp(startSeconds, endSeconds, Mathf.Clamp01(difficulty01));
         }
     }
 }
