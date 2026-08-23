@@ -72,19 +72,48 @@ it in the build is expected.
 
 ## 6. Put the values in the game
 
-In Unity, open `Assets/Scenes/Scene_End.unity`, select the object with the
-**`EndScreenUploader`** component, and fill in:
+The project's database URL and Web API key are already committed as the
+**default values** of the `EndScreenUploader` component
+(`Assets/Scripts/StatsBridge/EndScreenUploader.cs`), so a freshly added
+component is pre-filled — you normally do not need to type them in.
+
+If you point the game at a **different** Firebase project, override them in the
+Inspector on the `EndScreenUploader` in `Scene_End`:
 
 - **Database Url** → the URL from step 2
 - **Web Api Key** → the key from step 5
 
-If **either** field is empty, the game falls back to an in-memory store and
+If **either** value is empty, the game falls back to an in-memory store and
 uploads nothing (a warning is logged). Both must be set to go live.
 
-## 7. Verify
+## 7. Wire the components into the scenes (Unity editor)
 
-Finish the scene wiring (see the PR checklist / plan Task 6), press Play, and
-win a fight. Then:
+The scripts are in the project but must be attached to scene objects.
+
+**`Assets/Scenes/SampleScene.unity`** (the fight):
+
+1. Select the **player** fighter → *Add Component* → **Fighter Stats Reporter** →
+   set **Role = Player**. Leave `health` empty if the `Health` component is on
+   the same GameObject; otherwise assign it.
+2. Select the **opponent** fighter → add **Fighter Stats Reporter** →
+   **Role = Opponent**.
+3. Select any scene object (e.g. the quiz root that already holds
+   `QuizRewardBridge`) → add **Match Stats Coordinator**. Leave `quiz` empty to
+   auto-find the `QuizController`.
+
+**`Assets/Scenes/Scene_End.unity`** (the end screen):
+
+4. Select an object (e.g. the one with `EndScreen`) → add **End Screen Uploader**.
+   Confirm `Database Url` and `Web Api Key` are populated (from the defaults).
+
+**`Assets/Scenes/Scene_Menu.unity`** (optional — the player name):
+
+5. If there is a TMP `InputField` for the name, add **Player Name Field** and
+   assign the field. Without it, names default to `"anon"`.
+
+## 8. Verify
+
+Press Play, and win a fight. Then:
 
 - Open *Realtime Database → Data* in the console — a `highscores` node should
   appear with a child holding all the record fields (`playerName`,
