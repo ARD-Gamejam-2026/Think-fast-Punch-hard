@@ -44,8 +44,12 @@ namespace ThinkFast.Quiz
             }
         }
 
-        /// <summary>Displays a question and resets all button/timer visuals.</summary>
-        public void ShowQuestion(QuizQuestion question)
+        /// <summary>
+        /// Displays a question and resets all button/timer visuals. The order
+        /// maps each button slot to the answer index it shows; pass null to show
+        /// the answers in their authored order.
+        /// </summary>
+        public void ShowQuestion(QuizQuestion question, int[] order)
         {
             bool hasImage = question.image != null;
             questionLabel.text = question.questionText;
@@ -58,24 +62,42 @@ namespace ThinkFast.Quiz
             questionImage.sprite = question.image;
             SetTimerFill(1f, question.timeLimitSeconds);
 
-            for (int i = 0; i < answerButtons.Length; i++)
+            for (int slot = 0; slot < answerButtons.Length; slot++)
             {
-                Sprite answerImage = null;
-                if (question.answerImages != null && i < question.answerImages.Length)
-                {
-                    answerImage = question.answerImages[i];
-                }
-                if (answerImage != null)
-                {
-                    answerButtons[i].SetAnswerImage(answerImage);
-                }
-                else
-                {
-                    answerButtons[i].SetAnswerText(question.answers[i]);
-                }
-                answerButtons[i].SetVisualState(AnswerButton.VisualState.Normal);
-                answerButtons[i].SetInteractable(true);
+                ShowAnswerInSlot(question, slot, SourceIndexFor(order, slot));
             }
+        }
+
+        /// <summary>
+        /// Resolves which answer index a button slot shows: the order's entry
+        /// when there is a usable one, otherwise the slot's own index.
+        /// </summary>
+        private static int SourceIndexFor(int[] order, int slot)
+        {
+            if (order != null && slot < order.Length)
+            {
+                return order[slot];
+            }
+            return slot;
+        }
+
+        private void ShowAnswerInSlot(QuizQuestion question, int slot, int sourceIndex)
+        {
+            Sprite answerImage = null;
+            if (question.answerImages != null && sourceIndex < question.answerImages.Length)
+            {
+                answerImage = question.answerImages[sourceIndex];
+            }
+            if (answerImage != null)
+            {
+                answerButtons[slot].SetAnswerImage(answerImage);
+            }
+            else
+            {
+                answerButtons[slot].SetAnswerText(question.answers[sourceIndex]);
+            }
+            answerButtons[slot].SetVisualState(AnswerButton.VisualState.Normal);
+            answerButtons[slot].SetInteractable(true);
         }
 
         /// <summary>

@@ -19,5 +19,10 @@ MonoBehaviour:
   - Supper Man
   - Pac Man
   - Pack Man
-  correctIndex: 3
+  answerImages:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  correctIndex: 2
   timeLimitSeconds: 5

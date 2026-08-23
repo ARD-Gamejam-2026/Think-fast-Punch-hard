@@ -32,11 +32,39 @@ namespace ThinkFast.UI
         /// <summary>Accent at card-fill strength, for a hovered tile's wash.</summary>
         public static readonly Color AccentWash = new Color32(0xEA, 0xF7, 0xFD, 0xFF);
 
+        /// <summary>
+        /// The accent darkened until white type sits on it safely -- 4.2:1,
+        /// which carries bold text at button size.
+        ///
+        /// <see cref="Accent"/> itself cannot do this job: white on it is 2.9:1,
+        /// which is why every button in the game is a white card with a wash
+        /// rather than anything filled. This is the fill for the one button on a
+        /// screen that is the obvious next thing to press.
+        /// </summary>
+        public static readonly Color AccentStrong = new Color32(0x0E, 0x86, 0xB4, 0xFF);
+
+        /// <summary>
+        /// The accent darkened far enough to be *type* on a light ground --
+        /// 7.2:1 on white.
+        ///
+        /// Accent-coloured labels were being drawn in <see cref="Accent"/>, at
+        /// 3:1. That is fine for a bar or a fill, where the shape carries the
+        /// meaning, and not fine for a word somebody has to read.
+        /// </summary>
+        public static readonly Color AccentInk = new Color32(0x0A, 0x5F, 0x80, 0xFF);
+
         /// <summary>Body and label type. Dark grey, never black.</summary>
         public static readonly Color TextPrimary = new Color32(0x3C, 0x46, 0x50, 0xFF);
 
         /// <summary>Secondary type: captions, slider labels.</summary>
         public static readonly Color TextMuted = new Color32(0x8A, 0x97, 0xA3, 0xFF);
+
+        /// <summary>
+        /// Supporting prose that still has to be read. <see cref="TextMuted"/>
+        /// is 3:1 on white, which is a hairline weight for a caption and too
+        /// faint for a sentence -- this is the same idea at 5.7:1.
+        /// </summary>
+        public static readonly Color TextSecondary = new Color32(0x5C, 0x68, 0x74, 0xFF);
 
         /// <summary>Type on an accent-filled surface.</summary>
         public static readonly Color TextOnAccent = new Color32(0xFF, 0xFF, 0xFF, 0xFF);
@@ -86,6 +114,16 @@ namespace ThinkFast.UI
         /// the level behind them turns out to be.
         /// </summary>
         public static readonly Color HudCard = new Color32(0xFF, 0xFF, 0xFF, 0xF0);
+
+        /// <summary>
+        /// Soft shade dropped behind a panel that floats over the game.
+        ///
+        /// A white card on a white page needs only a hairline. A white card over
+        /// a lit 3D stage needs to be lifted off it, or it reads as a hole cut
+        /// in the screen. Painted with the same soft-edged sprite as the accent
+        /// halo, just dark and barely there.
+        /// </summary>
+        public static readonly Color Shadow = new Color(0.16f, 0.21f, 0.27f, 0.28f);
 
         /// <summary>Scale a tile grows to when the pointer is over it.</summary>
         public const float HoverScale = 1.04f;

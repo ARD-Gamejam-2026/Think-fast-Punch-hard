@@ -32,7 +32,7 @@ namespace ThinkFast.Economy
         [SerializeField] private QuizView view;
 
         [Header("Reward")]
-        [Tooltip("Flow granted by a solve inside the green zone. Slow-but-correct solves grant none. Tuned against a 6/s drain: roughly eight fast solves in a row reach the 100 needed for Flow state.")]
+        [Tooltip("Flow granted by a solve inside the green zone. Slow-but-correct solves grant none. Tuned against a 2.5/s drain with a 1.5s post-solve grace: roughly four to five fast solves in a row reach the 100 needed for Flow state.")]
         [SerializeField, Min(0f)] private float flowPerFastSolve = 25f;
 
         [Tooltip("Fast-solve threshold used only when no view is assigned, as normalized time remaining. Keep it equal to QuizView's fast zone.")]

@@ -28,8 +28,11 @@ namespace ThinkFast.Economy
         [Header("Flow")]
         [SerializeField] private float maxFlow = 100f;
 
-        [Tooltip("Constant bleed while not in Flow state. Flow is a gauge you have to keep feeding, not a bank you fill up.")]
-        [SerializeField] private float flowDrainPerSecond = 6f;
+        [Tooltip("Constant bleed while not in Flow state. Flow is a gauge you have to keep feeding, not a bank you fill up -- but gently enough that a solve is still worth something by the time you can spend it.")]
+        [SerializeField] private float flowDrainPerSecond = 2.5f;
+
+        [Tooltip("Pause in the idle bleed after each Flow gain, so a fresh solve is not eaten before the player can act on it. Does not apply during Flow state, whose drain is the point of the window.")]
+        [SerializeField] private float flowDrainGraceSeconds = 1.5f;
 
         [Tooltip("Bleed while Flow state is active. Much faster, so the payoff is a burst window with a hard clock on it.")]
         [SerializeField] private float flowStateDrainPerSecond = 20f;
@@ -69,11 +72,14 @@ namespace ThinkFast.Economy
         /// <summary>Raised when an attack was wanted but there was no AP to pay for it.</summary>
         public event Action ActionPointsExhausted;
 
+        private float graceRemaining;
+
         private void Awake()
         {
             ActionPoints = Mathf.Clamp(startingActionPoints, 0, maxActionPoints);
             Flow = 0f;
             IsFlowActive = false;
+            graceRemaining = 0f;
         }
 
         private void OnEnable()
@@ -88,8 +94,22 @@ namespace ThinkFast.Economy
 
         private void Update()
         {
-            float drainRate = IsFlowActive ? flowStateDrainPerSecond : flowDrainPerSecond;
-            SetFlow(Flow - (drainRate * Time.deltaTime));
+            if (IsFlowActive)
+            {
+                SetFlow(Flow - (flowStateDrainPerSecond * Time.deltaTime));
+                return;
+            }
+
+            // The grace period only holds off the idle bleed. It is deliberately
+            // not carried into Flow state: once the burst starts, the clock on it
+            // is the whole point.
+            if (graceRemaining > 0f)
+            {
+                graceRemaining -= Time.deltaTime;
+                return;
+            }
+
+            SetFlow(Flow - (flowDrainPerSecond * Time.deltaTime));
         }
 
         /// <summary>
@@ -133,6 +153,7 @@ namespace ThinkFast.Economy
                 return;
             }
 
+            graceRemaining = flowDrainGraceSeconds;
             SetFlow(Flow + amount);
         }
 
@@ -178,6 +199,7 @@ namespace ThinkFast.Economy
             }
 
             Flow = 0f;
+            graceRemaining = 0f;
             FlowChanged?.Invoke(Flow);
 
             ActionPoints = Mathf.Clamp(startingActionPoints, 0, maxActionPoints);

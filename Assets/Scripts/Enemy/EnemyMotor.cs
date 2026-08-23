@@ -148,6 +148,18 @@ namespace ThinkFast.Enemy
         public float MaxRunSpeed => maxRunSpeed;
 
         /// <summary>
+        /// Sets the top run speed at runtime -- the difficulty ramp uses this to
+        /// speed the opponent up over a round. Clamped to non-negative. Note the
+        /// navigation helpers (<see cref="StoppingDistance"/>,
+        /// <see cref="HorizontalJumpDistance"/>) read the same field, so they
+        /// track the current speed as it ramps.
+        /// </summary>
+        public void SetMaxRunSpeed(float value)
+        {
+            maxRunSpeed = Mathf.Max(0f, value);
+        }
+
+        /// <summary>
         /// How far it keeps travelling after being told to stop, from full speed.
         /// Anything that asks the fighter to stand on a spot has to tolerate at
         /// least this much overshoot.
